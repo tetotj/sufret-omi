@@ -46,3 +46,6 @@
 - [x] Make the plus button visibly increment each meal quantity immediately
 - [x] Keep total cart meal count synchronized with per-meal increments
 - [x] Validate quantity sequence such as 1, 2, 3, and 5
+- [x] Add a visible minus button beside plus in meal rows
+- [x] Remove a meal from the cart when its quantity reaches zero
+- [x] Validate decrement behavior and synchronized totals
