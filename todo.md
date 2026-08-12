@@ -17,3 +17,7 @@
 - [x] Expand customer dashboard with shortcuts for orders, saved kitchens, addresses, and support
 - [x] Expand mother dashboard with live orders, menu management, earnings, CliQ payout, and kitchen status sections
 - [x] Validate login, role selection, dashboard navigation, and logout flows
+- [x] Add delivery driver role to authentication and role selection
+- [x] Build driver dashboard with availability toggle, active pickup, route/map, and delivery actions
+- [x] Connect driver status updates to the existing order tracking flow
+- [x] Validate driver login, dashboard actions, and delivery handoff flow

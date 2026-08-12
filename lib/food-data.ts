@@ -1,5 +1,5 @@
 export type Language = "ar" | "en";
-export type Role = "customer" | "mother";
+export type Role = "customer" | "mother" | "driver";
 export type Localized = { ar: string; en: string };
 export type CategoryId = "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona";
 export type RegionId = "amman" | "irbid" | "zarqa" | "salt" | "madaba";
@@ -238,6 +238,17 @@ export const t = (value: Localized, language: Language) => value[language];
 
 export const primaryKitchen = kitchens[0];
 export const primaryMeal = meals[0];
+export const sampleDriverOrder: Order = {
+  id: "SO-2408",
+  kitchen: primaryKitchen,
+  items: [{ meal: primaryMeal, quantity: 2 }],
+  total: 17,
+  paymentMethod: "cliq",
+  schedule: "now",
+  status: "ready",
+  eta: { ar: "خلال ٢٥ دقيقة", en: "Within 25 minutes" },
+};
+
 export const sampleIncomingOrder: Order = {
   id: "SO-2408",
   kitchen: primaryKitchen,

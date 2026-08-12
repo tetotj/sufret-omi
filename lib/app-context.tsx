@@ -12,6 +12,7 @@ import {
   Role,
   getKitchen,
   primaryKitchen,
+  sampleDriverOrder,
   sampleIncomingOrder,
   totalCart,
   unitCount,
@@ -32,6 +33,8 @@ type AppState = {
   incomingOrder: Order | null;
   toast: string | null;
   lastPayout: number | null;
+  driverAvailable: boolean;
+  driverOrder: Order | null;
 };
 
 type AppContextValue = AppState & {
@@ -51,6 +54,8 @@ type AppContextValue = AppState & {
   acceptIncomingOrder: () => void;
   rejectIncomingOrder: () => void;
   requestPayout: (amount: number) => void;
+  setDriverAvailable: (available: boolean) => void;
+  advanceDriverOrder: () => void;
   showToast: (message: string) => void;
   dismissToast: () => void;
   cartTotal: number;
@@ -73,6 +78,8 @@ const initialState: AppState = {
   incomingOrder: sampleIncomingOrder,
   toast: null,
   lastPayout: null,
+  driverAvailable: true,
+  driverOrder: sampleDriverOrder,
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -182,6 +189,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       requestPayout: (amount) => {
         setState((current) => ({ ...current, lastPayout: amount }));
         showToast(state.language === "ar" ? "طلب التحويل عبر CliQ قيد المعالجة" : "CliQ payout request is processing");
+      },
+      setDriverAvailable: (driverAvailable) => setState((current) => ({ ...current, driverAvailable })),
+      advanceDriverOrder: () => {
+        const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = {
+          received: "preparing",
+          preparing: "ready",
+          ready: "on_the_way",
+          on_the_way: "delivered",
+          delivered: "delivered",
+        };
+        setState((current) => current.driverOrder ? { ...current, driverOrder: { ...current.driverOrder, status: nextStatus[current.driverOrder.status] } } : current);
       },
       showToast,
       dismissToast: () => setState((current) => ({ ...current, toast: null })),
