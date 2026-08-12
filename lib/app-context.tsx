@@ -153,6 +153,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             schedule,
             status: "received",
             eta: schedule === "scheduled" ? { ar: "الجمعة، ١:٣٠ م", en: "Friday, 1:30 PM" } : { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
+            pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
+            dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+            pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
+            dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
           },
           cart: [],
         }));

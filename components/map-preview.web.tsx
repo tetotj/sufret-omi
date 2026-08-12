@@ -4,14 +4,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { useApp } from "@/lib/app-context";
-import { getLocalized, jordanMapPoints, regions } from "@/lib/food-data";
+import { getLocalized, jordanMapPoints, regions, type Coordinate } from "@/lib/food-data";
 
 type MapPreviewProps = {
   compact?: boolean;
   onSelectRegion?: (regionId: (typeof regions)[number]["id"]) => void;
+  pickupCoordinates?: Coordinate;
+  dropoffCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, onSelectRegion }: MapPreviewProps) {
+export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
@@ -49,12 +51,15 @@ export function MapPreview({ compact = false, onSelectRegion }: MapPreviewProps)
         <Text style={styles.mapTitle}>{getLocalized(selected.label, language)}</Text>
       </View>
       {jordanMapPoints.map((point, index) => (
-        <Pressable key={point.id} onPress={() => onSelectRegion?.(point.id as (typeof regions)[number]["id"])} style={[styles.pin, { left: `${22 + index * 19}%`, top: `${56 - (index % 2) * 19}%`, backgroundColor: point.color }]}>
+        <Pressable key={point.id} onPress={() => onSelectRegion?.(point.id as (typeof regions)[number]["id"])} style={[styles.pin, { left: `${22 + (index % 5) * 17}%`, top: `${56 - (Math.floor(index / 5) % 3) * 17}%`, backgroundColor: point.color }]}>
           <MaterialIcons name="restaurant" size={14} color="#fff" />
         </Pressable>
       ))}
+      {pickupCoordinates && <View style={[styles.driverPin, styles.driverPickupPin]}><MaterialIcons name="storefront" size={13} color="#FFFFFF" /></View>}
+      {dropoffCoordinates && <View style={[styles.driverPin, styles.driverDropoffPin]}><MaterialIcons name="location-on" size={13} color="#FFFFFF" /></View>}
       <View style={styles.mapLegend}><View style={styles.legendDot} /><Text style={styles.legendText}>{language === "ar" ? "متاح الآن" : "Open now"}</Text></View>
-      {!compact && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#C2410C" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
+      {pickupCoordinates && dropoffCoordinates && <View style={styles.coordinateBadge}><Text style={styles.coordinateBadgeTitle}>{language === "ar" ? "مسار التوصيل" : "Delivery route"}</Text><Text style={styles.coordinateBadgeText}>{dropoffCoordinates.latitude.toFixed(5)}, {dropoffCoordinates.longitude.toFixed(5)}</Text></View>}
+      {!compact && !dropoffCoordinates && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#C2410C" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
       <Pressable onPress={locateMe} style={({ pressed }) => [styles.locateButton, pressed && styles.pressed]}><MaterialIcons name={locating ? "hourglass-top" : "my-location"} size={16} color="#1C1917" /><Text style={styles.locateText}>{language === "ar" ? "موقعي" : "My location"}</Text></Pressable>
     </View>
   );
@@ -72,12 +77,18 @@ const styles = StyleSheet.create({
   mapMicro: { fontSize: 11, color: "#57534E", fontWeight: "700" },
   mapTitle: { fontSize: 23, color: "#1C1917", fontWeight: "900", marginTop: 2 },
   pin: { position: "absolute", height: 28, width: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#fff", shadowColor: "#1C1917", shadowOpacity: 0.2, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  driverPin: { position: "absolute", height: 32, width: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#FFFFFF", shadowColor: "#1C1917", shadowOpacity: 0.24, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
+  driverPickupPin: { left: "28%", top: "45%", backgroundColor: "#4D7C0F" },
+  driverDropoffPin: { left: "67%", top: "30%", backgroundColor: "#C2410C" },
   mapLegend: { position: "absolute", bottom: 14, left: 16, flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 7 },
   legendDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#4D7C0F" },
   legendText: { fontSize: 11, color: "#44403C", fontWeight: "700" },
   regionBadge: { position: "absolute", top: 16, right: 16, backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 17, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 7 },
   regionCaption: { fontSize: 10, color: "#78716C" },
   regionName: { fontSize: 12, color: "#1C1917", fontWeight: "800" },
+  coordinateBadge: { position: "absolute", top: 14, right: 14, backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8 },
+  coordinateBadgeTitle: { fontSize: 10, color: "#C2410C", fontWeight: "900" },
+  coordinateBadgeText: { fontSize: 10, color: "#57534E", marginTop: 2, fontVariant: ["tabular-nums"] },
   locateButton: { position: "absolute", bottom: 14, right: 16, backgroundColor: "#FFFFFF", borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 5, shadowColor: "#1C1917", shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   locateText: { fontSize: 11, color: "#1C1917", fontWeight: "800" },
   pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },

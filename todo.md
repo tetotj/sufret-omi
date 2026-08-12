@@ -25,3 +25,7 @@
 - [x] Add ascending and descending meal price sorting controls
 - [x] Keep region, category, search, and price sorting filters composable
 - [x] Validate nationwide region browsing and price ordering
+- [x] Add pickup and delivery coordinates to driver order data
+- [x] Open the map automatically or through a clear action after the driver accepts the order
+- [x] Show coordinate details and provide external navigation links for pickup and delivery
+- [x] Validate driver map opening and coordinate flow

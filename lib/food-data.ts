@@ -1,6 +1,7 @@
 export type Language = "ar" | "en";
 export type Role = "customer" | "mother" | "driver";
 export type Localized = { ar: string; en: string };
+export type Coordinate = { latitude: number; longitude: number };
 export type CategoryId = "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona";
 export type RegionId = "amman" | "irbid" | "zarqa" | "balqa" | "salt" | "madaba" | "jerash" | "ajloun" | "mafraq" | "karak" | "tafila" | "maan" | "aqaba";
 
@@ -63,6 +64,10 @@ export type Order = {
   schedule: "now" | "scheduled";
   status: OrderStatus;
   eta: Localized;
+  pickupCoordinates: Coordinate;
+  dropoffCoordinates: Coordinate;
+  pickupAddress: Localized;
+  dropoffAddress: Localized;
 };
 
 export const categories: Category[] = [
@@ -276,6 +281,10 @@ export const sampleDriverOrder: Order = {
   schedule: "now",
   status: "ready",
   eta: { ar: "خلال ٢٥ دقيقة", en: "Within 25 minutes" },
+  pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
+  dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+  pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
+  dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
 };
 
 export const sampleIncomingOrder: Order = {
@@ -287,4 +296,8 @@ export const sampleIncomingOrder: Order = {
   schedule: "scheduled",
   status: "received",
   eta: { ar: "غداً، ١:٣٠ م", en: "Tomorrow, 1:30 PM" },
+  pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
+  dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+  pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
+  dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
 };

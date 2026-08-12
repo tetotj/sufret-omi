@@ -5,17 +5,20 @@ import MapView, { Marker } from "react-native-maps";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { useApp } from "@/lib/app-context";
-import { getLocalized, jordanMapPoints, regions } from "@/lib/food-data";
+import { getLocalized, jordanMapPoints, regions, type Coordinate } from "@/lib/food-data";
 
 type MapPreviewProps = {
   compact?: boolean;
   onSelectRegion?: (regionId: (typeof regions)[number]["id"]) => void;
+  pickupCoordinates?: Coordinate;
+  dropoffCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, onSelectRegion }: MapPreviewProps) {
+export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
+  const mapFocus = dropoffCoordinates ?? pickupCoordinates ?? selected;
 
   const locateMe = async () => {
     setLocating(true);
@@ -39,7 +42,7 @@ export function MapPreview({ compact = false, onSelectRegion }: MapPreviewProps)
     <View style={[styles.nativeWrap, compact && styles.compactWrap]}>
       <MapView
         style={StyleSheet.absoluteFill}
-        initialRegion={{ latitude: selected.latitude, longitude: selected.longitude, latitudeDelta: 0.24, longitudeDelta: 0.2 }}
+        initialRegion={{ latitude: mapFocus.latitude, longitude: mapFocus.longitude, latitudeDelta: pickupCoordinates || dropoffCoordinates ? 0.04 : 0.24, longitudeDelta: pickupCoordinates || dropoffCoordinates ? 0.04 : 0.2 }}
         showsUserLocation
         showsMyLocationButton={false}
         toolbarEnabled={false}
@@ -47,6 +50,9 @@ export function MapPreview({ compact = false, onSelectRegion }: MapPreviewProps)
         {jordanMapPoints.map((point) => (
           <Marker key={point.id} coordinate={{ latitude: point.latitude, longitude: point.longitude }} title={getLocalized(point.label, language)} pinColor={point.color} onPress={() => onSelectRegion?.(point.id as (typeof regions)[number]["id"])} />
         ))}
+        {pickupCoordinates && <Marker coordinate={pickupCoordinates} title={language === "ar" ? "نقطة الاستلام" : "Pickup point"} description={`${pickupCoordinates.latitude.toFixed(5)}, ${pickupCoordinates.longitude.toFixed(5)}`} pinColor="#C2410C" />}
+        {dropoffCoordinates && <Marker coordinate={dropoffCoordinates} title={language === "ar" ? "نقطة التسليم" : "Drop-off point"} description={`${dropoffCoordinates.latitude.toFixed(5)}, ${dropoffCoordinates.longitude.toFixed(5)}`} pinColor="#4D7C0F" />}
+
       </MapView>
       {!compact && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#C2410C" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
       <Pressable onPress={locateMe} style={({ pressed }) => [styles.locateButton, pressed && styles.pressed]}><MaterialIcons name={locating ? "hourglass-top" : "my-location"} size={16} color="#1C1917" /><Text style={styles.locateText}>{language === "ar" ? "موقعي" : "My location"}</Text></Pressable>

@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as Linking from "expo-linking";
 
 import { MapPreview } from "@/components/map-preview";
 import { ScreenContainer } from "@/components/screen-container";
@@ -158,9 +159,27 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
   const currentStatus = driverOrder ? orderStatuses.find((status) => status.id === driverOrder.status) : null;
   const actionLabel = driverOrder?.status === "ready" ? (language === "ar" ? "استلمت الطلب من المطبخ" : "Picked up from kitchen") : driverOrder?.status === "on_the_way" ? (language === "ar" ? "تم التوصيل للعميلة" : "Delivered to customer") : language === "ar" ? "تحديث الحالة" : "Update status";
 
+  const openNavigation = async (destination: "pickup" | "dropoff") => {
+    if (!driverOrder) return;
+    const coordinates = destination === "pickup" ? driverOrder.pickupCoordinates : driverOrder.dropoffCoordinates;
+    const address = destination === "pickup" ? driverOrder.pickupAddress : driverOrder.dropoffAddress;
+    const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`;
+    try {
+      await Linking.openURL(url);
+      showToast(language === "ar" ? `تم فتح الخرائط: ${getLocalized(address, language)}` : `Maps opened: ${getLocalized(address, language)}`);
+    } catch {
+      showToast(language === "ar" ? "تعذر فتح تطبيق الخرائط" : "Could not open maps");
+    }
+  };
+
   const advance = () => {
+    const shouldNavigateToDropoff = driverOrder?.status === "ready";
     advanceDriverOrder();
-    showToast(language === "ar" ? "تم تحديث حالة التوصيل" : "Delivery status updated");
+    if (shouldNavigateToDropoff) {
+      void openNavigation("dropoff");
+    } else {
+      showToast(language === "ar" ? "تم تحديث حالة التوصيل" : "Delivery status updated");
+    }
   };
 
   return (
@@ -170,8 +189,12 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
         <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text></View>
-        <MapPreview />
-        <View style={styles.routeCard}><View style={styles.routeRow}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام" : "Pickup"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text></View></View><View style={styles.routeLine} /><View style={styles.routeRow}><View style={[styles.routeMarker, styles.routeMarkerDropoff]}><MaterialIcons name="location-on" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "تسليم" : "Drop-off"}</Text><Text style={styles.routeValue}>{language === "ar" ? "عبدون، شارع الأمير هاشم" : "Abdoun, Prince Hashem St."}</Text></View></View></View>
+        <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} />
+        <View style={styles.routeCard}>
+          <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text></View><MaterialIcons name="directions" size={20} color="#C2410C" /></Pressable>
+          <View style={styles.routeLine} />
+          <Pressable onPress={() => void openNavigation("dropoff")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerDropoff]}><MaterialIcons name="location-on" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "تسليم للعميلة" : "Drop-off"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.dropoffAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.dropoffCoordinates.latitude.toFixed(5)}, {driverOrder.dropoffCoordinates.longitude.toFixed(5)}</Text></View><MaterialIcons name="directions" size={20} color="#C2410C" /></Pressable>
+        </View>
         {driverOrder.status !== "delivered" ? <Pressable onPress={advance} style={({ pressed }) => [styles.driverActionButton, pressed && styles.pressed]}><MaterialIcons name={driverOrder.status === "ready" ? "shopping-bag" : "check-circle"} size={19} color="#FFFFFF" /><Text style={styles.driverActionButtonText}>{actionLabel}</Text></Pressable> : <View style={styles.driverDone}><MaterialIcons name="check-circle" size={21} color="#4D7C0F" /><Text style={styles.driverDoneText}>{language === "ar" ? "تمت التوصيلة بنجاح، يعطيك العافية" : "Delivery complete, great work"}</Text></View>}
       </> : <View style={styles.driverDone}><MaterialIcons name="coffee" size={21} color="#C2410C" /><Text style={styles.driverDoneText}>{language === "ar" ? "ما في طلبات قريبة حالياً" : "No nearby orders right now"}</Text></View>}
       <SectionHeader title={language === "ar" ? "مراحل التوصيل" : "Delivery steps"} action={language === "ar" ? "الدعم" : "Support"} onAction={() => showToast(language === "ar" ? "فريق الدعم معك" : "Support is here for you")} />
@@ -506,6 +529,7 @@ const styles = StyleSheet.create({
   routeCopy: { flex: 1 },
   routeLabel: { color: "#78716C", fontSize: 10, fontWeight: "800" },
   routeValue: { color: "#1C1917", fontSize: 12, fontWeight: "900", marginTop: 2 },
+  routeCoordinates: { color: "#A8A29E", fontSize: 10, marginTop: 3, fontVariant: ["tabular-nums"] },
   routeLine: { width: 2, height: 19, backgroundColor: "#D4E7B8", marginLeft: 14, marginVertical: 2 },
   driverActionButton: { minHeight: 52, borderRadius: 17, backgroundColor: "#B45309", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   driverActionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
