@@ -38,7 +38,7 @@ type ViewId = "home" | "explore" | "orders" | "profile" | "kitchen" | "cart" | "
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 export default function HomeScreen() {
-  const { language, role, toast, dismissToast, setRole } = useApp();
+  const { isAuthenticated, language, role, toast, dismissToast, setRole, signIn } = useApp();
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,6 +54,10 @@ export default function HomeScreen() {
     setCheckoutOpen(false);
   };
 
+  if (!isAuthenticated) {
+    return <LoginScreen onSignedIn={(nextRole) => { signIn(nextRole); setView(nextRole === "mother" ? "dashboard" : "home"); }} />;
+  }
+
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1">
       <View style={[styles.root, language === "ar" ? styles.rtl : styles.ltr]}>
@@ -62,11 +66,11 @@ export default function HomeScreen() {
         ) : view === "cart" ? (
           <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} />
         ) : view === "dashboard" ? (
-          <MotherDashboard onBack={() => go("home")} />
+          role === "mother" ? <MotherDashboard onBack={() => go("home")} /> : <CustomerDashboard onBack={() => go("home")} onNavigate={go} />
         ) : view === "orders" ? (
           <OrdersScreen onBack={() => go("home")} />
         ) : view === "profile" ? (
-          <ProfileScreen onRoleChange={changeRole} />
+          <ProfileScreen onRoleChange={changeRole} onDashboard={() => go("dashboard")} />
         ) : (
           <CustomerHome view={view} query={query} setQuery={setQuery} onNavigate={go} />
         )}
@@ -84,6 +88,64 @@ export default function HomeScreen() {
       </View>
       <CheckoutModal visible={checkoutOpen} onClose={() => setCheckoutOpen(false)} onComplete={() => { setCheckoutOpen(false); go("orders"); }} />
     </ScreenContainer>
+  );
+}
+
+function LoginScreen({ onSignedIn }: { onSignedIn: (role: "customer" | "mother") => void }) {
+  const { language, setLanguage } = useApp();
+  const [mode, setMode] = useState<"customer" | "mother">("customer");
+  const [isCreate, setIsCreate] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = () => {
+    if (phone.trim().length < 7 || password.trim().length < 4) {
+      setError(language === "ar" ? "اكتبي رقم الموبايل وكلمة مرور من ٤ أحرف على الأقل" : "Enter a mobile number and a password of at least 4 characters");
+      return;
+    }
+    setError("");
+    onSignedIn(mode);
+  };
+
+  return (
+    <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1">
+      <ScrollView contentContainerStyle={styles.loginScroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.loginTopRow}><Image source={require("@/assets/images/icon.png")} style={styles.loginIcon} /><Pressable onPress={() => setLanguage(language === "ar" ? "en" : "ar")} style={styles.loginLanguage}><Text style={styles.loginLanguageText}>{language === "ar" ? "English" : "العربية"}</Text></Pressable></View>
+        <View style={styles.loginBrand}><Text style={styles.loginBrandArabic}>سفرة أمي</Text><Text style={styles.loginBrandEnglish}>Sufret Omi</Text><Text style={styles.loginTagline}>{language === "ar" ? "من بيتنا لبيتك، بمحبة" : "From our home to yours, with care"}</Text></View>
+        <View style={styles.loginCard}>
+          <View style={styles.loginTabs}><Pressable onPress={() => setIsCreate(false)} style={[styles.loginTab, !isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, !isCreate && styles.loginTabTextActive]}>{language === "ar" ? "تسجيل الدخول" : "Log in"}</Text></Pressable><Pressable onPress={() => setIsCreate(true)} style={[styles.loginTab, isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, isCreate && styles.loginTabTextActive]}>{language === "ar" ? "حساب جديد" : "Create account"}</Text></Pressable></View>
+          <Text style={styles.loginTitle}>{isCreate ? (language === "ar" ? "أهلاً في سفرتك" : "Welcome to your table") : (language === "ar" ? "رجعنا نشتقنالك" : "Welcome back")}</Text>
+          <Text style={styles.loginSubtitle}>{isCreate ? (language === "ar" ? "خلّي أول طلب يبدأ من بيت أردني" : "Let your first order start at a Jordanian home") : (language === "ar" ? "دخّلي بياناتك وكمّلي لمة اليوم" : "Enter your details and continue your gathering")}</Text>
+          <Text style={styles.inputLabel}>{language === "ar" ? "رقم الموبايل" : "Mobile number"}</Text>
+          <View style={styles.inputWrap}><MaterialIcons name="phone-iphone" size={18} color="#C2410C" /><TextInput value={phone} onChangeText={setPhone} placeholder={language === "ar" ? "07X XXX XXXX" : "07X XXX XXXX"} placeholderTextColor="#A8A29E" keyboardType="phone-pad" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+          <Text style={styles.inputLabel}>{language === "ar" ? "كلمة المرور" : "Password"}</Text>
+          <View style={styles.inputWrap}><MaterialIcons name="lock-outline" size={18} color="#C2410C" /><TextInput value={password} onChangeText={setPassword} placeholder={language === "ar" ? "٤ أحرف على الأقل" : "At least 4 characters"} placeholderTextColor="#A8A29E" secureTextEntry style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+          {error ? <Text style={styles.loginError}>{error}</Text> : null}
+          <Text style={styles.rolePrompt}>{language === "ar" ? "كيف رح تستخدمي سفرة أمي؟" : "How will you use Sufret Omi?"}</Text>
+          <View style={styles.roleChoiceRow}><Pressable onPress={() => setMode("customer")} style={[styles.roleChoice, mode === "customer" && styles.roleChoiceActive]}><MaterialIcons name="restaurant" size={19} color={mode === "customer" ? "#FFFFFF" : "#C2410C"} /><Text style={[styles.roleChoiceText, mode === "customer" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطلب أكل" : "Order food"}</Text></Pressable><Pressable onPress={() => setMode("mother")} style={[styles.roleChoice, mode === "mother" && styles.roleChoiceActive]}><MaterialIcons name="storefront" size={19} color={mode === "mother" ? "#FFFFFF" : "#4D7C0F"} /><Text style={[styles.roleChoiceText, mode === "mother" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطبخ وأبيع" : "Cook & sell"}</Text></Pressable></View>
+          <Pressable onPress={submit} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{isCreate ? (language === "ar" ? "أنشئي حسابك" : "Create my account") : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi")}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
+          <Pressable onPress={() => onSignedIn("customer")} style={styles.guestButton}><Text style={styles.guestButtonText}>{language === "ar" ? "تصفّحي كضيفة" : "Continue as guest"}</Text></Pressable>
+        </View>
+        <View style={styles.loginTrust}><MaterialIcons name="verified-user" size={16} color="#4D7C0F" /><Text style={styles.loginTrustText}>{language === "ar" ? "بياناتك محفوظة، وطلباتك عند أمينة سفرة" : "Your data stays protected and your orders stay cared for"}</Text></View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+function CustomerDashboard({ onBack, onNavigate }: { onBack: () => void; onNavigate: (view: ViewId) => void }) {
+  const { language, activeOrder, selectedKitchen, cartCount, signOut } = useApp();
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#1C1917" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "لوحة سفرتي" : "MY TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "أهلاً سارة" : "Hello Sara"}</Text></View><Pressable onPress={signOut} style={styles.logoutButton}><MaterialIcons name="logout" size={17} color="#C2410C" /><Text style={styles.logoutText}>{language === "ar" ? "خروج" : "Log out"}</Text></Pressable></View>
+      <View style={styles.customerDashHero}><View><Text style={styles.customerDashOverline}>{language === "ar" ? "لمّتك الجاية" : "Your next gathering"}</Text><Text style={styles.customerDashTitle}>{activeOrder ? (language === "ar" ? "طلبك بالطريق" : "Your order is moving") : (language === "ar" ? "اختاري طبخة للعيلة" : "Pick a family meal")}</Text><Text style={styles.customerDashBody}>{activeOrder ? `${activeOrder.id} · ${getLocalized(activeOrder.eta, language)}` : (language === "ar" ? "مطابخ بيتية قريبة منك" : "Home kitchens close to you")}</Text></View><View style={styles.customerDashIcon}><MaterialIcons name={activeOrder ? "two-wheeler" : "restaurant"} size={30} color="#C2410C" /></View></View>
+      <View style={styles.dashboardGrid}><DashboardTile icon="receipt-long" title={language === "ar" ? "طلباتي" : "My orders"} detail={activeOrder ? (language === "ar" ? "طلب نشط" : "1 active") : (language === "ar" ? "شوفي السابق" : "See history")} onPress={() => onNavigate("orders")} /><DashboardTile icon="favorite-border" title={language === "ar" ? "مطابخي" : "Saved kitchens"} detail={language === "ar" ? "٣ مطابخ" : "3 saved"} onPress={() => onNavigate("kitchen")} /><DashboardTile icon="location-on" title={language === "ar" ? "عناويني" : "Addresses"} detail={language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"} onPress={() => onNavigate("home")} /><DashboardTile icon="support-agent" title={language === "ar" ? "مساعدة" : "Support"} detail={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /></View>
+      <SectionHeader title={language === "ar" ? "طلبك الحالي" : "Your current order"} action={language === "ar" ? "كل الطلبات" : "All orders"} onAction={() => onNavigate("orders")} />
+      {activeOrder ? <Pressable onPress={() => onNavigate("orders")} style={styles.customerOrderCard}><View style={styles.customerOrderIcon}><MaterialIcons name="soup-kitchen" size={20} color="#4D7C0F" /></View><View style={styles.customerOrderCopy}><Text style={styles.customerOrderTitle}>{getLocalized(activeOrder.kitchen.name, language)}</Text><Text style={styles.customerOrderBody}>{activeOrder.id} · {getLocalized(activeOrder.eta, language)}</Text></View><MaterialIcons name="chevron-right" size={20} color="#4D7C0F" /></Pressable> : <Pressable onPress={() => onNavigate("home")} style={styles.customerOrderCard}><View style={styles.customerOrderIcon}><MaterialIcons name="add-circle-outline" size={20} color="#C2410C" /></View><View style={styles.customerOrderCopy}><Text style={styles.customerOrderTitle}>{language === "ar" ? "ابدئي أول طلب" : "Start your first order"}</Text><Text style={styles.customerOrderBody}>{language === "ar" ? "اختاري من مطابخ أمهات الأردن" : "Choose from Jordanian home kitchens"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#C2410C" /></Pressable>}
+      <SectionHeader title={language === "ar" ? "اقتراح أمينة سفرة" : "A table pick for you"} action={language === "ar" ? "افتحي المطبخ" : "Open kitchen"} onAction={() => onNavigate("kitchen")} />
+      <Pressable onPress={() => onNavigate("kitchen")} style={styles.recommendedKitchen}><Image source={{ uri: selectedKitchen.image }} style={styles.recommendedKitchenImage} /><View style={styles.recommendedKitchenOverlay} /><View style={styles.recommendedKitchenCopy}><Text style={styles.recommendedKitchenEyebrow}>{language === "ar" ? "الأكثر طلباً حولك" : "Most loved near you"}</Text><Text style={styles.recommendedKitchenName}>{getLocalized(selectedKitchen.name, language)}</Text><Text style={styles.recommendedKitchenMeta}>{getLocalized(selectedKitchen.neighborhood, language)} · 4.9 ★</Text></View></Pressable>
+      <View style={styles.dashboardFootnote}><MaterialIcons name="shopping-basket" size={17} color="#C2410C" /><Text style={styles.dashboardFootnoteText}>{cartCount > 0 ? (language === "ar" ? `${cartCount} أصناف بانتظارك في السفرة` : `${cartCount} items waiting in your cart`) : (language === "ar" ? "كل طلب بيحكي حكاية بيت" : "Every order tells a home story")}</Text></View>
+    </ScrollView>
   );
 }
 
@@ -315,9 +377,9 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ProfileScreen({ onRoleChange }: { onRoleChange: () => void }) {
-  const { language, setLanguage, selectedRegion, setSelectedRegion } = useApp();
-  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#C2410C" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={() => setSelectedRegion(selectedRegion === "amman" ? "irbid" : "amman")} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} /><SettingRow icon="help-outline" label={language === "ar" ? "مساعدة سفرتي" : "Sufret Omi help"} value={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
+function ProfileScreen({ onRoleChange, onDashboard }: { onRoleChange: () => void; onDashboard: () => void }) {
+  const { language, setLanguage, selectedRegion, setSelectedRegion, signOut } = useApp();
+  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#C2410C" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><Pressable onPress={onDashboard} style={styles.profileDashboardCard}><View style={styles.profileDashboardIcon}><MaterialIcons name="dashboard" size={20} color="#FFFFFF" /></View><View style={styles.profileDashboardCopy}><Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text><Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#FFFFFF" /></Pressable><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={() => setSelectedRegion(selectedRegion === "amman" ? "irbid" : "amman")} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} /><SettingRow icon="help-outline" label={language === "ar" ? "مساعدة سفرتي" : "Sufret Omi help"} value={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /><SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
 }
 
 function BottomNav({ active, onNavigate, role, language }: { active: ViewId; onNavigate: (view: ViewId) => void; role: "customer" | "mother"; language: "ar" | "en" }) {
@@ -341,6 +403,7 @@ function StatItem({ icon, value, label }: { icon: IconName; value: string; label
 function SummaryRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) { return <View style={styles.summaryRow}><Text style={[styles.summaryLabel, strong && styles.summaryStrong]}>{label}</Text><Text style={[styles.summaryValue, strong && styles.summaryStrong]}>{value}</Text></View>; }
 function OptionCard({ selected, onPress, icon, title, subtitle }: { selected: boolean; onPress: () => void; icon: IconName; title: string; subtitle: string }) { return <Pressable onPress={onPress} style={[styles.optionCard, selected && styles.optionCardActive]}><MaterialIcons name={icon} size={19} color={selected ? "#FFFFFF" : "#C2410C"} /><Text style={[styles.optionCardTitle, selected && styles.optionCardTitleActive]}>{title}</Text><Text style={[styles.optionCardSubtitle, selected && styles.optionCardSubtitleActive]}>{subtitle}</Text></Pressable>; }
 function DashboardMetric({ label, value, icon }: { label: string; value: string; icon: IconName }) { return <View style={styles.dashboardMetric}><MaterialIcons name={icon} size={17} color="#C2410C" /><Text style={styles.dashboardMetricValue}>{value}</Text><Text style={styles.dashboardMetricLabel}>{label}</Text></View>; }
+function DashboardTile({ icon, title, detail, onPress }: { icon: IconName; title: string; detail: string; onPress: () => void }) { return <Pressable onPress={onPress} style={({ pressed }) => [styles.dashboardTile, pressed && styles.pressed]}><View style={styles.dashboardTileIcon}><MaterialIcons name={icon} size={18} color="#C2410C" /></View><View><Text style={styles.dashboardTileTitle}>{title}</Text><Text style={styles.dashboardTileDetail}>{detail}</Text></View></Pressable>; }
 function DashboardAction({ icon, title, detail, onPress }: { icon: IconName; title: string; detail: string; onPress: () => void }) { return <Pressable onPress={onPress} style={({ pressed }) => [styles.dashboardAction, pressed && styles.pressed]}><View style={styles.dashboardActionIcon}><MaterialIcons name={icon} size={19} color="#C2410C" /></View><View style={styles.dashboardActionCopy}><Text style={styles.dashboardActionTitle}>{title}</Text><Text style={styles.dashboardActionDetail}>{detail}</Text></View><MaterialIcons name="chevron-right" size={20} color="#A8A29E" /></Pressable>; }
 function SettingRow({ icon, label, value, onPress }: { icon: IconName; label: string; value: string; onPress: () => void }) { return <Pressable onPress={onPress} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.settingIcon}><MaterialIcons name={icon} size={19} color="#C2410C" /></View><Text style={styles.settingLabel}>{label}</Text><Text style={styles.settingValue}>{value}</Text><MaterialIcons name="chevron-right" size={19} color="#A8A29E" /></Pressable>; }
 function EmptyState({ language }: { language: "ar" | "en" }) { return <View style={styles.emptyState}><MaterialIcons name="search-off" size={30} color="#C2410C" /><Text style={styles.emptyTitle}>{language === "ar" ? "ما لقينا هالطبخة" : "No meals found"}</Text><Text style={styles.emptyBody}>{language === "ar" ? "جرّبي كلمة ثانية أو شيلي الفلتر" : "Try another search or clear the filter"}</Text></View>; }
@@ -348,6 +411,63 @@ function EmptyCart({ language, onBack }: { language: "ar" | "en"; onBack: () => 
 function EmptyOrders({ language, onBack }: { language: "ar" | "en"; onBack: () => void }) { return <View style={styles.emptyState}><MaterialIcons name="receipt-long" size={34} color="#C2410C" /><Text style={styles.emptyTitle}>{language === "ar" ? "لسه ما في طلبات" : "No orders yet"}</Text><Text style={styles.emptyBody}>{language === "ar" ? "أول طلب بيبدأ من مطبخ بيت" : "Your first order starts at a home kitchen"}</Text><Pressable onPress={onBack} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{language === "ar" ? "اكتشفي الأكلات" : "Discover meals"}</Text></Pressable></View>; }
 
 const styles = StyleSheet.create({
+  loginScroll: { flexGrow: 1, padding: 20, paddingBottom: 38, justifyContent: "center", gap: 16 },
+  loginTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  loginIcon: { width: 48, height: 48, borderRadius: 15 },
+  loginLanguage: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 16, backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9" },
+  loginLanguageText: { color: "#C2410C", fontSize: 11, fontWeight: "900" },
+  loginBrand: { alignItems: "center", gap: 2, paddingVertical: 5 },
+  loginBrandArabic: { color: "#C2410C", fontSize: 32, fontWeight: "900" },
+  loginBrandEnglish: { color: "#1C1917", fontSize: 16, fontWeight: "900", letterSpacing: 1.2 },
+  loginTagline: { color: "#78716C", fontSize: 11, marginTop: 4 },
+  loginCard: { backgroundColor: "#FFFFFF", borderRadius: 24, borderWidth: 1, borderColor: "#E7DCD6", padding: 17, gap: 10, shadowColor: "#1C1917", shadowOpacity: 0.06, shadowRadius: 13, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+  loginTabs: { flexDirection: "row", backgroundColor: "#F7F2EF", borderRadius: 13, padding: 3, gap: 4 },
+  loginTab: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: "center" },
+  loginTabActive: { backgroundColor: "#C2410C" },
+  loginTabText: { color: "#78716C", fontSize: 11, fontWeight: "900" },
+  loginTabTextActive: { color: "#FFFFFF" },
+  loginTitle: { color: "#1C1917", fontSize: 22, fontWeight: "900", marginTop: 5 },
+  loginSubtitle: { color: "#78716C", fontSize: 11, lineHeight: 17, marginBottom: 3 },
+  inputLabel: { color: "#57534E", fontSize: 11, fontWeight: "900", marginTop: 2 },
+  inputWrap: { height: 47, borderRadius: 15, borderWidth: 1, borderColor: "#E7DCD6", backgroundColor: "#FDF8F6", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
+  loginInput: { flex: 1, color: "#1C1917", fontSize: 13, paddingVertical: 0 },
+  loginError: { color: "#B91C1C", fontSize: 10, fontWeight: "800", lineHeight: 15 },
+  rolePrompt: { color: "#1C1917", fontSize: 11, fontWeight: "900", marginTop: 4 },
+  roleChoiceRow: { flexDirection: "row", gap: 8 },
+  roleChoice: { flex: 1, minHeight: 54, borderRadius: 15, borderWidth: 1, borderColor: "#E7DCD6", backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", gap: 4 },
+  roleChoiceActive: { backgroundColor: "#C2410C", borderColor: "#C2410C" },
+  roleChoiceText: { color: "#57534E", fontSize: 11, fontWeight: "900" },
+  roleChoiceTextActive: { color: "#FFFFFF" },
+  guestButton: { alignItems: "center", paddingVertical: 6 },
+  guestButtonText: { color: "#C2410C", fontSize: 11, fontWeight: "900" },
+  loginTrust: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 12 },
+  loginTrustText: { color: "#4D7C0F", fontSize: 10, fontWeight: "800", textAlign: "center", flex: 1 },
+  logoutButton: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FFF1EC", borderRadius: 13, paddingHorizontal: 9, paddingVertical: 8 },
+  logoutText: { color: "#C2410C", fontSize: 10, fontWeight: "900" },
+  customerDashHero: { borderRadius: 23, padding: 18, backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  customerDashOverline: { color: "#C2410C", fontSize: 10, fontWeight: "900" },
+  customerDashTitle: { color: "#1C1917", fontSize: 22, fontWeight: "900", marginTop: 5 },
+  customerDashBody: { color: "#9A3412", fontSize: 11, marginTop: 4 },
+  customerDashIcon: { width: 62, height: 62, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  dashboardGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
+  dashboardTile: { width: "48%", minHeight: 92, borderRadius: 18, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E7DCD6", padding: 12, gap: 8 },
+  dashboardTileIcon: { width: 33, height: 33, borderRadius: 12, backgroundColor: "#FFF1EC", alignItems: "center", justifyContent: "center" },
+  dashboardTileTitle: { color: "#1C1917", fontSize: 12, fontWeight: "900" },
+  dashboardTileDetail: { color: "#78716C", fontSize: 10, marginTop: 2 },
+  customerOrderCard: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EFF6E6", borderRadius: 18, borderWidth: 1, borderColor: "#D4E7B8", padding: 12 },
+  customerOrderIcon: { width: 38, height: 38, borderRadius: 14, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  customerOrderCopy: { flex: 1 },
+  customerOrderTitle: { color: "#1C1917", fontSize: 12, fontWeight: "900" },
+  customerOrderBody: { color: "#4D7C0F", fontSize: 10, marginTop: 3 },
+  recommendedKitchen: { height: 148, borderRadius: 20, overflow: "hidden", position: "relative" },
+  recommendedKitchenImage: { width: "100%", height: "100%" },
+  recommendedKitchenOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(28,25,23,0.32)" },
+  recommendedKitchenCopy: { position: "absolute", left: 15, right: 15, bottom: 14 },
+  recommendedKitchenEyebrow: { color: "#FED7AA", fontSize: 10, fontWeight: "900" },
+  recommendedKitchenName: { color: "#FFFFFF", fontSize: 20, fontWeight: "900", marginTop: 3 },
+  recommendedKitchenMeta: { color: "#F5F5F4", fontSize: 11, marginTop: 3 },
+  dashboardFootnote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: 3 },
+  dashboardFootnoteText: { color: "#78716C", fontSize: 10, fontWeight: "800" },
   root: { flex: 1, backgroundColor: "#FDF8F6" },
   rtl: { direction: "rtl" },
   ltr: { direction: "ltr" },
@@ -577,6 +697,11 @@ const styles = StyleSheet.create({
   cliqCopy: { flex: 1 },
   cliqTitle: { color: "#1C1917", fontSize: 12, fontWeight: "900" },
   cliqBody: { color: "#4D7C0F", fontSize: 10, marginTop: 3 },
+  profileDashboardCard: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#4D7C0F", borderRadius: 19, padding: 13 },
+  profileDashboardIcon: { width: 38, height: 38, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  profileDashboardCopy: { flex: 1 },
+  profileDashboardTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
+  profileDashboardBody: { color: "#E2F3C5", fontSize: 10, marginTop: 3 },
   profileHeader: { flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: 4 },
   profileAvatar: { width: 50, height: 50, borderRadius: 17 },
   profileGreeting: { color: "#1C1917", fontSize: 17, fontWeight: "900" },

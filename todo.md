@@ -2,13 +2,18 @@
 
 - [x] Initialize project scaffold and theme configuration
 - [x] Write mobile app design plan (`design.md`)
-- [ ] Configure Tailwind theme with Jordanian culinary palette (Terracotta, Beige, Olive)
-- [ ] Implement bilingual localization context (Arabic / English)
-- [ ] Create role switcher (Customer vs. Mother / Kitchen)
-- [ ] Build Customer Home screen with regional filters (Amman, Irbid, Zarqa) and category pills
-- [ ] Build Kitchen Profile screen with meal listings and advance scheduling options
-- [ ] Build interactive Cart & Checkout screen with local payment methods (Cash on Delivery, E-Wallets, CliQ integration)
-- [ ] Build Real-time Multi-step Order Tracking screen
-- [ ] Build Mother's Kitchen Dashboard with Open/Closed toggle and order workflow
-- [ ] Build Menu Management and Earnings/CliQ payout screens
-- [ ] Validate complete end-to-end user flows and verify mobile responsiveness
+- [x] Configure Tailwind theme with Jordanian culinary palette (Terracotta, Beige, Olive)
+- [x] Implement bilingual localization context (Arabic / English)
+- [x] Create role switcher (Customer vs. Mother / Kitchen)
+- [x] Build Customer Home screen with regional filters (Amman, Irbid, Zarqa) and category pills
+- [x] Build Kitchen Profile screen with meal listings and advance scheduling options
+- [x] Build interactive Cart & Checkout screen with local payment methods (Cash on Delivery, E-Wallets, CliQ integration)
+- [x] Build Real-time Multi-step Order Tracking screen
+- [x] Build Mother's Kitchen Dashboard with Open/Closed toggle and order workflow
+- [x] Build Menu Management and Earnings/CliQ payout screens
+- [x] Validate complete end-to-end user flows and verify mobile responsiveness
+- [x] Add bilingual Arabic/English login screen with mobile number, password, and guest entry
+- [x] Persist signed-in state and add logout action
+- [x] Expand customer dashboard with shortcuts for orders, saved kitchens, addresses, and support
+- [x] Expand mother dashboard with live orders, menu management, earnings, CliQ payout, and kitchen status sections
+- [x] Validate login, role selection, dashboard navigation, and logout flows

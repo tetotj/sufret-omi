@@ -20,6 +20,7 @@ import {
 const STORAGE_KEY = "sufret-omi-session-v1";
 
 type AppState = {
+  isAuthenticated: boolean;
   language: Language;
   role: Role;
   selectedRegion: RegionId;
@@ -34,6 +35,8 @@ type AppState = {
 };
 
 type AppContextValue = AppState & {
+  signIn: (role: Role) => void;
+  signOut: () => void;
   setLanguage: (language: Language) => void;
   setRole: (role: Role) => void;
   setSelectedRegion: (region: RegionId) => void;
@@ -58,6 +61,7 @@ type AppContextValue = AppState & {
 const AppContext = createContext<AppContextValue | null>(null);
 
 const initialState: AppState = {
+  isAuthenticated: false,
   language: "ar",
   role: "customer",
   selectedRegion: "amman",
@@ -100,6 +104,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return {
       ...state,
       selectedKitchen: getKitchen(state.selectedKitchenId),
+      signIn: (role) => setState((current) => ({ ...current, isAuthenticated: true, role })),
+      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, cart: [], activeOrder: null })),
       cartTotal: totalCart(state.cart),
       cartCount: unitCount(state.cart),
       setLanguage: (language) => setState((current) => ({ ...current, language })),
