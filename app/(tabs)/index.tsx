@@ -20,6 +20,7 @@ import {
   categories,
   formatJod,
   getCategory,
+  getKitchenDistanceKm,
   getKitchenMeals,
   getLocalized,
   getMeal,
@@ -36,12 +37,12 @@ import {
   unitCount,
 } from "@/lib/food-data";
 
-type ViewId = "home" | "explore" | "orders" | "profile" | "kitchen" | "cart" | "dashboard" | "delivery";
+type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" | "kitchen" | "cart" | "dashboard" | "delivery";
 
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 export default function HomeScreen() {
-  const { isAuthenticated, language, role, toast, dismissToast, setRole, signIn } = useApp();
+  const { isAuthenticated, language, role, toast, dismissToast, setRole, signIn, setSelectedKitchenId } = useApp();
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -64,7 +65,11 @@ export default function HomeScreen() {
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1">
       <View style={[styles.root, language === "ar" ? styles.rtl : styles.ltr]}>
-        {view === "kitchen" ? (
+        {view === "discover" ? (
+          <DiscoverMapScreen onBack={() => go("home")} onOpenMeals={() => go("meals")} />
+        ) : view === "meals" ? (
+          <MealsScreen onBack={() => go("home")} onOpenKitchen={(kitchenId) => { setView("kitchen"); setSelectedKitchenId(kitchenId); }} />
+        ) : view === "kitchen" ? (
           <KitchenProfile onBack={() => go("home")} onCart={() => go("cart")} />
         ) : view === "cart" ? (
           <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} />
@@ -80,7 +85,7 @@ export default function HomeScreen() {
           <CustomerHome view={view} query={query} setQuery={setQuery} onNavigate={go} />
         )}
 
-        {view !== "kitchen" && view !== "cart" && view !== "dashboard" && view !== "delivery" && (
+        {view !== "kitchen" && view !== "cart" && view !== "dashboard" && view !== "delivery" && view !== "discover" && view !== "meals" && (
           <BottomNav active={view} onNavigate={go} role={role} language={language} />
         )}
 
@@ -203,6 +208,33 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
   );
 }
 
+function DiscoverMapScreen({ onBack, onOpenMeals }: { onBack: () => void; onOpenMeals: () => void }) {
+  const { language, selectedRegion, setSelectedRegion } = useApp();
+  const region = getRegion(selectedRegion);
+  const nearbyKitchens = useMemo(() => [...kitchens].sort((left, right) => getKitchenDistanceKm(left, region) - getKitchenDistanceKm(right, region)).slice(0, 3), [region]);
+
+  return (
+    <View style={styles.fullScreenPage}>
+      <View style={styles.fullScreenHeader}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#1C1917" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "اكتشفني" : "DISCOVER"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "مطابخ حولك" : "Kitchens around you"}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="near-me" size={15} color="#4D7C0F" /><Text style={styles.mapHeaderBadgeText}>{getLocalized(region.label, language)}</Text></View></View>
+      <View style={styles.fullMapArea}><MapPreview fullScreen onSelectRegion={(regionId) => { setSelectedRegion(regionId); }} /></View>
+      <View style={styles.discoverSheet}><View style={styles.discoverSheetHandle} /><View style={styles.discoverSheetTop}><View><Text style={styles.discoverEyebrow}>{language === "ar" ? "الأقرب أولاً" : "NEAREST FIRST"}</Text><Text style={styles.discoverTitle}>{language === "ar" ? `أقرب مطابخ من ${getLocalized(region.label, language)}` : `Closest kitchens to ${getLocalized(region.label, language)}`}</Text></View><Text style={styles.discoverCount}>{kitchens.length} {language === "ar" ? "مطبخ" : "kitchens"}</Text></View><View style={styles.nearbyPreviewRow}>{nearbyKitchens.map((kitchen) => <View key={kitchen.id} style={styles.nearbyPreview}><View style={[styles.nearbyPreviewDot, { backgroundColor: kitchen.accent }]} /><View style={styles.nearbyPreviewCopy}><Text style={styles.nearbyPreviewName} numberOfLines={1}>{getLocalized(kitchen.name, language)}</Text><Text style={styles.nearbyPreviewDistance}>{getKitchenDistanceKm(kitchen, region).toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View><Pressable onPress={onOpenMeals} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "شاهدي كل الأكلات القريبة" : "See all nearby meals"}</Text><MaterialIcons name="restaurant-menu" size={18} color="#FFFFFF" /></Pressable></View>
+    </View>
+  );
+}
+
+function MealsScreen({ onBack, onOpenKitchen }: { onBack: () => void; onOpenKitchen: (kitchenId: string) => void }) {
+  const { language, selectedRegion, selectedCategory, setSelectedCategory, addToCart, cartCount, cartTotal } = useApp();
+  const region = getRegion(selectedRegion);
+  const nearbyMeals = useMemo(() => meals.filter((meal) => selectedCategory === "all" || meal.category === selectedCategory).map((meal) => {
+    const kitchen = kitchens.find((item) => item.id === meal.kitchenId) ?? kitchens[0];
+    return { meal, kitchen, distance: getKitchenDistanceKm(kitchen, region) };
+  }).sort((left, right) => left.distance - right.distance), [region, selectedCategory]);
+
+  return (
+    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#1C1917" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "من الأقرب للأبعد" : "Nearest to farthest"}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="near-me" size={15} color="#4D7C0F" /><Text style={styles.mapHeaderBadgeText}>{getLocalized(region.label, language)}</Text></View></View><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => addToCart(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#4D7C0F" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="near-me" size={12} color="#C2410C" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View>{cartCount > 0 && <Pressable onPress={() => undefined} style={styles.floatingCart}><View><Text style={styles.floatingCartEyebrow}>{language === "ar" ? `${cartCount} أصناف` : `${cartCount} items`}</Text><Text style={styles.floatingCartPrice}>{formatJod(cartTotal + 1.25, language)}</Text></View><Text style={styles.floatingCartCta}>{language === "ar" ? "في السفرة" : "In cart"}</Text></Pressable>}</ScrollView></View>
+  );
+}
+
 function CustomerHome({
   view,
   query,
@@ -318,7 +350,7 @@ function CustomerHome({
         </View>
       )}
 
-      <SectionHeader title={language === "ar" ? "شو نفسِك اليوم؟" : "What are you craving?"} action={language === "ar" ? "الكل" : "See all"} />
+      <SectionHeader title={language === "ar" ? "شو نفسِك اليوم؟" : "What are you craving?"} action={language === "ar" ? "الكل" : "See all"} onAction={() => onNavigate("meals")} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
         <CategoryPill label={language === "ar" ? "الكل" : "All"} icon="apps" color="#C2410C" selected={selectedCategory === "all"} onPress={() => setSelectedCategory("all")} />
         {categories.map((category) => (
@@ -326,7 +358,7 @@ function CustomerHome({
         ))}
       </ScrollView>
 
-      <SectionHeader title={language === "ar" ? `حول ${regionScope === "all" ? "كل المملكة" : getLocalized(region.label, language)}` : regionScope === "all" ? "Around all Jordan" : `Around ${getLocalized(region.label, language)}`} action={language === "ar" ? "الخريطة" : "Map"} onAction={() => onNavigate("explore")} />
+      <SectionHeader title={language === "ar" ? `حول ${regionScope === "all" ? "كل المملكة" : getLocalized(region.label, language)}` : regionScope === "all" ? "Around all Jordan" : `Around ${getLocalized(region.label, language)}`} action={language === "ar" ? "الخريطة" : "Map"} onAction={() => onNavigate("discover")} />
       <MapPreview compact onSelectRegion={(regionId) => { setSelectedRegion(regionId); setRegionScope(regionId); }} />
 
       {activeOrder && (
@@ -336,7 +368,7 @@ function CustomerHome({
         </Pressable>
       )}
 
-      <SectionHeader title={language === "ar" ? "مطابخ بتحبّوها" : "Loved home kitchens"} action={language === "ar" ? "شوفي الكل" : "See all"} />
+      <SectionHeader title={language === "ar" ? "مطابخ بتحبّوها" : "Loved home kitchens"} action={language === "ar" ? "شوفي الكل" : "See all"} onAction={() => onNavigate("discover")} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kitchenRow}>
         {visibleKitchens.map((kitchen) => (
           <Pressable key={kitchen.id} onPress={() => openKitchen(kitchen.id)} style={({ pressed }) => [styles.kitchenCard, pressed && styles.pressed]}>
@@ -450,7 +482,7 @@ function ProfileScreen({ onRoleChange, onDashboard }: { onRoleChange: () => void
 }
 
 function BottomNav({ active, onNavigate, role, language }: { active: ViewId; onNavigate: (view: ViewId) => void; role: Role; language: "ar" | "en" }) {
-  const items: { id: ViewId; label: string; icon: IconName }[] = [{ id: "home", label: language === "ar" ? "الرئيسية" : "Home", icon: "home" }, { id: "explore", label: language === "ar" ? "اكتشفي" : "Explore", icon: "explore" }, { id: "orders", label: language === "ar" ? "طلباتي" : "Orders", icon: "receipt-long" }, { id: "profile", label: language === "ar" ? "حسابي" : "Profile", icon: "person-outline" }];
+  const items: { id: ViewId; label: string; icon: IconName }[] = [{ id: "home", label: language === "ar" ? "الرئيسية" : "Home", icon: "home" }, { id: "discover", label: language === "ar" ? "اكتشفي" : "Explore", icon: "explore" }, { id: "orders", label: language === "ar" ? "طلباتي" : "Orders", icon: "receipt-long" }, { id: "profile", label: language === "ar" ? "حسابي" : "Profile", icon: "person-outline" }];
   return <View style={styles.bottomNav}>{items.map((item) => <Pressable key={item.id} onPress={() => onNavigate(item.id)} style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}><MaterialIcons name={item.icon} size={21} color={active === item.id ? "#C2410C" : "#A8A29E"} /><Text style={[styles.navLabel, active === item.id && styles.navLabelActive]}>{item.label}</Text></Pressable>)}<View style={styles.navBrandDot}><MaterialIcons name={role === "mother" ? "storefront" : "restaurant"} size={18} color="#FFFFFF" /></View></View>;
 }
 
@@ -535,6 +567,34 @@ const styles = StyleSheet.create({
   driverActionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
   driverDone: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#EFF6E6", borderRadius: 16, padding: 13 },
   driverDoneText: { color: "#4D7C0F", fontSize: 11, fontWeight: "900" },
+  fullScreenPage: { flex: 1, backgroundColor: "#FDF8F6" },
+  fullScreenHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 },
+  fullScreenHeaderCopy: { flex: 1 },
+  mapHeaderBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#EFF6E6", borderRadius: 14, paddingHorizontal: 9, paddingVertical: 7 },
+  mapHeaderBadgeText: { color: "#4D7C0F", fontSize: 10, fontWeight: "900" },
+  fullMapArea: { flex: 1, minHeight: 360 },
+  discoverSheet: { backgroundColor: "#FDF8F6", borderTopLeftRadius: 28, borderTopRightRadius: 28, borderTopWidth: 1, borderColor: "#E7DCD6", padding: 16, gap: 12 },
+  discoverSheetHandle: { width: 38, height: 4, borderRadius: 3, backgroundColor: "#D6D3D1", alignSelf: "center" },
+  discoverSheetTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 },
+  discoverEyebrow: { color: "#C2410C", fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  discoverTitle: { color: "#1C1917", fontSize: 17, fontWeight: "900", marginTop: 3 },
+  discoverCount: { color: "#78716C", fontSize: 10, fontWeight: "800", marginTop: 3 },
+  nearbyPreviewRow: { flexDirection: "row", gap: 8 },
+  nearbyPreview: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, padding: 9, backgroundColor: "#FFFFFF", borderRadius: 14, borderWidth: 1, borderColor: "#E7DCD6" },
+  nearbyPreviewDot: { width: 8, height: 8, borderRadius: 4 },
+  nearbyPreviewCopy: { flex: 1 },
+  nearbyPreviewName: { color: "#1C1917", fontSize: 10, fontWeight: "900" },
+  nearbyPreviewDistance: { color: "#78716C", fontSize: 9, marginTop: 2 },
+  mealsIntro: { padding: 15, borderRadius: 20, backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9", gap: 4 },
+  mealsIntroTitle: { color: "#1C1917", fontSize: 19, fontWeight: "900" },
+  mealsIntroBody: { color: "#9A3412", fontSize: 11, lineHeight: 17 },
+  nearbySectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 },
+  nearbySortLabel: { color: "#4D7C0F", fontSize: 10, fontWeight: "900" },
+  nearbyMealBlock: { gap: 6 },
+  nearbyMealMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 8 },
+  nearbyKitchenLink: { flexDirection: "row", alignItems: "center", gap: 4 },
+  nearbyKitchenLinkText: { color: "#4D7C0F", fontSize: 10, fontWeight: "900" },
+  nearbyDistance: { color: "#C2410C", fontSize: 10, fontWeight: "900", flexDirection: "row", alignItems: "center" },
   customerDashHero: { borderRadius: 23, padding: 18, backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   customerDashOverline: { color: "#C2410C", fontSize: 10, fontWeight: "900" },
   customerDashTitle: { color: "#1C1917", fontSize: 22, fontWeight: "900", marginTop: 5 },

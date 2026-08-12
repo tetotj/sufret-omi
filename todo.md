@@ -35,3 +35,7 @@
 - [x] Diagnose iOS inability to connect to the Expo development server
 - [x] Restart and verify Metro/API development services
 - [x] Confirm the iOS bundle endpoint is reachable
+- [x] Add a separate full-screen Discover map page with back navigation
+- [x] Add a complete meals page reachable from the All action
+- [x] Sort kitchens and meals from nearest to farthest using the selected region
+- [x] Validate Discover and All navigation flows on mobile

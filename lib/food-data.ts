@@ -253,6 +253,17 @@ export const getCategory = (categoryId: CategoryId) => categories.find((category
 
 export const getRegion = (regionId: RegionId) => regions.find((region) => region.id === regionId) ?? regions[0];
 
+export const distanceKm = (from: Coordinate, to: Coordinate) => {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const deltaLatitude = toRadians(to.latitude - from.latitude);
+  const deltaLongitude = toRadians(to.longitude - from.longitude);
+  const a = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(toRadians(from.latitude)) * Math.cos(toRadians(to.latitude)) * Math.sin(deltaLongitude / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+export const getKitchenDistanceKm = (kitchen: Kitchen, origin: Region) => distanceKm(origin, getRegion(kitchen.region));
+
 export const totalCart = (items: CartItem[]) => items.reduce((sum, item) => sum + item.meal.price * item.quantity, 0);
 
 export const unitCount = (items: CartItem[]) => items.reduce((sum, item) => sum + item.quantity, 0);

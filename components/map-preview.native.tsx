@@ -9,12 +9,13 @@ import { getLocalized, jordanMapPoints, regions, type Coordinate } from "@/lib/f
 
 type MapPreviewProps = {
   compact?: boolean;
+  fullScreen?: boolean;
   onSelectRegion?: (regionId: (typeof regions)[number]["id"]) => void;
   pickupCoordinates?: Coordinate;
   dropoffCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
+export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
@@ -39,7 +40,7 @@ export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates,
   };
 
   return (
-    <View style={[styles.nativeWrap, compact && styles.compactWrap]}>
+    <View style={[styles.nativeWrap, compact && styles.compactWrap, fullScreen && styles.fullScreenMap]}>
       <MapView
         style={StyleSheet.absoluteFill}
         initialRegion={{ latitude: mapFocus.latitude, longitude: mapFocus.longitude, latitudeDelta: pickupCoordinates || dropoffCoordinates ? 0.04 : 0.24, longitudeDelta: pickupCoordinates || dropoffCoordinates ? 0.04 : 0.2 }}
@@ -63,6 +64,7 @@ export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates,
 const styles = StyleSheet.create({
   nativeWrap: { height: 220, borderRadius: 26, overflow: "hidden", backgroundColor: "#E7E5E4" },
   compactWrap: { height: 150, borderRadius: 22 },
+  fullScreenMap: { flex: 1, height: undefined, borderRadius: 0 },
   regionBadge: { position: "absolute", top: 16, right: 16, backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 17, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 7 },
   regionCaption: { fontSize: 10, color: "#78716C" },
   regionName: { fontSize: 12, color: "#1C1917", fontWeight: "800" },

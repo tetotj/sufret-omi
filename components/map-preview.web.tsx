@@ -8,12 +8,13 @@ import { getLocalized, jordanMapPoints, regions, type Coordinate } from "@/lib/f
 
 type MapPreviewProps = {
   compact?: boolean;
+  fullScreen?: boolean;
   onSelectRegion?: (regionId: (typeof regions)[number]["id"]) => void;
   pickupCoordinates?: Coordinate;
   dropoffCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
+export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
@@ -41,7 +42,7 @@ export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates,
   };
 
   return (
-    <View style={[styles.webMap, compact && styles.compactWrap]}>
+    <View style={[styles.webMap, compact && styles.compactWrap, fullScreen && styles.fullScreenMap]}>
       <View style={styles.mapWash} />
       <View style={[styles.road, styles.roadOne]} />
       <View style={[styles.road, styles.roadTwo]} />
@@ -68,6 +69,7 @@ export function MapPreview({ compact = false, onSelectRegion, pickupCoordinates,
 const styles = StyleSheet.create({
   webMap: { height: 220, borderRadius: 26, overflow: "hidden", backgroundColor: "#ECE8DF", position: "relative" },
   compactWrap: { height: 150, borderRadius: 22 },
+  fullScreenMap: { flex: 1, height: undefined, borderRadius: 0 },
   mapWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "#E4E6D8", opacity: 0.95 },
   road: { position: "absolute", backgroundColor: "#F8F4ED", borderColor: "#D2D6BE", borderWidth: 1 },
   roadOne: { width: "130%", height: 34, top: 76, left: -34, transform: [{ rotate: "-12deg" }], borderRadius: 30 },
