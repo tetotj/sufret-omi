@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import * as ImagePicker from "expo-image-picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -7,6 +6,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { categories, getLocalized, regions, type CategoryId, type Role } from "@/lib/food-data";
 import { useApp } from "@/lib/app-context";
 import { verificationStatusLabel, type VerificationDocumentType } from "@/lib/verification-data";
+import { pickVerificationImage } from "@/lib/verification-image-picker";
 
 type VerificationScreenProps = { role: Extract<Role, "mother" | "driver"> };
 
@@ -36,9 +36,9 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
 
   const pickDocument = async (documentType: VerificationDocumentType) => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-      const uri = !result.canceled ? result.assets[0]?.uri : null;
+      const uri = await pickVerificationImage();
       if (uri) attachVerificationDocument(role, documentType, uri);
+      else showToast(language === "ar" ? "إرفاق الصور من الجهاز متاح عند تشغيل النسخة الأصلية" : "On-device photo capture will be enabled in the native build");
     } catch {
       showToast(language === "ar" ? "تعذّر فتح معرض الصور" : "Could not open the photo library");
     }

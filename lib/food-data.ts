@@ -55,6 +55,13 @@ export type CartItem = {
 
 export type OrderStatus = "received" | "preparing" | "ready" | "on_the_way" | "delivered";
 
+export type DriverDetails = {
+  name: Localized;
+  phone: string;
+  vehicle: Localized;
+  plate: string;
+};
+
 export type Order = {
   id: string;
   kitchen: Kitchen;
@@ -70,6 +77,7 @@ export type Order = {
   pickupAddress: Localized;
   dropoffAddress: Localized;
   driverRating?: number;
+  driver?: DriverDetails;
 };
 
 export const categories: Category[] = [
@@ -300,6 +308,7 @@ export const sampleDriverOrder: Order = {
   pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
   dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
   driverRating: 4.9,
+  driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184" },
 };
 
 export const sampleIncomingOrder: Order = {
@@ -317,4 +326,5 @@ export const sampleIncomingOrder: Order = {
   pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
   dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
   driverRating: 4.9,
+  driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184" },
 };

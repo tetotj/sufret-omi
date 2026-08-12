@@ -64,3 +64,9 @@
 - [x] Keep the bottom cart bar visible while meal browsing has items
 - [x] Open the cart page directly from the bottom bar
 - [x] Validate bottom-bar spacing and synchronized totals
+- [x] Restore and verify dependencies after the sandbox reset
+- [x] Persist bilingual Mother and Driver compliance profiles and required documents
+- [x] Gate Mother and Driver dashboards behind supervisor approval
+- [x] Show customer-facing driver identity, vehicle, phone, coordinates, and ETA
+- [x] Run TypeScript, automated tests, and runtime preview validation
+- [ ] Save a stable checkpoint for the compliance and tracking release

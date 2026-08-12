@@ -14,6 +14,7 @@ import {
 import * as Linking from "expo-linking";
 
 import { MapPreview } from "@/components/map-preview";
+import { VerificationScreen } from "@/components/verification-screen";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import {
@@ -43,7 +44,7 @@ type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" |
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 export default function HomeScreen() {
-  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId } = useApp();
+  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard } = useApp();
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -67,6 +68,10 @@ export default function HomeScreen() {
 
   if (!isAuthenticated) {
     return <LoginScreen onSignedIn={(nextRole, guest = false) => { signIn(nextRole, guest); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
+  }
+
+  if ((role === "mother" || role === "driver") && !canAccessRoleDashboard(role)) {
+    return <VerificationScreen role={role} />;
   }
 
   return (
@@ -439,15 +444,26 @@ function CheckoutModal({ visible, onClose, onComplete }: { visible: boolean; onC
 }
 
 function OrdersScreen({ onBack }: { onBack: () => void }) {
-  const { language, activeOrder, advanceOrder } = useApp();
+  const { language, activeOrder, advanceOrder, showToast } = useApp();
   const currentIndex = activeOrder ? orderStatuses.findIndex((item) => item.id === activeOrder.status) : -1;
+  const driver = activeOrder?.driver;
+  const callDriver = async () => {
+    if (!driver) return;
+    try {
+      await Linking.openURL(`tel:${driver.phone}`);
+    } catch {
+      showToast(language === "ar" ? "تعذّر فتح الاتصال" : "Could not open the phone app");
+    }
+  };
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#1C1917" /></Pressable><View><Text style={styles.pageTitle}>{language === "ar" ? "طلباتي" : "My orders"}</Text><Text style={styles.pageSubtitle}>{language === "ar" ? "كل لقمة إلها حكاية" : "Every bite has a story"}</Text></View><View style={styles.statusPill}><View style={styles.liveDot} /><Text style={styles.statusPillText}>{language === "ar" ? "مباشر" : "Live"}</Text></View></View>
       {activeOrder ? <>
         <View style={styles.orderHero}><View><Text style={styles.orderHeroEyebrow}>{language === "ar" ? "رقم الطلب" : "Order number"}</Text><Text style={styles.orderHeroId}>{activeOrder.id}</Text></View><View style={styles.orderEta}><Text style={styles.orderEtaLabel}>{language === "ar" ? "الوصول المتوقع" : "Estimated arrival"}</Text><Text style={styles.orderEtaValue}>{getLocalized(activeOrder.eta, language)}</Text></View></View>
-        <MapPreview />
-        <View style={styles.trackingCard}><Text style={styles.trackingTitle}>{language === "ar" ? "وين وصل طلبك؟" : "Where is your order?"}</Text>{orderStatuses.map((status, index) => { const done = index <= currentIndex; const active = index === currentIndex; return <View key={status.id} style={styles.trackingRow}><View style={styles.trackRail}><View style={[styles.trackDot, done && styles.trackDotDone, active && styles.trackDotActive]}>{done && <MaterialIcons name="check" size={12} color="#FFFFFF" />}</View>{index < orderStatuses.length - 1 && <View style={[styles.trackLine, index < currentIndex && styles.trackLineDone]} />}</View><View style={styles.trackCopy}><Text style={[styles.trackLabel, active && styles.trackLabelActive]}>{getLocalized(status.label, language)}</Text><Text style={styles.trackCaption}>{getLocalized(status.caption, language)}</Text></View><MaterialIcons name={status.icon as IconName} size={19} color={done ? "#4D7C0F" : "#A8A29E"} /></View>; })}</View>
+                <MapPreview pickupCoordinates={activeOrder.pickupCoordinates} dropoffCoordinates={activeOrder.dropoffCoordinates} />
+        {driver && <View style={styles.customerDriverCard}><View style={styles.customerDriverHeader}><View style={styles.driverAvatar}><MaterialIcons name="two-wheeler" size={22} color="#FFFFFF" /></View><View style={styles.customerDriverCopy}><Text style={styles.customerDriverEyebrow}>{language === "ar" ? "مندوبك بالطريق" : "Your driver is on the way"}</Text><Text style={styles.customerDriverName}>{getLocalized(driver.name, language)}</Text><Text style={styles.customerDriverMeta}>{getLocalized(driver.vehicle, language)} · {language === "ar" ? "لوحة" : "Plate"} {driver.plate}</Text></View><Pressable onPress={() => void callDriver()} style={({ pressed }) => [styles.callDriverButton, pressed && styles.pressed]}><MaterialIcons name="phone" size={18} color="#FFFFFF" /></Pressable></View><View style={styles.customerDriverStats}><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "الوقت المتبقي" : "Time remaining"}</Text><Text style={styles.customerDriverStatValue}>{getLocalized(activeOrder.eta, language)}</Text></View><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "من المطبخ" : "From kitchen"}</Text><Text style={styles.customerDriverStatValue}>{activeOrder.pickupCoordinates.latitude.toFixed(4)}, {activeOrder.pickupCoordinates.longitude.toFixed(4)}</Text></View><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "التوصيل إلى" : "Delivering to"}</Text><Text style={styles.customerDriverStatValue}>{activeOrder.dropoffCoordinates.latitude.toFixed(4)}, {activeOrder.dropoffCoordinates.longitude.toFixed(4)}</Text></View></View></View>}
+        <View style={styles.trackingCard}>
+<Text style={styles.trackingTitle}>{language === "ar" ? "وين وصل طلبك؟" : "Where is your order?"}</Text>{orderStatuses.map((status, index) => { const done = index <= currentIndex; const active = index === currentIndex; return <View key={status.id} style={styles.trackingRow}><View style={styles.trackRail}><View style={[styles.trackDot, done && styles.trackDotDone, active && styles.trackDotActive]}>{done && <MaterialIcons name="check" size={12} color="#FFFFFF" />}</View>{index < orderStatuses.length - 1 && <View style={[styles.trackLine, index < currentIndex && styles.trackLineDone]} />}</View><View style={styles.trackCopy}><Text style={[styles.trackLabel, active && styles.trackLabelActive]}>{getLocalized(status.label, language)}</Text><Text style={styles.trackCaption}>{getLocalized(status.caption, language)}</Text></View><MaterialIcons name={status.icon as IconName} size={19} color={done ? "#4D7C0F" : "#A8A29E"} /></View>; })}</View>
         {activeOrder.status !== "delivered" && <Pressable onPress={advanceOrder} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><MaterialIcons name="refresh" size={18} color="#C2410C" /><Text style={styles.secondaryButtonText}>{language === "ar" ? "تحديث حالة الطلب" : "Refresh order status"}</Text></Pressable>}
         {activeOrder.status === "delivered" && <View style={styles.deliveredCard}><MaterialIcons name="favorite" size={22} color="#C2410C" /><Text style={styles.deliveredText}>{language === "ar" ? "صحة وعافية! لا تنسي تقيّمي أم أحمد." : "Enjoy! Don't forget to review Umm Ahmad."}</Text></View>}
       </> : <EmptyOrders language={language} onBack={onBack} />}
@@ -904,5 +920,16 @@ const styles = StyleSheet.create({
   navBrandDot: { width: 42, height: 42, borderRadius: 16, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center", marginTop: -26, borderWidth: 4, borderColor: "#FDF8F6" },
   toast: { position: "absolute", left: 24, right: 24, bottom: 98, borderRadius: 15, backgroundColor: "#1C1917", paddingHorizontal: 13, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8, shadowColor: "#1C1917", shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 8 },
   toastText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800", flex: 1 },
+  customerDriverCard: { backgroundColor: "#FFF7ED", borderRadius: 22, padding: 15, gap: 14, borderWidth: 1, borderColor: "#FED7AA" },
+  customerDriverHeader: { flexDirection: "row", alignItems: "center", gap: 11 },
+  driverAvatar: { width: 44, height: 44, borderRadius: 16, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center" },
+  customerDriverCopy: { flex: 1, gap: 2 },
+  customerDriverEyebrow: { color: "#9A3412", fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.7 },
+  customerDriverName: { color: "#1C1917", fontSize: 15, fontWeight: "900" },
+  customerDriverMeta: { color: "#78716C", fontSize: 11, fontWeight: "600" },
+  callDriverButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#4D7C0F", alignItems: "center", justifyContent: "center" },
+  customerDriverStats: { flexDirection: "row", gap: 8, borderTopWidth: 1, borderTopColor: "#FED7AA", paddingTop: 12 },
+  customerDriverStatLabel: { color: "#A8A29E", fontSize: 9, fontWeight: "800", marginBottom: 3 },
+  customerDriverStatValue: { color: "#44403C", fontSize: 10, fontWeight: "800", maxWidth: 104 },
   pressed: { opacity: 0.75, transform: [{ scale: 0.985 }] },
 });
