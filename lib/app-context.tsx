@@ -11,6 +11,8 @@ import {
   RegionId,
   Role,
   getKitchen,
+  getLocalized,
+  getRegion,
   primaryKitchen,
   sampleDriverOrder,
   sampleIncomingOrder,
@@ -19,6 +21,30 @@ import {
 } from "@/lib/food-data";
 
 const STORAGE_KEY = "sufret-omi-session-v1";
+
+const DEFAULT_PICKUP = { latitude: 31.963, longitude: 35.91 };
+const DEFAULT_DROPOFF = { latitude: 31.951, longitude: 35.884 };
+
+function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Order | null): Order | null {
+  if (value === null) return null;
+  if (!value) return fallback;
+  const kitchen = value.kitchen ?? fallback?.kitchen ?? primaryKitchen;
+  const pickupRegion = getRegion(kitchen.region);
+  return {
+    id: value.id ?? fallback?.id ?? "SO-2408",
+    kitchen,
+    items: Array.isArray(value.items) ? value.items : fallback?.items ?? [],
+    total: typeof value.total === "number" ? value.total : fallback?.total ?? 0,
+    paymentMethod: value.paymentMethod ?? fallback?.paymentMethod ?? "cod",
+    schedule: value.schedule ?? fallback?.schedule ?? "now",
+    status: value.status ?? fallback?.status ?? "received",
+    eta: value.eta ?? fallback?.eta ?? { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
+    pickupCoordinates: value.pickupCoordinates ?? fallback?.pickupCoordinates ?? { latitude: pickupRegion.latitude, longitude: pickupRegion.longitude },
+    dropoffCoordinates: value.dropoffCoordinates ?? fallback?.dropoffCoordinates ?? DEFAULT_DROPOFF,
+    pickupAddress: value.pickupAddress ?? fallback?.pickupAddress ?? { ar: `${getLocalized(kitchen.name, "ar")}، ${getLocalized(kitchen.neighborhood, "ar")}`, en: `${getLocalized(kitchen.name, "en")}, ${getLocalized(kitchen.neighborhood, "en")}` },
+    dropoffAddress: value.dropoffAddress ?? fallback?.dropoffAddress ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+  };
+}
 
 type AppState = {
   isAuthenticated: boolean;
@@ -90,7 +116,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!saved) return;
       try {
         const parsed = JSON.parse(saved) as Partial<AppState>;
-        setState((current) => ({ ...current, ...parsed, toast: null }));
+        setState((current) => ({
+          ...current,
+          ...parsed,
+          activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
+          incomingOrder: parsed.incomingOrder === undefined ? current.incomingOrder : normalizeOrder(parsed.incomingOrder as Partial<Order> | null, current.incomingOrder),
+          driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
+          toast: null,
+        }));
       } catch {
         // Ignore invalid local state and use the safe defaults.
       }

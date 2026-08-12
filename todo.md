@@ -29,3 +29,6 @@
 - [x] Open the map automatically or through a clear action after the driver accepts the order
 - [x] Show coordinate details and provide external navigation links for pickup and delivery
 - [x] Validate driver map opening and coordinate flow
+- [x] Normalize legacy persisted orders with missing map addresses and coordinates
+- [x] Prevent the driver dashboard from rendering undefined localized value errors
+- [x] Validate recovery from the existing saved session and driver map flow

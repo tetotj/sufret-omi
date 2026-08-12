@@ -241,7 +241,7 @@ export const jordanMapPoints = regions.map((region, index) => ({
 export const formatJod = (amount: number, language: Language) =>
   language === "ar" ? `${amount.toFixed(2)} د.أ` : `JOD ${amount.toFixed(2)}`;
 
-export const getLocalized = (value: Localized, language: Language) => value[language];
+export const getLocalized = (value: Localized | null | undefined, language: Language) => value?.[language] ?? value?.ar ?? value?.en ?? "";
 
 export const getKitchenMeals = (kitchenId: string) => meals.filter((meal) => meal.kitchenId === kitchenId);
 
