@@ -42,7 +42,7 @@ type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" |
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 export default function HomeScreen() {
-  const { isAuthenticated, language, role, toast, dismissToast, setRole, signIn, setSelectedKitchenId } = useApp();
+  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId } = useApp();
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,12 +54,18 @@ export default function HomeScreen() {
   };
 
   const go = (next: ViewId) => {
+    if (isGuest && (next === "cart" || next === "orders" || next === "dashboard")) {
+      signOut();
+      setView("home");
+      setCheckoutOpen(false);
+      return;
+    }
     setView(next);
     setCheckoutOpen(false);
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen onSignedIn={(nextRole) => { signIn(nextRole); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
+    return <LoginScreen onSignedIn={(nextRole, guest = false) => { signIn(nextRole, guest); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
   }
 
   return (
@@ -101,7 +107,7 @@ export default function HomeScreen() {
   );
 }
 
-function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role) => void }) {
+function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean) => void }) {
   const { language, setLanguage } = useApp();
   const [mode, setMode] = useState<Role>("customer");
   const [isCreate, setIsCreate] = useState(false);
@@ -115,7 +121,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role) => void }) {
       return;
     }
     setError("");
-    onSignedIn(mode);
+    onSignedIn(mode, false);
   };
 
   return (
@@ -135,7 +141,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role) => void }) {
           <Text style={styles.rolePrompt}>{language === "ar" ? "كيف رح تستخدمي سفرة أمي؟" : "How will you use Sufret Omi?"}</Text>
           <View style={styles.roleChoiceRow}><Pressable onPress={() => setMode("customer")} style={[styles.roleChoice, mode === "customer" && styles.roleChoiceActive]}><MaterialIcons name="restaurant" size={19} color={mode === "customer" ? "#FFFFFF" : "#C2410C"} /><Text style={[styles.roleChoiceText, mode === "customer" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطلب أكل" : "Order food"}</Text></Pressable><Pressable onPress={() => setMode("mother")} style={[styles.roleChoice, mode === "mother" && styles.roleChoiceActive]}><MaterialIcons name="storefront" size={19} color={mode === "mother" ? "#FFFFFF" : "#4D7C0F"} /><Text style={[styles.roleChoiceText, mode === "mother" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطبخ وأبيع" : "Cook & sell"}</Text></Pressable><Pressable onPress={() => setMode("driver")} style={[styles.roleChoice, mode === "driver" && styles.roleChoiceActive]}><MaterialIcons name="two-wheeler" size={19} color={mode === "driver" ? "#FFFFFF" : "#B45309"} /><Text style={[styles.roleChoiceText, mode === "driver" && styles.roleChoiceTextActive]}>{language === "ar" ? "أوصل الطلبات" : "Deliver"}</Text></Pressable></View>
           <Pressable onPress={submit} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{isCreate ? (language === "ar" ? "أنشئي حسابك" : "Create my account") : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi")}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
-          <Pressable onPress={() => onSignedIn("customer")} style={styles.guestButton}><Text style={styles.guestButtonText}>{language === "ar" ? "تصفّحي كضيفة" : "Continue as guest"}</Text></Pressable>
+          <Pressable onPress={() => onSignedIn("customer", true)} style={styles.guestButton}><Text style={styles.guestButtonText}>{language === "ar" ? "تصفّحي كضيفة" : "Continue as guest"}</Text></Pressable>
         </View>
         <View style={styles.loginTrust}><MaterialIcons name="verified-user" size={16} color="#4D7C0F" /><Text style={styles.loginTrustText}>{language === "ar" ? "بياناتك محفوظة، وطلباتك عند أمينة سفرة" : "Your data stays protected and your orders stay cared for"}</Text></View>
       </ScrollView>

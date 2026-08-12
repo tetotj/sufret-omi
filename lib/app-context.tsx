@@ -48,6 +48,7 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
 
 type AppState = {
   isAuthenticated: boolean;
+  isGuest: boolean;
   language: Language;
   role: Role;
   selectedRegion: RegionId;
@@ -64,7 +65,7 @@ type AppState = {
 };
 
 type AppContextValue = AppState & {
-  signIn: (role: Role) => void;
+  signIn: (role: Role, guest?: boolean) => void;
   signOut: () => void;
   setLanguage: (language: Language) => void;
   setRole: (role: Role) => void;
@@ -93,6 +94,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 const initialState: AppState = {
   isAuthenticated: false,
+  isGuest: false,
   language: "ar",
   role: "customer",
   selectedRegion: "amman",
@@ -119,6 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((current) => ({
           ...current,
           ...parsed,
+          isGuest: parsed.isGuest === true,
           activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
           incomingOrder: parsed.incomingOrder === undefined ? current.incomingOrder : normalizeOrder(parsed.incomingOrder as Partial<Order> | null, current.incomingOrder),
           driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
@@ -144,8 +147,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return {
       ...state,
       selectedKitchen: getKitchen(state.selectedKitchenId),
-      signIn: (role) => setState((current) => ({ ...current, isAuthenticated: true, role })),
-      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, cart: [], activeOrder: null })),
+      signIn: (role, guest = false) => setState((current) => ({ ...current, isAuthenticated: true, isGuest: guest, role })),
+      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], activeOrder: null })),
       cartTotal: totalCart(state.cart),
       cartCount: unitCount(state.cart),
       setLanguage: (language) => setState((current) => ({ ...current, language })),
@@ -154,6 +157,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSelectedCategory: (selectedCategory) => setState((current) => ({ ...current, selectedCategory })),
       setSelectedKitchenId: (selectedKitchenId) => setState((current) => ({ ...current, selectedKitchenId })),
       addToCart: (meal) => {
+        if (state.isGuest) {
+          setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [] }));
+          return;
+        }
         setState((current) => {
           const existing = current.cart.find((item) => item.meal.id === meal.id);
           const cart = existing

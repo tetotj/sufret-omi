@@ -49,3 +49,7 @@
 - [x] Add a visible minus button beside plus in meal rows
 - [x] Remove a meal from the cart when its quantity reaches zero
 - [x] Validate decrement behavior and synchronized totals
+- [x] Keep guest browsing available while blocking ordering actions
+- [x] Require login before adding meals or opening the cart
+- [x] Require login before checkout and order placement
+- [x] Validate guest restriction and authenticated ordering flows
