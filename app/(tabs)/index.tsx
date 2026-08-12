@@ -311,11 +311,13 @@ function CustomerHome({
             <Text style={styles.headerGreeting}>{title}</Text>
           </View>
         </View>
-        <View style={styles.headerActions}><LanguageToggle /></View>
+        <View style={styles.headerActions} />
       </View>
-      <View style={styles.topSearchRow}>
-        <View style={styles.topSearchField}><MaterialIcons name="search" size={19} color="#78716C" /><TextInput value={query} onChangeText={setQuery} placeholder={language === "ar" ? "دوّري على طبخة أو مطبخ" : "Search meals or kitchens"} placeholderTextColor="#A8A29E" style={styles.topSearchInput} textAlign={language === "ar" ? "right" : "left"} /></View>
-        <Pressable onPress={() => onNavigate("cart")} style={({ pressed }) => [styles.topCartButton, pressed && styles.pressed]}><MaterialIcons name="shopping-basket" size={20} color="#FFFFFF" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable>
+      <View style={styles.unifiedControlsRow}>
+        <LanguageToggle />
+        <View style={styles.unifiedSearchField}><MaterialIcons name="search" size={18} color="#78716C" /><TextInput value={query} onChangeText={setQuery} placeholder={language === "ar" ? "ابحثي" : "Search"} placeholderTextColor="#A8A29E" style={styles.unifiedSearchInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+        <Pressable onPress={() => setFiltersOpen((value) => !value)} style={({ pressed }) => [styles.unifiedIconButton, filtersOpen && styles.unifiedIconButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#C2410C"} /></Pressable>
+        <Pressable onPress={() => onNavigate("cart")} style={({ pressed }) => [styles.unifiedCartButton, pressed && styles.pressed]}><MaterialIcons name="shopping-basket" size={19} color="#FFFFFF" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable>
       </View>
 
       <Pressable onPress={() => onNavigate("kitchen")} style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}>
@@ -330,8 +332,6 @@ function CustomerHome({
           <View style={styles.heroLeafOne} /><View style={styles.heroLeafTwo} />
         </View>
       </Pressable>
-
-      <View style={styles.filterOnlyRow}><Text style={styles.filterHint}>{language === "ar" ? "فلترة المنطقة والسعر" : "Filter region and price"}</Text><Pressable onPress={() => setFiltersOpen((value) => !value)} style={({ pressed }) => [styles.filterButton, pressed && styles.pressed, filtersOpen && styles.filterButtonActive]}><MaterialIcons name="tune" size={19} color={filtersOpen ? "#FFFFFF" : "#C2410C"} /></Pressable></View>
 
       {filtersOpen && (
         <View style={styles.filterPanel}>
@@ -633,6 +633,12 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 10, letterSpacing: 1.2, color: "#C2410C", fontWeight: "900" },
   headerGreeting: { color: "#1C1917", fontSize: 19, fontWeight: "900", marginTop: 2 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  unifiedControlsRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, marginBottom: 3 },
+  unifiedSearchField: { flex: 1, minWidth: 0, height: 42, borderRadius: 15, borderWidth: 1, borderColor: "#E7DCD6", backgroundColor: "#FFFFFF", paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 6 },
+  unifiedSearchInput: { flex: 1, minWidth: 0, color: "#1C1917", fontSize: 11, paddingVertical: 0 },
+  unifiedIconButton: { width: 42, height: 42, borderRadius: 15, backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9", alignItems: "center", justifyContent: "center" },
+  unifiedIconButtonActive: { backgroundColor: "#C2410C", borderColor: "#C2410C" },
+  unifiedCartButton: { width: 42, height: 42, borderRadius: 15, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center", position: "relative" },
   languageToggle: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 18, backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9" },
   languageText: { fontSize: 11, color: "#9C8F89", fontWeight: "800" },
   languageActive: { color: "#C2410C" },

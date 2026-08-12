@@ -57,3 +57,6 @@
 - [x] Open dedicated category meals page when tapping any category pill
 - [x] Show driver route distances, pickup/drop-off coordinates, ETA, driver rating, and store rating
 - [x] Make home map and driver map fully clickable to open navigation
+- [x] Place language, search, filter, and cart controls together in one top row
+- [x] Keep all four controls visible and usable on mobile widths
+- [x] Validate that search, filter, language, and cart actions still work
