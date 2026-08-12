@@ -43,3 +43,6 @@
 - [x] Show total meal quantity and distinct item count in the quick cart
 - [x] Show each meal quantity clearly in the cart and browsing rows
 - [x] Validate fast cart navigation and live quantity updates
+- [x] Make the plus button visibly increment each meal quantity immediately
+- [x] Keep total cart meal count synchronized with per-meal increments
+- [x] Validate quantity sequence such as 1, 2, 3, and 5

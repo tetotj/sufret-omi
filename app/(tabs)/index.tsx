@@ -393,7 +393,7 @@ function CustomerHome({
 }
 
 function KitchenProfile({ onBack, onCart }: { onBack: () => void; onCart: () => void }) {
-  const { language, selectedKitchen, cartCount, addToCart } = useApp();
+  const { language, selectedKitchen, cart, cartCount, addToCart } = useApp();
   const kitchenMeals = getKitchenMeals(selectedKitchen.id);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -402,7 +402,7 @@ function KitchenProfile({ onBack, onCart }: { onBack: () => void; onCart: () => 
       <View style={styles.profileStats}><StatItem icon="star" value={`${selectedKitchen.rating}`} label={language === "ar" ? "التقييم" : "Rating"} /><StatItem icon="local-dining" value={`${selectedKitchen.reviewCount}+`} label={language === "ar" ? "تجربة" : "orders"} /><StatItem icon="schedule" value="45m" label={language === "ar" ? "التحضير" : "prep"} /></View>
       <View style={styles.storyCard}><View style={styles.storyIcon}><MaterialIcons name="favorite" size={20} color="#C2410C" /></View><View style={styles.storyCopy}><Text style={styles.storyTitle}>{language === "ar" ? "طبخته من وصفة أمها" : "A recipe passed down"}</Text><Text style={styles.storyBody}>{language === "ar" ? "كل طلب ينطبخ بنفس البيت وبنفس النفس الطيب." : "Every order is cooked in the same home with the same generous spirit."}</Text></View></View>
       <SectionHeader title={language === "ar" ? "قائمة اليوم" : "Today's menu"} action={language === "ar" ? "طلبات مسبقة" : "Advance order"} />
-      <View style={styles.mealList}>{kitchenMeals.map((meal) => <MealRow key={meal.id} meal={meal} language={language} onAdd={() => addToCart(meal)} compact />)}</View>
+      <View style={styles.mealList}>{kitchenMeals.map((meal) => <MealRow key={meal.id} meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onAdd={() => addToCart(meal)} compact />)}</View>
     </ScrollView>
   );
 }
@@ -495,7 +495,7 @@ function CategoryPill({ label, icon, color, selected, onPress }: { label: string
 
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) { return <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}><Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text></Pressable>; }
 
-function MealRow({ meal, language, onAdd, onPress, compact = false, quantity = 0 }: { meal: (typeof meals)[number]; language: "ar" | "en"; onAdd: () => void; onPress?: () => void; compact?: boolean; quantity?: number }) { const category = getCategory(meal.category); return <Pressable onPress={onPress} style={({ pressed }) => [styles.mealRow, compact && styles.mealRowCompact, pressed && styles.pressed]}><Image source={{ uri: meal.image }} style={compact ? styles.mealImageCompact : styles.mealImage} /><View style={styles.mealCopy}><View style={styles.mealCategoryLine}><Text style={[styles.mealCategory, { color: category.color }]}>{getLocalized(category.label, language)}</Text><Text style={styles.mealPrep}>{meal.prepMinutes} min</Text></View><Text style={styles.mealName} numberOfLines={1}>{getLocalized(meal.name, language)}</Text><Text style={styles.mealDescription} numberOfLines={1}>{getLocalized(meal.description, language)}</Text><Text style={styles.mealPrice}>{formatJod(meal.price, language)}</Text></View><View style={styles.mealAddColumn}>{quantity > 0 && <View style={styles.quantityBadge}><Text style={styles.quantityBadgeText}>{quantity}</Text></View>}<Pressable onPress={onAdd} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}><MaterialIcons name="add" size={21} color="#FFFFFF" /></Pressable></View></Pressable>; }
+function MealRow({ meal, language, onAdd, onPress, compact = false, quantity = 0 }: { meal: (typeof meals)[number]; language: "ar" | "en"; onAdd: () => void; onPress?: () => void; compact?: boolean; quantity?: number }) { const category = getCategory(meal.category); return <Pressable onPress={onPress} style={({ pressed }) => [styles.mealRow, compact && styles.mealRowCompact, pressed && styles.pressed]}><Image source={{ uri: meal.image }} style={compact ? styles.mealImageCompact : styles.mealImage} /><View style={styles.mealCopy}><View style={styles.mealCategoryLine}><Text style={[styles.mealCategory, { color: category.color }]}>{getLocalized(category.label, language)}</Text><Text style={styles.mealPrep}>{meal.prepMinutes} min</Text></View><Text style={styles.mealName} numberOfLines={1}>{getLocalized(meal.name, language)}</Text><Text style={styles.mealDescription} numberOfLines={1}>{getLocalized(meal.description, language)}</Text><Text style={styles.mealPrice}>{formatJod(meal.price, language)}</Text></View><View style={styles.mealAddColumn}>{quantity > 0 && <View style={styles.quantityBadge}><Text style={styles.quantityBadgeText}>{quantity}</Text><Text style={styles.quantityBadgeLabel}>{language === "ar" ? "وجبة" : "meals"}</Text></View>}<Pressable onPress={onAdd} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}><MaterialIcons name="add" size={21} color="#FFFFFF" /></Pressable></View></Pressable>; }
 
 function CartItemRow({ item, language, onUpdate }: { item: { meal: (typeof meals)[number]; quantity: number }; language: "ar" | "en"; onUpdate: (mealId: string, quantity: number) => void }) { return <View style={styles.cartItemRow}><Image source={{ uri: item.meal.image }} style={styles.cartItemImage} /><View style={styles.cartItemCopy}><Text style={styles.cartItemName}>{getLocalized(item.meal.name, language)}</Text><Text style={styles.cartItemPrice}>{formatJod(item.meal.price * item.quantity, language)}</Text><View style={styles.quantityControl}><Pressable onPress={() => onUpdate(item.meal.id, item.quantity - 1)} style={styles.quantityButton}><MaterialIcons name="remove" size={15} color="#C2410C" /></Pressable><Text style={styles.quantityText}>{item.quantity}</Text><Pressable onPress={() => onUpdate(item.meal.id, item.quantity + 1)} style={styles.quantityButton}><MaterialIcons name="add" size={15} color="#C2410C" /></Pressable></View></View></View>; }
 
@@ -707,6 +707,7 @@ const styles = StyleSheet.create({
   mealAddColumn: { alignItems: "center", justifyContent: "center", gap: 5 },
   quantityBadge: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, backgroundColor: "#4D7C0F", alignItems: "center", justifyContent: "center" },
   quantityBadgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
+  quantityBadgeLabel: { color: "#EAF4DC", fontSize: 8, fontWeight: "800", marginLeft: 3 },
   mealCategoryLine: { flexDirection: "row", alignItems: "center", gap: 7 },
   mealCategory: { fontSize: 10, fontWeight: "900" },
   mealPrep: { color: "#A8A29E", fontSize: 10 },
