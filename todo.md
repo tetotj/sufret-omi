@@ -60,3 +60,7 @@
 - [x] Place language, search, filter, and cart controls together in one top row
 - [x] Keep all four controls visible and usable on mobile widths
 - [x] Validate that search, filter, language, and cart actions still work
+- [x] Show cart meal count and total in a bottom cart bar
+- [x] Keep the bottom cart bar visible while meal browsing has items
+- [x] Open the cart page directly from the bottom bar
+- [x] Validate bottom-bar spacing and synchronized totals
