@@ -66,8 +66,10 @@ export type Order = {
   eta: Localized;
   pickupCoordinates: Coordinate;
   dropoffCoordinates: Coordinate;
+  driverCoordinates?: Coordinate;
   pickupAddress: Localized;
   dropoffAddress: Localized;
+  driverRating?: number;
 };
 
 export const categories: Category[] = [
@@ -294,8 +296,10 @@ export const sampleDriverOrder: Order = {
   eta: { ar: "خلال ٢٥ دقيقة", en: "Within 25 minutes" },
   pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
   dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+  driverCoordinates: { latitude: 31.978, longitude: 35.897 },
   pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
   dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+  driverRating: 4.9,
 };
 
 export const sampleIncomingOrder: Order = {
@@ -309,6 +313,8 @@ export const sampleIncomingOrder: Order = {
   eta: { ar: "غداً، ١:٣٠ م", en: "Tomorrow, 1:30 PM" },
   pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
   dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+  driverCoordinates: { latitude: 31.978, longitude: 35.897 },
   pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
   dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+  driverRating: 4.9,
 };

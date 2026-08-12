@@ -11,11 +11,12 @@ type MapPreviewProps = {
   compact?: boolean;
   fullScreen?: boolean;
   onSelectRegion?: (regionId: (typeof regions)[number]["id"]) => void;
+  onPressMap?: () => void;
   pickupCoordinates?: Coordinate;
   dropoffCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
+export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, onPressMap, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
@@ -47,6 +48,7 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
         showsUserLocation
         showsMyLocationButton={false}
         toolbarEnabled={false}
+        onPress={onPressMap}
       >
         {jordanMapPoints.map((point) => (
           <Marker key={point.id} coordinate={{ latitude: point.latitude, longitude: point.longitude }} title={getLocalized(point.label, language)} pinColor={point.color} onPress={() => onSelectRegion?.(point.id as (typeof regions)[number]["id"])} />

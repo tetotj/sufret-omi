@@ -53,3 +53,7 @@
 - [x] Require login before adding meals or opening the cart
 - [x] Require login before checkout and order placement
 - [x] Validate guest restriction and authenticated ordering flows
+- [x] Move search bar to top beside the cart icon
+- [x] Open dedicated category meals page when tapping any category pill
+- [x] Show driver route distances, pickup/drop-off coordinates, ETA, driver rating, and store rating
+- [x] Make home map and driver map fully clickable to open navigation

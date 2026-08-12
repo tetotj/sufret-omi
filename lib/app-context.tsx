@@ -41,8 +41,10 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
     eta: value.eta ?? fallback?.eta ?? { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
     pickupCoordinates: value.pickupCoordinates ?? fallback?.pickupCoordinates ?? { latitude: pickupRegion.latitude, longitude: pickupRegion.longitude },
     dropoffCoordinates: value.dropoffCoordinates ?? fallback?.dropoffCoordinates ?? DEFAULT_DROPOFF,
+    driverCoordinates: value.driverCoordinates ?? fallback?.driverCoordinates ?? { latitude: 31.978, longitude: 35.897 },
     pickupAddress: value.pickupAddress ?? fallback?.pickupAddress ?? { ar: `${getLocalized(kitchen.name, "ar")}، ${getLocalized(kitchen.neighborhood, "ar")}`, en: `${getLocalized(kitchen.name, "en")}, ${getLocalized(kitchen.neighborhood, "en")}` },
     dropoffAddress: value.dropoffAddress ?? fallback?.dropoffAddress ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+    driverRating: typeof value.driverRating === "number" ? value.driverRating : fallback?.driverRating ?? 4.9,
   };
 }
 
@@ -195,8 +197,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             eta: schedule === "scheduled" ? { ar: "الجمعة، ١:٣٠ م", en: "Friday, 1:30 PM" } : { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
             pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
             dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+            driverCoordinates: { latitude: 31.978, longitude: 35.897 },
             pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
             dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+            driverRating: 4.9,
           },
           cart: [],
         }));

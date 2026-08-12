@@ -18,6 +18,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import {
   categories,
+  distanceKm,
   formatJod,
   getCategory,
   getKitchenDistanceKm,
@@ -169,6 +170,11 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
   const { language, driverAvailable, setDriverAvailable, driverOrder, advanceDriverOrder, showToast, signOut } = useApp();
   const currentStatus = driverOrder ? orderStatuses.find((status) => status.id === driverOrder.status) : null;
   const actionLabel = driverOrder?.status === "ready" ? (language === "ar" ? "استلمت الطلب من المطبخ" : "Picked up from kitchen") : driverOrder?.status === "on_the_way" ? (language === "ar" ? "تم التوصيل للعميلة" : "Delivered to customer") : language === "ar" ? "تحديث الحالة" : "Update status";
+  const pickupDistance = driverOrder ? distanceKm(driverOrder.driverCoordinates ?? driverOrder.pickupCoordinates, driverOrder.pickupCoordinates) : 0;
+  const deliveryDistance = driverOrder ? distanceKm(driverOrder.pickupCoordinates, driverOrder.dropoffCoordinates) : 0;
+  const pickupEtaMinutes = Math.max(1, Math.round(pickupDistance * 4));
+  const deliveryEtaMinutes = Math.max(5, Math.round(deliveryDistance * 5));
+  const driverRating = driverOrder?.driverRating ?? 4.9;
 
   const openNavigation = async (destination: "pickup" | "dropoff") => {
     if (!driverOrder) return;
@@ -200,12 +206,13 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
         <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text></View>
-        <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} />
+        <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} onPressMap={() => void openNavigation(driverOrder.status === "ready" ? "pickup" : "dropoff")} />
         <View style={styles.routeCard}>
-          <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text></View><MaterialIcons name="directions" size={20} color="#C2410C" /></Pressable>
+          <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${pickupDistance.toFixed(1)} كم · حوالي ${pickupEtaMinutes} دقيقة للوصول` : `${pickupDistance.toFixed(1)} km · about ${pickupEtaMinutes} min to arrive`}</Text></View><MaterialIcons name="directions" size={20} color="#C2410C" /></Pressable>
           <View style={styles.routeLine} />
-          <Pressable onPress={() => void openNavigation("dropoff")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerDropoff]}><MaterialIcons name="location-on" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "تسليم للعميلة" : "Drop-off"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.dropoffAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.dropoffCoordinates.latitude.toFixed(5)}, {driverOrder.dropoffCoordinates.longitude.toFixed(5)}</Text></View><MaterialIcons name="directions" size={20} color="#C2410C" /></Pressable>
+          <Pressable onPress={() => void openNavigation("dropoff")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerDropoff]}><MaterialIcons name="location-on" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "تسليم للعميلة" : "Drop-off"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.dropoffAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.dropoffCoordinates.latitude.toFixed(5)}, {driverOrder.dropoffCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${deliveryDistance.toFixed(1)} كم · حوالي ${deliveryEtaMinutes} دقيقة للتسليم` : `${deliveryDistance.toFixed(1)} km · about ${deliveryEtaMinutes} min to deliver`}</Text></View><MaterialIcons name="directions" size={20} color="#C2410C" /></Pressable>
         </View>
+        <View style={styles.driverRatingsRow}><View style={styles.driverRatingBox}><MaterialIcons name="two-wheeler" size={17} color="#C2410C" /><View><Text style={styles.driverRatingLabel}>{language === "ar" ? "تقييم السائق" : "Driver rating"}</Text><Text style={styles.driverRatingValue}>{driverRating.toFixed(1)} ★</Text></View></View><View style={styles.driverRatingBox}><MaterialIcons name="storefront" size={17} color="#4D7C0F" /><View><Text style={styles.driverRatingLabel}>{language === "ar" ? "تقييم المتجر" : "Store rating"}</Text><Text style={styles.driverRatingValue}>{driverOrder.kitchen.rating.toFixed(1)} ★</Text></View></View></View>
         {driverOrder.status !== "delivered" ? <Pressable onPress={advance} style={({ pressed }) => [styles.driverActionButton, pressed && styles.pressed]}><MaterialIcons name={driverOrder.status === "ready" ? "shopping-bag" : "check-circle"} size={19} color="#FFFFFF" /><Text style={styles.driverActionButtonText}>{actionLabel}</Text></Pressable> : <View style={styles.driverDone}><MaterialIcons name="check-circle" size={21} color="#4D7C0F" /><Text style={styles.driverDoneText}>{language === "ar" ? "تمت التوصيلة بنجاح، يعطيك العافية" : "Delivery complete, great work"}</Text></View>}
       </> : <View style={styles.driverDone}><MaterialIcons name="coffee" size={21} color="#C2410C" /><Text style={styles.driverDoneText}>{language === "ar" ? "ما في طلبات قريبة حالياً" : "No nearby orders right now"}</Text></View>}
       <SectionHeader title={language === "ar" ? "مراحل التوصيل" : "Delivery steps"} action={language === "ar" ? "الدعم" : "Support"} onAction={() => showToast(language === "ar" ? "فريق الدعم معك" : "Support is here for you")} />
@@ -231,13 +238,14 @@ function DiscoverMapScreen({ onBack, onOpenMeals }: { onBack: () => void; onOpen
 function MealsScreen({ onBack, onOpenCart, onOpenKitchen }: { onBack: () => void; onOpenCart: () => void; onOpenKitchen: (kitchenId: string) => void }) {
   const { language, selectedRegion, selectedCategory, setSelectedCategory, addToCart, updateQuantity, cart, cartCount, cartTotal } = useApp();
   const region = getRegion(selectedRegion);
+  const mealsTitle = selectedCategory === "all" ? (language === "ar" ? "كل الأكلات القريبة" : "All nearby meals") : getLocalized(getCategory(selectedCategory).label, language);
   const nearbyMeals = useMemo(() => meals.filter((meal) => selectedCategory === "all" || meal.category === selectedCategory).map((meal) => {
     const kitchen = kitchens.find((item) => item.id === meal.kitchenId) ?? kitchens[0];
     return { meal, kitchen, distance: getKitchenDistanceKm(kitchen, region) };
   }).sort((left, right) => left.distance - right.distance), [region, selectedCategory]);
 
   return (
-    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#1C1917" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "من الأقرب للأبعد" : "Nearest to farthest"}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="near-me" size={15} color="#4D7C0F" /><Text style={styles.mapHeaderBadgeText}>{getLocalized(region.label, language)}</Text></View></View><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => addToCart(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#4D7C0F" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="near-me" size={12} color="#C2410C" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View>{cartCount > 0 && <Pressable onPress={onOpenCart} style={styles.floatingCart}><View><Text style={styles.floatingCartEyebrow}>{language === "ar" ? `${cartCount} وجبة · ${cart.length} أصناف` : `${cartCount} meals · ${cart.length} items`}</Text><Text style={styles.floatingCartPrice}>{formatJod(cartTotal + 1.25, language)}</Text></View><Text style={styles.floatingCartCta}>{language === "ar" ? "في السفرة" : "In cart"}</Text></Pressable>}</ScrollView></View>
+    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#1C1917" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="near-me" size={15} color="#4D7C0F" /><Text style={styles.mapHeaderBadgeText}>{getLocalized(region.label, language)}</Text></View></View><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => addToCart(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#4D7C0F" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="near-me" size={12} color="#C2410C" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View>{cartCount > 0 && <Pressable onPress={onOpenCart} style={styles.floatingCart}><View><Text style={styles.floatingCartEyebrow}>{language === "ar" ? `${cartCount} وجبة · ${cart.length} أصناف` : `${cartCount} meals · ${cart.length} items`}</Text><Text style={styles.floatingCartPrice}>{formatJod(cartTotal + 1.25, language)}</Text></View><Text style={styles.floatingCartCta}>{language === "ar" ? "في السفرة" : "In cart"}</Text></Pressable>}</ScrollView></View>
   );
 }
 
@@ -303,13 +311,11 @@ function CustomerHome({
             <Text style={styles.headerGreeting}>{title}</Text>
           </View>
         </View>
-        <View style={styles.headerActions}>
-          <LanguageToggle />
-          <Pressable onPress={() => onNavigate("cart")} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
-            <MaterialIcons name="shopping-basket" size={20} color="#1C1917" />
-            {cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}
-          </Pressable>
-        </View>
+        <View style={styles.headerActions}><LanguageToggle /></View>
+      </View>
+      <View style={styles.topSearchRow}>
+        <View style={styles.topSearchField}><MaterialIcons name="search" size={19} color="#78716C" /><TextInput value={query} onChangeText={setQuery} placeholder={language === "ar" ? "دوّري على طبخة أو مطبخ" : "Search meals or kitchens"} placeholderTextColor="#A8A29E" style={styles.topSearchInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+        <Pressable onPress={() => onNavigate("cart")} style={({ pressed }) => [styles.topCartButton, pressed && styles.pressed]}><MaterialIcons name="shopping-basket" size={20} color="#FFFFFF" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable>
       </View>
 
       <Pressable onPress={() => onNavigate("kitchen")} style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}>
@@ -325,22 +331,7 @@ function CustomerHome({
         </View>
       </Pressable>
 
-      <View style={styles.searchRow}>
-        <View style={styles.searchField}>
-          <MaterialIcons name="search" size={20} color="#78716C" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={language === "ar" ? "دوّري على طبخة أو مطبخ" : "Search meals or kitchens"}
-            placeholderTextColor="#A8A29E"
-            style={styles.searchInput}
-            textAlign={language === "ar" ? "right" : "left"}
-          />
-        </View>
-        <Pressable onPress={() => setFiltersOpen((value) => !value)} style={({ pressed }) => [styles.filterButton, pressed && styles.pressed, filtersOpen && styles.filterButtonActive]}>
-          <MaterialIcons name="tune" size={19} color={filtersOpen ? "#FFFFFF" : "#C2410C"} />
-        </Pressable>
-      </View>
+      <View style={styles.filterOnlyRow}><Text style={styles.filterHint}>{language === "ar" ? "فلترة المنطقة والسعر" : "Filter region and price"}</Text><Pressable onPress={() => setFiltersOpen((value) => !value)} style={({ pressed }) => [styles.filterButton, pressed && styles.pressed, filtersOpen && styles.filterButtonActive]}><MaterialIcons name="tune" size={19} color={filtersOpen ? "#FFFFFF" : "#C2410C"} /></Pressable></View>
 
       {filtersOpen && (
         <View style={styles.filterPanel}>
@@ -360,14 +351,14 @@ function CustomerHome({
 
       <SectionHeader title={language === "ar" ? "شو نفسِك اليوم؟" : "What are you craving?"} action={language === "ar" ? "الكل" : "See all"} onAction={() => onNavigate("meals")} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-        <CategoryPill label={language === "ar" ? "الكل" : "All"} icon="apps" color="#C2410C" selected={selectedCategory === "all"} onPress={() => setSelectedCategory("all")} />
+        <CategoryPill label={language === "ar" ? "الكل" : "All"} icon="apps" color="#C2410C" selected={selectedCategory === "all"} onPress={() => { setSelectedCategory("all"); onNavigate("meals"); }} />
         {categories.map((category) => (
-          <CategoryPill key={category.id} label={getLocalized(category.label, language)} icon={category.icon as IconName} color={category.color} selected={selectedCategory === category.id} onPress={() => setSelectedCategory(category.id)} />
+          <CategoryPill key={category.id} label={getLocalized(category.label, language)} icon={category.icon as IconName} color={category.color} selected={selectedCategory === category.id} onPress={() => { setSelectedCategory(category.id); onNavigate("meals"); }} />
         ))}
       </ScrollView>
 
       <SectionHeader title={language === "ar" ? `حول ${regionScope === "all" ? "كل المملكة" : getLocalized(region.label, language)}` : regionScope === "all" ? "Around all Jordan" : `Around ${getLocalized(region.label, language)}`} action={language === "ar" ? "الخريطة" : "Map"} onAction={() => onNavigate("discover")} />
-      <MapPreview compact onSelectRegion={(regionId) => { setSelectedRegion(regionId); setRegionScope(regionId); }} />
+      <MapPreview compact onSelectRegion={(regionId) => { setSelectedRegion(regionId); setRegionScope(regionId); }} onPressMap={() => onNavigate("discover")} />
 
       {activeOrder && (
         <Pressable onPress={() => onNavigate("orders")} style={styles.activeOrderCard}>
@@ -570,6 +561,11 @@ const styles = StyleSheet.create({
   routeLabel: { color: "#78716C", fontSize: 10, fontWeight: "800" },
   routeValue: { color: "#1C1917", fontSize: 12, fontWeight: "900", marginTop: 2 },
   routeCoordinates: { color: "#A8A29E", fontSize: 10, marginTop: 3, fontVariant: ["tabular-nums"] },
+  routeDistance: { color: "#C2410C", fontSize: 10, fontWeight: "900", marginTop: 3 },
+  driverRatingsRow: { flexDirection: "row", gap: 8 },
+  driverRatingBox: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF7F0", borderRadius: 15, padding: 10, borderWidth: 1, borderColor: "#F4C8B9" },
+  driverRatingLabel: { color: "#78716C", fontSize: 9, fontWeight: "800" },
+  driverRatingValue: { color: "#1C1917", fontSize: 13, fontWeight: "900", marginTop: 2 },
   routeLine: { width: 2, height: 19, backgroundColor: "#D4E7B8", marginLeft: 14, marginVertical: 2 },
   driverActionButton: { minHeight: 52, borderRadius: 17, backgroundColor: "#B45309", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   driverActionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
@@ -656,6 +652,12 @@ const styles = StyleSheet.create({
   heroLeafOne: { width: 32, height: 15, borderRadius: 20, backgroundColor: "#A3C26B", position: "absolute", right: -1, top: 35, transform: [{ rotate: "34deg" }] },
   heroLeafTwo: { width: 28, height: 13, borderRadius: 20, backgroundColor: "#4D7C0F", position: "absolute", left: 7, bottom: 31, transform: [{ rotate: "-40deg" }] },
   searchRow: { flexDirection: "row", gap: 9 },
+  topSearchRow: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 12, marginBottom: 5 },
+  topSearchField: { flex: 1, height: 44, borderRadius: 16, borderWidth: 1, borderColor: "#E7DCD6", backgroundColor: "#FFFFFF", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 7 },
+  topSearchInput: { flex: 1, color: "#1C1917", fontSize: 12, paddingVertical: 0 },
+  topCartButton: { width: 44, height: 44, borderRadius: 16, backgroundColor: "#C2410C", alignItems: "center", justifyContent: "center", position: "relative" },
+  filterOnlyRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 5, marginBottom: 3 },
+  filterHint: { color: "#78716C", fontSize: 10, fontWeight: "800" },
   searchField: { flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E7DCD6", borderRadius: 16, height: 48, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 8 },
   searchInput: { flex: 1, fontSize: 13, color: "#1C1917", paddingVertical: 0 },
   filterButton: { width: 48, height: 48, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF1EC", borderWidth: 1, borderColor: "#F4C8B9" },
