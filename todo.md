@@ -39,3 +39,7 @@
 - [x] Add a complete meals page reachable from the All action
 - [x] Sort kitchens and meals from nearest to farthest using the selected region
 - [x] Validate Discover and All navigation flows on mobile
+- [x] Add a persistent quick-cart button after meals are added
+- [x] Show total meal quantity and distinct item count in the quick cart
+- [x] Show each meal quantity clearly in the cart and browsing rows
+- [x] Validate fast cart navigation and live quantity updates

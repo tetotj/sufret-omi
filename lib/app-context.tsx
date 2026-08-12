@@ -163,7 +163,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : [...current.cart, { meal, quantity: 1 }];
           return { ...current, cart };
         });
-        showToast(state.language === "ar" ? "انضافت للسفرة" : "Added to your table");
+        showToast(state.language === "ar" ? `انضافت للسفرة · ${unitCount(state.cart) + 1} وجبة` : `Added to your table · ${unitCount(state.cart) + 1} meals`);
       },
       updateQuantity: (mealId, nextQuantity) =>
         setState((current) => ({
