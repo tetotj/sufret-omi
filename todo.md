@@ -69,4 +69,6 @@
 - [x] Gate Mother and Driver dashboards behind supervisor approval
 - [x] Show customer-facing driver identity, vehicle, phone, coordinates, and ETA
 - [x] Run TypeScript, automated tests, and runtime preview validation
-- [ ] Save a stable checkpoint for the compliance and tracking release
+- [x] Save a stable checkpoint for the compliance and tracking release
+- [x] Diagnose the reported iOS Metro development-server connection failure and stale bundle URL
+- [x] Restore and validate the Expo Metro/API services and iOS bundle endpoint
