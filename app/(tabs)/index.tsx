@@ -27,6 +27,7 @@ import {
   meals,
   orderStatuses,
   paymentLabels,
+  type RegionId,
   type Role,
   regions,
   scheduleLabels,
@@ -204,16 +205,23 @@ function CustomerHome({
     cartTotal,
   } = useApp();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [regionScope, setRegionScope] = useState<RegionId | "all">("all");
+  const [priceSort, setPriceSort] = useState<"none" | "high" | "low">("none");
   const region = getRegion(selectedRegion);
+
+  const visibleKitchens = useMemo(() => regionScope === "all" ? kitchens : kitchens.filter((kitchen) => kitchen.region === regionScope), [regionScope]);
 
   const visibleMeals = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return meals.filter((meal) => {
+    const filtered = meals.filter((meal) => {
       const matchesQuery = !normalized || `${meal.name.ar} ${meal.name.en}`.toLowerCase().includes(normalized);
       const matchesCategory = selectedCategory === "all" || meal.category === selectedCategory;
-      return matchesQuery && matchesCategory;
+      const kitchen = kitchens.find((item) => item.id === meal.kitchenId);
+      const matchesRegion = regionScope === "all" || kitchen?.region === regionScope;
+      return matchesQuery && matchesCategory && matchesRegion;
     });
-  }, [query, selectedCategory]);
+    return [...filtered].sort((left, right) => priceSort === "high" ? right.price - left.price : priceSort === "low" ? left.price - right.price : 0);
+  }, [query, selectedCategory, regionScope, priceSort]);
 
   const openKitchen = (kitchenId: string) => {
     setSelectedKitchenId(kitchenId);
@@ -275,10 +283,15 @@ function CustomerHome({
         <View style={styles.filterPanel}>
           <Text style={styles.filterTitle}>{language === "ar" ? "اختاري منطقتك" : "Choose your region"}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            <Chip label={language === "ar" ? "كل المملكة" : "All Jordan"} selected={regionScope === "all"} onPress={() => setRegionScope("all")} />
             {regions.map((item) => (
-              <Chip key={item.id} label={getLocalized(item.label, language)} selected={selectedRegion === item.id} onPress={() => setSelectedRegion(item.id)} />
+              <Chip key={item.id} label={getLocalized(item.label, language)} selected={regionScope === item.id} onPress={() => { setRegionScope(item.id); setSelectedRegion(item.id); }} />
             ))}
           </ScrollView>
+          <Text style={styles.filterTitle}>{language === "ar" ? "ترتيب الأصناف حسب السعر" : "Sort meals by price"}</Text>
+          <View style={styles.sortOptions}>
+            {([{ id: "none", ar: "الأكثر طلباً", en: "Most ordered" }, { id: "high", ar: "الأغلى أولاً", en: "Price: high to low" }, { id: "low", ar: "الأرخص أولاً", en: "Price: low to high" }] as const).map((option) => <Pressable key={option.id} onPress={() => setPriceSort(option.id)} style={[styles.sortChip, priceSort === option.id && styles.sortChipActive]}><MaterialIcons name={option.id === "high" ? "arrow-downward" : option.id === "low" ? "arrow-upward" : "trending-up"} size={14} color={priceSort === option.id ? "#FFFFFF" : "#C2410C"} /><Text style={[styles.sortChipText, priceSort === option.id && styles.sortChipTextActive]}>{language === "ar" ? option.ar : option.en}</Text></Pressable>)}
+          </View>
         </View>
       )}
 
@@ -290,8 +303,8 @@ function CustomerHome({
         ))}
       </ScrollView>
 
-      <SectionHeader title={language === "ar" ? `حول ${getLocalized(region.label, language)}` : `Around ${getLocalized(region.label, language)}`} action={language === "ar" ? "الخريطة" : "Map"} onAction={() => onNavigate("explore")} />
-      <MapPreview compact onSelectRegion={setSelectedRegion} />
+      <SectionHeader title={language === "ar" ? `حول ${regionScope === "all" ? "كل المملكة" : getLocalized(region.label, language)}` : regionScope === "all" ? "Around all Jordan" : `Around ${getLocalized(region.label, language)}`} action={language === "ar" ? "الخريطة" : "Map"} onAction={() => onNavigate("explore")} />
+      <MapPreview compact onSelectRegion={(regionId) => { setSelectedRegion(regionId); setRegionScope(regionId); }} />
 
       {activeOrder && (
         <Pressable onPress={() => onNavigate("orders")} style={styles.activeOrderCard}>
@@ -302,7 +315,7 @@ function CustomerHome({
 
       <SectionHeader title={language === "ar" ? "مطابخ بتحبّوها" : "Loved home kitchens"} action={language === "ar" ? "شوفي الكل" : "See all"} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kitchenRow}>
-        {kitchens.map((kitchen) => (
+        {visibleKitchens.map((kitchen) => (
           <Pressable key={kitchen.id} onPress={() => openKitchen(kitchen.id)} style={({ pressed }) => [styles.kitchenCard, pressed && styles.pressed]}>
             <View style={styles.kitchenImageWrap}><Image source={{ uri: kitchen.image }} style={styles.kitchenImage} /><View style={[styles.openPill, !kitchen.isOpen && styles.closedPill]}><View style={[styles.openDot, !kitchen.isOpen && styles.closedDot]} /><Text style={styles.openText}>{kitchen.isOpen ? (language === "ar" ? "مفتوح" : "Open") : (language === "ar" ? "مغلق" : "Closed")}</Text></View><View style={styles.ratingPill}><MaterialIcons name="star" size={12} color="#F59E0B" /><Text style={styles.ratingText}>{kitchen.rating}</Text></View></View>
             <View style={styles.kitchenCardCopy}><Text style={styles.kitchenName} numberOfLines={1}>{getLocalized(kitchen.name, language)}</Text><Text style={styles.kitchenNeighborhood}>{getLocalized(kitchen.neighborhood, language)}</Text><View style={styles.kitchenMeta}><Text style={styles.kitchenSpecialty}>{getLocalized(getCategory(kitchen.specialty).label, language)}</Text><Text style={styles.kitchenReviews}>· {kitchen.reviewCount} {language === "ar" ? "تقييم" : "reviews"}</Text></View></View>
@@ -409,7 +422,8 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
 
 function ProfileScreen({ onRoleChange, onDashboard }: { onRoleChange: () => void; onDashboard: () => void }) {
   const { language, setLanguage, selectedRegion, setSelectedRegion, signOut } = useApp();
-  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#C2410C" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><Pressable onPress={onDashboard} style={styles.profileDashboardCard}><View style={styles.profileDashboardIcon}><MaterialIcons name="dashboard" size={20} color="#FFFFFF" /></View><View style={styles.profileDashboardCopy}><Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text><Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#FFFFFF" /></Pressable><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={() => setSelectedRegion(selectedRegion === "amman" ? "irbid" : "amman")} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} /><SettingRow icon="help-outline" label={language === "ar" ? "مساعدة سفرتي" : "Sufret Omi help"} value={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /><SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
+  const nextRegion = () => { const index = regions.findIndex((item) => item.id === selectedRegion); setSelectedRegion(regions[(index + 1) % regions.length].id); };
+  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#C2410C" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><Pressable onPress={onDashboard} style={styles.profileDashboardCard}><View style={styles.profileDashboardIcon}><MaterialIcons name="dashboard" size={20} color="#FFFFFF" /></View><View style={styles.profileDashboardCopy}><Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text><Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#FFFFFF" /></Pressable><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={nextRegion} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} /><SettingRow icon="help-outline" label={language === "ar" ? "مساعدة سفرتي" : "Sufret Omi help"} value={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /><SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
 }
 
 function BottomNav({ active, onNavigate, role, language }: { active: ViewId; onNavigate: (view: ViewId) => void; role: Role; language: "ar" | "en" }) {
@@ -556,6 +570,11 @@ const styles = StyleSheet.create({
   filterButtonActive: { backgroundColor: "#C2410C", borderColor: "#C2410C" },
   filterPanel: { backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: "#E7DCD6", padding: 12, gap: 8 },
   filterTitle: { fontSize: 12, fontWeight: "900", color: "#1C1917" },
+  sortOptions: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  sortChip: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 15, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "#FFF7F0", borderWidth: 1, borderColor: "#F4C8B9" },
+  sortChipActive: { backgroundColor: "#C2410C", borderColor: "#C2410C" },
+  sortChipText: { fontSize: 10, color: "#C2410C", fontWeight: "900" },
+  sortChipTextActive: { color: "#FFFFFF" },
   chipRow: { gap: 8 },
   chip: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F7F2EF", borderWidth: 1, borderColor: "#E7DCD6" },
   chipSelected: { backgroundColor: "#4D7C0F", borderColor: "#4D7C0F" },

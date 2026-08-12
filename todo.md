@@ -21,3 +21,7 @@
 - [x] Build driver dashboard with availability toggle, active pickup, route/map, and delivery actions
 - [x] Connect driver status updates to the existing order tracking flow
 - [x] Validate driver login, dashboard actions, and delivery handoff flow
+- [x] Add all Jordanian governorates and major areas to region filters
+- [x] Add ascending and descending meal price sorting controls
+- [x] Keep region, category, search, and price sorting filters composable
+- [x] Validate nationwide region browsing and price ordering
