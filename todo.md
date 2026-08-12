@@ -32,3 +32,6 @@
 - [x] Normalize legacy persisted orders with missing map addresses and coordinates
 - [x] Prevent the driver dashboard from rendering undefined localized value errors
 - [x] Validate recovery from the existing saved session and driver map flow
+- [x] Diagnose iOS inability to connect to the Expo development server
+- [x] Restart and verify Metro/API development services
+- [x] Confirm the iOS bundle endpoint is reachable
