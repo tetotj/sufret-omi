@@ -5,7 +5,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { ScreenContainer } from "@/components/screen-container";
 import { categories, getLocalized, regions, type CategoryId, type Role } from "@/lib/food-data";
 import { useApp } from "@/lib/app-context";
-import { verificationStatusLabel, type VerificationDocumentType } from "@/lib/verification-data";
+import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels, verificationStatusLabel, type VerificationDocumentType } from "@/lib/verification-data";
 import { pickVerificationImage } from "@/lib/verification-image-picker";
 
 type VerificationScreenProps = { role: Extract<Role, "mother" | "driver"> };
@@ -27,6 +27,9 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
   const status = getLocalized(verificationStatusLabel(profile.approvalStatus), language);
   const documentTypes = profile.documents;
   const selectedFoodTypes = isMother ? motherVerification.foodTypes : [];
+  const mealSizes = ["small", "medium", "large"] as const;
+  const loadCapacities = ["small", "medium", "large"] as const;
+  const vehicleTypes = ["motorcycle", "car", "van"] as const;
   const title = isMother ? (language === "ar" ? "ملف الأم والمطبخ" : "Mother & kitchen profile") : language === "ar" ? "ملف مندوب التوصيل" : "Delivery driver profile";
   const subtitle = isMother ? (language === "ar" ? "أرفقي بياناتك ووثائقك ليتم اعتمادك من فريق سفرة أمي." : "Add your details and documents for the Sufret Omi supervisor team to review.") : language === "ar" ? "أرفق وثائقك حتى يتم اعتمادك لاستلام الطلبات." : "Attach your documents so you can be approved to receive deliveries.";
   const updateProfile = (patch: Partial<typeof profile>) => {
@@ -73,10 +76,24 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
           <Text style={styles.sectionTitle}>{language === "ar" ? "المطبخ والسلامة الغذائية" : "Kitchen & food safety"}</Text>
           <Text style={styles.inputLabel}>{language === "ar" ? "أنواع الأكل التي تقدمينها" : "Food types you offer"}</Text>
           <View style={styles.foodGrid}>{categories.map((category) => <Pressable key={category.id} onPress={() => toggleFoodType(category.id)} style={[styles.foodChip, selectedFoodTypes.includes(category.id) && { backgroundColor: category.color, borderColor: category.color }]}><MaterialIcons name={category.icon as React.ComponentProps<typeof MaterialIcons>["name"]} size={16} color={selectedFoodTypes.includes(category.id) ? "#FFFFFF" : category.color} /><Text style={[styles.foodChipText, selectedFoodTypes.includes(category.id) && styles.foodChipTextActive]}>{getLocalized(category.label, language)}</Text></Pressable>)}</View>
+          <Text style={styles.inputLabel}>{language === "ar" ? "حجم الوجبات التي تحضّرينها" : "Typical meal size"}</Text>
+          <View style={styles.optionRow}>{mealSizes.map((size) => <Pressable key={size} onPress={() => updateMotherVerification({ mealSize: size })} style={[styles.option, motherVerification.mealSize === size && styles.optionActive]}><Text style={[styles.optionText, motherVerification.mealSize === size && styles.optionTextActive]}>{getLocalized(mealSizeLabels[size], language)}</Text></Pressable>)}</View>
+          <Text style={styles.helperText}>{language === "ar" ? "نستخدم الحجم لتجهيز مركبة مناسبة للطلب." : "We use this to assign a vehicle that fits the order."}</Text>
+          <Text style={styles.inputLabel}>{language === "ar" ? "أكبر حمولة توصيل تقبلينها" : "Largest delivery load you accept"}</Text>
+          <View style={styles.optionRow}>{loadCapacities.map((capacity) => <Pressable key={capacity} onPress={() => updateMotherVerification({ deliveryCapacity: capacity })} style={[styles.option, motherVerification.deliveryCapacity === capacity && styles.optionActive]}><Text style={[styles.optionText, motherVerification.deliveryCapacity === capacity && styles.optionTextActive]}>{getLocalized(loadCapacityLabels[capacity], language)}</Text></Pressable>)}</View>
           <Text style={styles.inputLabel}>{language === "ar" ? "هل يوجد حيوانات في المنزل؟" : "Are there pets at home?"}</Text>
           <View style={styles.optionRow}>{(["yes", "no"] as const).map((value) => <Pressable key={value} onPress={() => updateMotherVerification({ hasPets: value })} style={[styles.option, motherVerification.hasPets === value && styles.optionActive]}><Text style={[styles.optionText, motherVerification.hasPets === value && styles.optionTextActive]}>{value === "yes" ? (language === "ar" ? "نعم" : "Yes") : language === "ar" ? "لا" : "No"}</Text></Pressable>)}</View>
           <Text style={styles.inputLabel}>{language === "ar" ? "مواد الحساسية واحتياطات التحضير" : "Allergens and preparation precautions"}</Text>
           <View style={[styles.inputWrap, styles.textAreaWrap]}><MaterialIcons name="warning-amber" size={18} color="#236B45" /><TextInput value={motherVerification.allergyPrecautions} onChangeText={(allergyPrecautions) => updateMotherVerification({ allergyPrecautions })} placeholder={language === "ar" ? "مثال: يحتوي على مكسرات، نستخدم أدوات منفصلة..." : "Example: contains nuts, separate utensils..."} placeholderTextColor="#A4BDA7" multiline style={[styles.input, styles.textArea]} textAlign={language === "ar" ? "right" : "left"} /></View>
+        </>}
+
+        {!isMother && <>
+          <Text style={styles.sectionTitle}>{language === "ar" ? "المركبة والحمولة" : "Vehicle & capacity"}</Text>
+          <Text style={styles.inputLabel}>{language === "ar" ? "ما نوع المركبة التي تمتلكها؟" : "What vehicle do you use?"}</Text>
+          <View style={styles.optionRow}>{vehicleTypes.map((vehicleType) => <Pressable key={vehicleType} onPress={() => updateDriverVerification({ vehicleType })} style={[styles.option, driverVerification.vehicleType === vehicleType && styles.optionActive]}><MaterialIcons name={vehicleType === "motorcycle" ? "two-wheeler" : vehicleType === "car" ? "directions-car" : "airport-shuttle"} size={18} color={driverVerification.vehicleType === vehicleType ? "#4F8F3B" : "#236B45"} /><Text style={[styles.optionText, driverVerification.vehicleType === vehicleType && styles.optionTextActive]}>{getLocalized(driverVehicleLabels[vehicleType], language)}</Text></Pressable>)}</View>
+          <Text style={styles.inputLabel}>{language === "ar" ? "سعة الحمولة الفعلية" : "Available cargo capacity"}</Text>
+          <View style={styles.optionRow}>{loadCapacities.map((capacity) => <Pressable key={capacity} onPress={() => updateDriverVerification({ cargoCapacity: capacity })} style={[styles.option, driverVerification.cargoCapacity === capacity && styles.optionActive]}><Text style={[styles.optionText, driverVerification.cargoCapacity === capacity && styles.optionTextActive]}>{getLocalized(loadCapacityLabels[capacity], language)}</Text></Pressable>)}</View>
+          <Text style={styles.helperText}>{language === "ar" ? "سيظهر لك الطلب إذا كانت مركبتك مناسبة لحجمه." : "You will only receive orders that fit your vehicle capacity."}</Text>
         </>}
 
         <Text style={styles.sectionTitle}>{language === "ar" ? "الوثائق المطلوبة" : "Required documents"}</Text>
@@ -127,7 +144,7 @@ const styles = StyleSheet.create({
   foodChipText: { color: "#2B4933", fontSize: 10, fontWeight: "800" },
   foodChipTextActive: { color: "#FFFFFF" },
   optionRow: { flexDirection: "row", gap: 8 },
-  option: { flex: 1, alignItems: "center", borderRadius: 13, borderWidth: 1, borderColor: "#DDEAD8", backgroundColor: "#FFFFFF", paddingVertical: 10 },
+  option: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 13, borderWidth: 1, borderColor: "#DDEAD8", backgroundColor: "#FFFFFF", paddingVertical: 9, gap: 3 },
   optionActive: { backgroundColor: "#EEF9DB", borderColor: "#B8F000" },
   optionText: { color: "#5E7665", fontSize: 11, fontWeight: "900" },
   optionTextActive: { color: "#4F8F3B" },

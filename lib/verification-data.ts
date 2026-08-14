@@ -1,7 +1,6 @@
-import type { CategoryId, Localized, RegionId } from "@/lib/food-data";
+import type { CategoryId, DriverVehicleType, LoadCapacity, Localized, MealSize, RegionId } from "@/lib/food-data";
 
 export type ApprovalStatus = "not_started" | "draft" | "pending" | "approved" | "rejected";
-
 export type VerificationDocumentType =
   | "identity"
   | "criminal_record"
@@ -24,6 +23,8 @@ export type MotherVerificationProfile = {
   address: string;
   region: RegionId;
   foodTypes: CategoryId[];
+  mealSize: MealSize | null;
+  deliveryCapacity: LoadCapacity | null;
   hasPets: "yes" | "no" | "unknown";
   allergyPrecautions: string;
   termsAccepted: boolean;
@@ -36,8 +37,28 @@ export type DriverVerificationProfile = {
   phone: string;
   address: string;
   region: RegionId;
+  vehicleType: DriverVehicleType | null;
+  cargoCapacity: LoadCapacity | null;
   termsAccepted: boolean;
   documents: VerificationDocument[];
+};
+
+export const mealSizeLabels: Record<MealSize, Localized> = {
+  small: { ar: "صغير", en: "Small" },
+  medium: { ar: "متوسط", en: "Medium" },
+  large: { ar: "كبير / عائلي", en: "Large / family" },
+};
+
+export const loadCapacityLabels: Record<LoadCapacity, Localized> = {
+  small: { ar: "حمولة صغيرة", en: "Small load" },
+  medium: { ar: "حمولة متوسطة", en: "Medium load" },
+  large: { ar: "حمولة كبيرة", en: "Large load" },
+};
+
+export const driverVehicleLabels: Record<DriverVehicleType, Localized> = {
+  motorcycle: { ar: "دراجة نارية", en: "Motorcycle" },
+  car: { ar: "سيارة", en: "Car" },
+  van: { ar: "فان / مركبة كبيرة", en: "Van / large vehicle" },
 };
 
 export const motherDocumentTemplates: VerificationDocument[] = [
@@ -60,6 +81,8 @@ export const createMotherVerification = (region: RegionId): MotherVerificationPr
   address: "",
   region,
   foodTypes: [],
+  mealSize: null,
+  deliveryCapacity: null,
   hasPets: "unknown",
   allergyPrecautions: "",
   termsAccepted: false,
@@ -72,6 +95,8 @@ export const createDriverVerification = (region: RegionId): DriverVerificationPr
   phone: "",
   address: "",
   region,
+  vehicleType: null,
+  cargoCapacity: null,
   termsAccepted: false,
   documents: driverDocumentTemplates.map((document) => ({ ...document })),
 });
@@ -84,9 +109,17 @@ export const isVerificationReady = (profile: MotherVerificationProfile | DriverV
   profile.documents.every((document) => Boolean(document.uri));
 
 export const isMotherVerificationReady = (profile: MotherVerificationProfile) =>
-  isVerificationReady(profile) && profile.foodTypes.length > 0 && Boolean(profile.allergyPrecautions.trim()) && profile.hasPets !== "unknown";
+  isVerificationReady(profile) &&
+  profile.foodTypes.length > 0 &&
+  Boolean(profile.allergyPrecautions.trim()) &&
+  profile.hasPets !== "unknown" &&
+  profile.mealSize !== null &&
+  profile.deliveryCapacity !== null;
 
-export const isDriverVerificationReady = (profile: DriverVerificationProfile) => isVerificationReady(profile);
+export const isDriverVerificationReady = (profile: DriverVerificationProfile) =>
+  isVerificationReady(profile) &&
+  profile.vehicleType !== null &&
+  profile.cargoCapacity !== null;
 
 export const verificationStatusLabel = (status: ApprovalStatus): Localized => ({
   not_started: { ar: "لم يبدأ بعد", en: "Not started" },

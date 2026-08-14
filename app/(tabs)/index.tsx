@@ -17,8 +17,10 @@ import { MapPreview } from "@/components/map-preview";
 import { VerificationScreen } from "@/components/verification-screen";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
+import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels } from "@/lib/verification-data";
 import {
   categories,
+  canCarryLoad,
   distanceKm,
   formatJod,
   getCategory,
@@ -44,7 +46,7 @@ type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" |
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 export default function HomeScreen() {
-  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard } = useApp();
+  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal } = useApp();
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -101,6 +103,7 @@ export default function HomeScreen() {
           <BottomNav active={view} onNavigate={go} role={role} language={language} />
         )}
 
+        {role === "customer" && cartCount > 0 && view !== "cart" && view !== "dashboard" && view !== "delivery" && <FloatingCart language={language} count={cartCount} total={cartTotal} onPress={() => go("cart")} bottomOffset={view === "home" || view === "explore" || view === "orders" || view === "profile" ? 88 : 24} />}
         {toast && (
           <Pressable onPress={dismissToast} style={styles.toast}>
             <MaterialIcons name="check-circle" size={18} color="#FFFFFF" />
@@ -172,7 +175,7 @@ function CustomerDashboard({ onBack, onNavigate }: { onBack: () => void; onNavig
 }
 
 function DriverDashboard({ onBack }: { onBack: () => void }) {
-  const { language, driverAvailable, setDriverAvailable, driverOrder, advanceDriverOrder, showToast, signOut } = useApp();
+  const { language, driverAvailable, setDriverAvailable, driverOrder, driverVerification, advanceDriverOrder, showToast, signOut } = useApp();
   const currentStatus = driverOrder ? orderStatuses.find((status) => status.id === driverOrder.status) : null;
   const actionLabel = driverOrder?.status === "ready" ? (language === "ar" ? "استلمت الطلب من المطبخ" : "Picked up from kitchen") : driverOrder?.status === "on_the_way" ? (language === "ar" ? "تم التوصيل للعميلة" : "Delivered to customer") : language === "ar" ? "تحديث الحالة" : "Update status";
   const pickupDistance = driverOrder ? distanceKm(driverOrder.driverCoordinates ?? driverOrder.pickupCoordinates, driverOrder.pickupCoordinates) : 0;
@@ -180,6 +183,10 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
   const pickupEtaMinutes = Math.max(1, Math.round(pickupDistance * 4));
   const deliveryEtaMinutes = Math.max(5, Math.round(deliveryDistance * 5));
   const driverRating = driverOrder?.driverRating ?? 4.9;
+  const requiredCapacity = driverOrder?.requiredCapacity ?? "medium";
+  const vehicleType = driverVerification.vehicleType ?? driverOrder?.driver?.vehicleType ?? null;
+  const cargoCapacity = driverVerification.cargoCapacity ?? driverOrder?.driver?.cargoCapacity ?? null;
+  const capacityFits = driverOrder ? canCarryLoad(cargoCapacity, requiredCapacity) : true;
 
   const openNavigation = async (destination: "pickup" | "dropoff") => {
     if (!driverOrder) return;
@@ -210,7 +217,7 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.driverHero}><View><Text style={styles.driverOverline}>{language === "ar" ? "حالة المندوب" : "Driver status"}</Text><Text style={styles.driverTitle}>{driverAvailable ? (language === "ar" ? "متاح للتوصيل" : "Available for deliveries") : (language === "ar" ? "غير متاح الآن" : "Unavailable now")}</Text><Text style={styles.driverBody}>{driverAvailable ? (language === "ar" ? "رح توصلك الطلبات القريبة" : "Nearby orders will appear here") : (language === "ar" ? "شغّل التوفر لاستقبال طلبات" : "Turn on availability to receive orders")}</Text></View><Switch value={driverAvailable} onValueChange={setDriverAvailable} trackColor={{ false: "#D6E2D4", true: "#B8F000" }} thumbColor={driverAvailable ? "#4F8F3B" : "#5E7665"} /></View>
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
-        <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text></View>
+        <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text><View style={[styles.capacityMatch, capacityFits ? styles.capacityMatchOk : styles.capacityMatchWarn]}><MaterialIcons name={capacityFits ? "check-circle" : "warning-amber"} size={16} color={capacityFits ? "#4F8F3B" : "#C44545"} /><Text style={[styles.capacityMatchText, !capacityFits && styles.capacityMatchTextWarn]}>{capacityFits ? (language === "ar" ? `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "مركبتك"} مناسبة لحمولة ${getLocalized(loadCapacityLabels[requiredCapacity], language)}` : `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "Your vehicle"} fits the ${getLocalized(loadCapacityLabels[requiredCapacity], language)} order`) : (language === "ar" ? "هذه الحمولة أكبر من سعة مركبتك" : "This order is larger than your vehicle capacity")}</Text></View></View>
         <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} onPressMap={() => void openNavigation(driverOrder.status === "ready" ? "pickup" : "dropoff")} />
         <View style={styles.routeCard}>
           <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${pickupDistance.toFixed(1)} كم · حوالي ${pickupEtaMinutes} دقيقة للوصول` : `${pickupDistance.toFixed(1)} km · about ${pickupEtaMinutes} min to arrive`}</Text></View><MaterialIcons name="directions" size={20} color="#236B45" /></Pressable>
@@ -218,7 +225,8 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
           <Pressable onPress={() => void openNavigation("dropoff")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerDropoff]}><MaterialIcons name="location-on" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "تسليم للعميلة" : "Drop-off"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.dropoffAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.dropoffCoordinates.latitude.toFixed(5)}, {driverOrder.dropoffCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${deliveryDistance.toFixed(1)} كم · حوالي ${deliveryEtaMinutes} دقيقة للتسليم` : `${deliveryDistance.toFixed(1)} km · about ${deliveryEtaMinutes} min to deliver`}</Text></View><MaterialIcons name="directions" size={20} color="#236B45" /></Pressable>
         </View>
         <View style={styles.driverRatingsRow}><View style={styles.driverRatingBox}><MaterialIcons name="two-wheeler" size={17} color="#236B45" /><View><Text style={styles.driverRatingLabel}>{language === "ar" ? "تقييم السائق" : "Driver rating"}</Text><Text style={styles.driverRatingValue}>{driverRating.toFixed(1)} ★</Text></View></View><View style={styles.driverRatingBox}><MaterialIcons name="storefront" size={17} color="#4F8F3B" /><View><Text style={styles.driverRatingLabel}>{language === "ar" ? "تقييم المتجر" : "Store rating"}</Text><Text style={styles.driverRatingValue}>{driverOrder.kitchen.rating.toFixed(1)} ★</Text></View></View></View>
-        {driverOrder.status !== "delivered" ? <Pressable onPress={advance} style={({ pressed }) => [styles.driverActionButton, pressed && styles.pressed]}><MaterialIcons name={driverOrder.status === "ready" ? "shopping-bag" : "check-circle"} size={19} color="#FFFFFF" /><Text style={styles.driverActionButtonText}>{actionLabel}</Text></Pressable> : <View style={styles.driverDone}><MaterialIcons name="check-circle" size={21} color="#4F8F3B" /><Text style={styles.driverDoneText}>{language === "ar" ? "تمت التوصيلة بنجاح، يعطيك العافية" : "Delivery complete, great work"}</Text></View>}
+        {driverOrder.status !== "delivered" ? <Pressable disabled={!capacityFits} onPress={advance} style={({ pressed }) => [styles.driverActionButton, !capacityFits && styles.driverActionDisabled, pressed && styles.pressed]}>
+<MaterialIcons name={driverOrder.status === "ready" ? "shopping-bag" : "check-circle"} size={19} color="#FFFFFF" /><Text style={styles.driverActionButtonText}>{actionLabel}</Text></Pressable> : <View style={styles.driverDone}><MaterialIcons name="check-circle" size={21} color="#4F8F3B" /><Text style={styles.driverDoneText}>{language === "ar" ? "تمت التوصيلة بنجاح، يعطيك العافية" : "Delivery complete, great work"}</Text></View>}
       </> : <View style={styles.driverDone}><MaterialIcons name="local-cafe" size={21} color="#236B45" /><Text style={styles.driverDoneText}>{language === "ar" ? "ما في طلبات قريبة حالياً" : "No nearby orders right now"}</Text></View>}
       <SectionHeader title={language === "ar" ? "مراحل التوصيل" : "Delivery steps"} action={language === "ar" ? "الدعم" : "Support"} onAction={() => showToast(language === "ar" ? "فريق الدعم معك" : "Support is here for you")} />
       <View style={styles.trackingCard}>{orderStatuses.slice(1, 5).map((status, index) => { const active = driverOrder ? orderStatuses.findIndex((item) => item.id === driverOrder.status) >= index + 2 : false; return <View key={status.id} style={styles.trackingRow}><View style={styles.trackRail}><View style={[styles.trackDot, active && styles.trackDotDone]}>{active && <MaterialIcons name="check" size={12} color="#FFFFFF" />}</View>{index < 3 && <View style={[styles.trackLine, active && styles.trackLineDone]} />}</View><View style={styles.trackCopy}><Text style={[styles.trackLabel, active && styles.trackLabelActive]}>{getLocalized(status.label, language)}</Text><Text style={styles.trackCaption}>{getLocalized(status.caption, language)}</Text></View><MaterialIcons name={status.icon as IconName} size={19} color={active ? "#4F8F3B" : "#A4BDA7"} /></View>; })}</View>
@@ -472,13 +480,14 @@ function OrdersScreen({ onBack }: { onBack: () => void }) {
 }
 
 function MotherDashboard({ onBack }: { onBack: () => void }) {
-  const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole } = useApp();
+  const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "لوحة الأم" : "MOTHER'S TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "صباح الخير يا أم أحمد" : "Good morning, Umm Ahmad"}</Text></View><Pressable onPress={() => { setRole("customer"); onBack(); }} style={styles.roleIcon}><MaterialIcons name="person-outline" size={20} color="#236B45" /></Pressable></View>
       <View style={styles.dashboardHero}><View><Text style={styles.dashboardOverline}>{language === "ar" ? "حالة المطبخ" : "Kitchen status"}</Text><Text style={styles.dashboardTitle}>{kitchenOpen ? (language === "ar" ? "مطبخك مفتوح" : "Your kitchen is open") : (language === "ar" ? "المطبخ مغلق" : "Kitchen is closed")}</Text><Text style={styles.dashboardBody}>{kitchenOpen ? (language === "ar" ? "جاهزة تستقبلي طلبات الجيران" : "Ready to welcome neighborhood orders") : (language === "ar" ? "افتحيه لما تكوني جاهزة" : "Open it when you're ready")}</Text></View><Switch value={kitchenOpen} onValueChange={toggleKitchen} trackColor={{ false: "#D6E2D4", true: "#B8F000" }} thumbColor={kitchenOpen ? "#4F8F3B" : "#5E7665"} /></View>
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "طلبات اليوم" : "Today's orders"} value="12" icon="receipt-long" /><DashboardMetric label={language === "ar" ? "أرباح الشهر" : "This month"} value={language === "ar" ? "٤٨٦ د.أ" : "JOD 486"} icon="trending-up" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
+      <View style={styles.capacitySettingsCard}><View style={styles.capacitySettingsIcon}><MaterialIcons name="inventory-2" size={19} color="#236B45" /></View><View style={styles.capacitySettingsCopy}><Text style={styles.capacitySettingsTitle}>{language === "ar" ? "إعدادات حجم الطلب" : "Order-size settings"}</Text><Text style={styles.capacitySettingsBody}>{motherVerification.mealSize && motherVerification.deliveryCapacity ? `${getLocalized(mealSizeLabels[motherVerification.mealSize], language)} · ${getLocalized(loadCapacityLabels[motherVerification.deliveryCapacity], language)}` : language === "ar" ? "أكملي حجم الوجبات وسعة التوصيل من ملف التحقق" : "Complete meal size and delivery capacity in verification"}</Text></View><MaterialIcons name="tune" size={18} color="#4F8F3B" /></View>
       {incomingOrder && <View style={styles.incomingCard}><View style={styles.incomingTop}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "طلب جديد" : "New order"}</Text><Text style={styles.incomingId}>{incomingOrder.id}</Text></View><View style={styles.newPill}><Text style={styles.newPillText}>{language === "ar" ? "جديد" : "NEW"}</Text></View></View><Text style={styles.incomingTitle}>{incomingOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.incomingMeta}>{getLocalized(incomingOrder.eta, language)} · {formatJod(incomingOrder.total, language)} · {t(paymentLabels[incomingOrder.paymentMethod], language)}</Text>{incomingOrder.status === "received" ? <View style={styles.incomingActions}><Pressable onPress={rejectIncomingOrder} style={styles.rejectButton}><Text style={styles.rejectText}>{language === "ar" ? "رفض" : "Decline"}</Text></Pressable><Pressable onPress={acceptIncomingOrder} style={styles.acceptButton}><Text style={styles.acceptText}>{language === "ar" ? "قبول الطلب" : "Accept order"}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View> : <View style={styles.prepNotice}><MaterialIcons name="soup-kitchen" size={18} color="#4F8F3B" /><Text style={styles.prepNoticeText}>{language === "ar" ? "الطلب قيد التحضير - وقت التسليم ٤٥ دقيقة" : "Preparing - ready in 45 minutes"}</Text></View>}</View>}
       <SectionHeader title={language === "ar" ? "إدارة مطبخك" : "Manage your kitchen"} action={language === "ar" ? "عرض القائمة" : "View menu"} onAction={() => setMenuOpen((value) => !value)} />
       <View style={styles.dashboardList}><DashboardAction icon="restaurant-menu" title={language === "ar" ? "قائمة الأكلات" : "Menu items"} detail={language === "ar" ? "٥ أكلات · ٤ متاحة" : "5 meals · 4 available"} onPress={() => setMenuOpen((value) => !value)} /><DashboardAction icon="event" title={language === "ar" ? "طلبات مسبقة" : "Advance orders"} detail={language === "ar" ? "مناسبات الجمعة" : "Friday gatherings"} onPress={() => undefined} /><DashboardAction icon="account-balance" title={language === "ar" ? "الأرباح و CliQ" : "Earnings & CliQ"} detail={lastPayout ? (language === "ar" ? "طلب التحويل قيد المعالجة" : "Payout processing") : (language === "ar" ? "٣٨٦ د.أ جاهزة للتحويل" : "JOD 386 ready to payout")} onPress={() => requestPayout(386)} /> </View>
@@ -498,6 +507,8 @@ function BottomNav({ active, onNavigate, role, language }: { active: ViewId; onN
   const items: { id: ViewId; label: string; icon: IconName }[] = [{ id: "home", label: language === "ar" ? "الرئيسية" : "Home", icon: "home" }, { id: "discover", label: language === "ar" ? "اكتشفي" : "Explore", icon: "explore" }, { id: "orders", label: language === "ar" ? "طلباتي" : "Orders", icon: "receipt-long" }, { id: "profile", label: language === "ar" ? "حسابي" : "Profile", icon: "person-outline" }];
   return <View style={styles.bottomNav}>{items.map((item) => <Pressable key={item.id} onPress={() => onNavigate(item.id)} style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}><MaterialIcons name={item.icon} size={21} color={active === item.id ? "#236B45" : "#A4BDA7"} /><Text style={[styles.navLabel, active === item.id && styles.navLabelActive]}>{item.label}</Text></Pressable>)}<View style={styles.navBrandDot}><MaterialIcons name={role === "mother" ? "storefront" : "restaurant"} size={18} color="#FFFFFF" /></View></View>;
 }
+
+function FloatingCart({ language, count, total, onPress, bottomOffset }: { language: "ar" | "en"; count: number; total: number; onPress: () => void; bottomOffset: number }) { return <Pressable onPress={onPress} style={({ pressed }) => [styles.floatingCart, { bottom: bottomOffset }, pressed && styles.pressed]}><View><Text style={styles.floatingCartEyebrow}>{language === "ar" ? `${count} وجبة في السلة` : `${count} meals in cart`}</Text><Text style={styles.floatingCartPrice}>{formatJod(total, language)}</Text></View><View style={styles.floatingCartCtaWrap}><Text style={styles.floatingCartCta}>{language === "ar" ? "عرض السلة وإكمال الطلب" : "View cart & continue"}</Text><MaterialIcons name="arrow-forward" size={17} color="#D9F99D" /></View></Pressable>; }
 
 function LanguageToggle() { const { language, setLanguage } = useApp(); return <Pressable onPress={() => setLanguage(language === "ar" ? "en" : "ar")} style={styles.languageToggle}><Text style={[styles.languageText, language === "ar" && styles.languageActive]}>ع</Text><Text style={styles.languageSlash}>/</Text><Text style={[styles.languageText, language === "en" && styles.languageActive]}>EN</Text></Pressable>; }
 
@@ -556,6 +567,11 @@ const styles = StyleSheet.create({
   loginTrustText: { color: "#4F8F3B", fontSize: 10, fontWeight: "800", textAlign: "center", flex: 1 },
   logoutButton: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F0FBEA", borderRadius: 13, paddingHorizontal: 9, paddingVertical: 8 },
   logoutText: { color: "#236B45", fontSize: 10, fontWeight: "900" },
+  capacitySettingsCard: { flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 17, padding: 12, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DDEAD8" },
+  capacitySettingsIcon: { width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#F0FBEA" },
+  capacitySettingsCopy: { flex: 1 },
+  capacitySettingsTitle: { color: "#132218", fontSize: 11, fontWeight: "900" },
+  capacitySettingsBody: { color: "#5E7665", fontSize: 10, marginTop: 3 },
   driverHero: { borderRadius: 23, padding: 18, backgroundColor: "#F3FFE6", borderWidth: 1, borderColor: "#D9F99D", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   driverOverline: { color: "#C88A16", fontSize: 10, fontWeight: "900" },
   driverTitle: { color: "#132218", fontSize: 21, fontWeight: "900", marginTop: 5 },
@@ -582,6 +598,12 @@ const styles = StyleSheet.create({
   driverRatingValue: { color: "#132218", fontSize: 13, fontWeight: "900", marginTop: 2 },
   routeLine: { width: 2, height: 19, backgroundColor: "#D9F99D", marginLeft: 14, marginVertical: 2 },
   driverActionButton: { minHeight: 52, borderRadius: 17, backgroundColor: "#C88A16", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  driverActionDisabled: { backgroundColor: "#A4BDA7" },
+  capacityMatch: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, marginTop: 2 },
+  capacityMatchOk: { backgroundColor: "#EEF9DB" },
+  capacityMatchWarn: { backgroundColor: "#FFF0F0" },
+  capacityMatchText: { flex: 1, color: "#4F8F3B", fontSize: 10, fontWeight: "900" },
+  capacityMatchTextWarn: { color: "#C44545" },
   driverActionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
   driverDone: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#EEF9DB", borderRadius: 16, padding: 13 },
   driverDoneText: { color: "#4F8F3B", fontSize: 11, fontWeight: "900" },
@@ -750,6 +772,7 @@ const styles = StyleSheet.create({
   floatingCartEyebrow: { color: "#A4BDA7", fontSize: 10, fontWeight: "700" },
   floatingCartPrice: { color: "#FFFFFF", fontSize: 15, fontWeight: "900", marginTop: 1 },
   floatingCartCta: { color: "#D9F99D", fontSize: 12, fontWeight: "900" },
+  floatingCartCtaWrap: { flexDirection: "row", alignItems: "center", gap: 5 },
   pageTopRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   backButton: { width: 38, height: 38, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DDEAD8", justifyContent: "center", alignItems: "center" },
   pageTitle: { color: "#132218", fontSize: 20, fontWeight: "900" },

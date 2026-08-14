@@ -1,5 +1,8 @@
 export type Language = "ar" | "en";
 export type Role = "customer" | "mother" | "driver";
+export type MealSize = "small" | "medium" | "large";
+export type LoadCapacity = "small" | "medium" | "large";
+export type DriverVehicleType = "motorcycle" | "car" | "van";
 export type Localized = { ar: string; en: string };
 export type Coordinate = { latitude: number; longitude: number };
 export type CategoryId = "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona";
@@ -31,6 +34,7 @@ export type Meal = {
   dailyLimit: number;
   available: boolean;
   image: string;
+  portionSize: MealSize;
 };
 
 export type Kitchen = {
@@ -60,6 +64,8 @@ export type DriverDetails = {
   phone: string;
   vehicle: Localized;
   plate: string;
+  vehicleType: DriverVehicleType;
+  cargoCapacity: LoadCapacity;
 };
 
 export type Order = {
@@ -77,6 +83,7 @@ export type Order = {
   pickupAddress: Localized;
   dropoffAddress: Localized;
   driverRating?: number;
+  requiredCapacity?: LoadCapacity;
   driver?: DriverDetails;
 };
 
@@ -170,7 +177,7 @@ export const meals: Meal[] = [
     prepMinutes: 45,
     dailyLimit: 18,
     available: true,
-    image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84",
+    image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", portionSize: "medium",
   },
   {
     id: "maqluba-chicken",
@@ -182,7 +189,7 @@ export const meals: Meal[] = [
     prepMinutes: 55,
     dailyLimit: 12,
     available: true,
-    image: "https://images.unsplash.com/photo-1601050690117-94f5f6fa8bd7?auto=format&fit=crop&w=900&q=84",
+    image: "https://images.unsplash.com/photo-1601050690117-94f5f6fa8bd7?auto=format&fit=crop&w=900&q=84", portionSize: "medium",
   },
   {
     id: "grape-leaves",
@@ -194,7 +201,7 @@ export const meals: Meal[] = [
     prepMinutes: 40,
     dailyLimit: 20,
     available: true,
-    image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84",
+    image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", portionSize: "small",
   },
   {
     id: "zaatar-bakery",
@@ -206,7 +213,7 @@ export const meals: Meal[] = [
     prepMinutes: 25,
     dailyLimit: 30,
     available: true,
-    image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84",
+    image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", portionSize: "small",
   },
   {
     id: "jameed-balls",
@@ -218,18 +225,18 @@ export const meals: Meal[] = [
     prepMinutes: 15,
     dailyLimit: 16,
     available: true,
-    image: "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=900&q=84",
+    image: "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=900&q=84", portionSize: "medium",
   },
-  { id: "zarqa-maqluba", kitchenId: "kitchen-zarqa", name: { ar: "مقلوبة الزرقاء", en: "Zarqa Maqluba" }, description: { ar: "رز متبّل مع باذنجان ودجاج بلدي", en: "Spiced rice with eggplant and local chicken" }, category: "maqluba", price: 6.5, prepMinutes: 50, dailyLimit: 15, available: true, image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84" },
-  { id: "balqa-mansaf", kitchenId: "kitchen-balqa", name: { ar: "منسف البلقاء", en: "Balqa Mansaf" }, description: { ar: "جميد كريمي ولحمة بلدية وخبز شراك", en: "Creamy jameed, local lamb and shrak bread" }, category: "mansaf", price: 9.25, prepMinutes: 60, dailyLimit: 12, available: true, image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84" },
-  { id: "madaba-mahshi", kitchenId: "kitchen-madaba", name: { ar: "محاشي مادبا", en: "Madaba Stuffed Vegetables" }, description: { ar: "كوسا وورق دوالي بحشوة بيتية", en: "Zucchini and grape leaves with homestyle filling" }, category: "mahshi", price: 5.75, prepMinutes: 45, dailyLimit: 18, available: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84" },
-  { id: "jerash-olive", kitchenId: "kitchen-jerash", name: { ar: "زيتون جرشي مكبوس", en: "Jerash Pressed Olives" }, description: { ar: "زيتون أخضر من موسم جرش مع الأعشاب", en: "Green Jerash olives with local herbs" }, category: "moona", price: 6.25, prepMinutes: 10, dailyLimit: 20, available: true, image: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=84" },
-  { id: "ajloun-manakish", kitchenId: "kitchen-ajloun", name: { ar: "مناقيش عجلون", en: "Ajloun Manakish" }, description: { ar: "زعتر جبلي وزيت زيتون على عجينة طرية", en: "Mountain zaatar and olive oil on soft dough" }, category: "bakery", price: 3.5, prepMinutes: 25, dailyLimit: 24, available: true, image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84" },
-  { id: "mafraq-mansaf", kitchenId: "kitchen-mafraq", name: { ar: "ثريد البادية", en: "Badia Thareed" }, description: { ar: "خبز رقيق مع مرق ولحم وتوابل بدوية", en: "Thin bread with broth, meat and Bedouin spices" }, category: "mansaf", price: 7.75, prepMinutes: 55, dailyLimit: 14, available: true, image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84" },
-  { id: "karak-mansaf", kitchenId: "kitchen-karak", name: { ar: "منسف الكرك الكبير", en: "Karak Family Mansaf" }, description: { ar: "سفرة جنوبية تكفي اللمة مع جميد كركي", en: "A southern family feast with Karak jameed" }, category: "mansaf", price: 12.5, prepMinutes: 70, dailyLimit: 10, available: true, image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84" },
-  { id: "tafila-mahshi", kitchenId: "kitchen-tafila", name: { ar: "دوالي الطفيلة", en: "Tafilah Grape Leaves" }, description: { ar: "دوالي صغيرة بطعم زيت الزيتون الجبلي", en: "Tender grape leaves with highland olive oil" }, category: "mahshi", price: 5.5, prepMinutes: 50, dailyLimit: 16, available: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84" },
-  { id: "maan-maqluba", kitchenId: "kitchen-maan", name: { ar: "مقلوبة معان باللحم", en: "Ma'an Meat Maqluba" }, description: { ar: "مقلوبة جنوبية بلحم طري وباذنجان", en: "Southern maqluba with tender meat and eggplant" }, category: "maqluba", price: 8.75, prepMinutes: 65, dailyLimit: 12, available: true, image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84" },
-  { id: "aqaba-bakery", kitchenId: "kitchen-aqaba", name: { ar: "خبز العقبة بالسمسم", en: "Aqaba Sesame Bread" }, description: { ar: "خبز طازج بالسمسم يقدم مع لبنة وزيت", en: "Fresh sesame bread with labneh and olive oil" }, category: "bakery", price: 2.75, prepMinutes: 20, dailyLimit: 30, available: true, image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84" },
+  { id: "zarqa-maqluba", kitchenId: "kitchen-zarqa", name: { ar: "مقلوبة الزرقاء", en: "Zarqa Maqluba" }, description: { ar: "رز متبّل مع باذنجان ودجاج بلدي", en: "Spiced rice with eggplant and local chicken" }, category: "maqluba", price: 6.5, prepMinutes: 50, dailyLimit: 15, available: true, image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", portionSize: "medium" },
+  { id: "balqa-mansaf", kitchenId: "kitchen-balqa", name: { ar: "منسف البلقاء", en: "Balqa Mansaf" }, description: { ar: "جميد كريمي ولحمة بلدية وخبز شراك", en: "Creamy jameed, local lamb and shrak bread" }, category: "mansaf", price: 9.25, prepMinutes: 60, dailyLimit: 12, available: true, image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", portionSize: "large" },
+  { id: "madaba-mahshi", kitchenId: "kitchen-madaba", name: { ar: "محاشي مادبا", en: "Madaba Stuffed Vegetables" }, description: { ar: "كوسا وورق دوالي بحشوة بيتية", en: "Zucchini and grape leaves with homestyle filling" }, category: "mahshi", price: 5.75, prepMinutes: 45, dailyLimit: 18, available: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", portionSize: "medium" },
+  { id: "jerash-olive", kitchenId: "kitchen-jerash", name: { ar: "زيتون جرشي مكبوس", en: "Jerash Pressed Olives" }, description: { ar: "زيتون أخضر من موسم جرش مع الأعشاب", en: "Green Jerash olives with local herbs" }, category: "moona", price: 6.25, prepMinutes: 10, dailyLimit: 20, available: true, image: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=84", portionSize: "small" },
+  { id: "ajloun-manakish", kitchenId: "kitchen-ajloun", name: { ar: "مناقيش عجلون", en: "Ajloun Manakish" }, description: { ar: "زعتر جبلي وزيت زيتون على عجينة طرية", en: "Mountain zaatar and olive oil on soft dough" }, category: "bakery", price: 3.5, prepMinutes: 25, dailyLimit: 24, available: true, image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", portionSize: "small" },
+  { id: "mafraq-mansaf", kitchenId: "kitchen-mafraq", name: { ar: "ثريد البادية", en: "Badia Thareed" }, description: { ar: "خبز رقيق مع مرق ولحم وتوابل بدوية", en: "Thin bread with broth, meat and Bedouin spices" }, category: "mansaf", price: 7.75, prepMinutes: 55, dailyLimit: 14, available: true, image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", portionSize: "large" },
+  { id: "karak-mansaf", kitchenId: "kitchen-karak", name: { ar: "منسف الكرك الكبير", en: "Karak Family Mansaf" }, description: { ar: "سفرة جنوبية تكفي اللمة مع جميد كركي", en: "A southern family feast with Karak jameed" }, category: "mansaf", price: 12.5, prepMinutes: 70, dailyLimit: 10, available: true, image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", portionSize: "large" },
+  { id: "tafila-mahshi", kitchenId: "kitchen-tafila", name: { ar: "دوالي الطفيلة", en: "Tafilah Grape Leaves" }, description: { ar: "دوالي صغيرة بطعم زيت الزيتون الجبلي", en: "Tender grape leaves with highland olive oil" }, category: "mahshi", price: 5.5, prepMinutes: 50, dailyLimit: 16, available: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", portionSize: "medium" },
+  { id: "maan-maqluba", kitchenId: "kitchen-maan", name: { ar: "مقلوبة معان باللحم", en: "Ma'an Meat Maqluba" }, description: { ar: "مقلوبة جنوبية بلحم طري وباذنجان", en: "Southern maqluba with tender meat and eggplant" }, category: "maqluba", price: 8.75, prepMinutes: 65, dailyLimit: 12, available: true, image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", portionSize: "large" },
+  { id: "aqaba-bakery", kitchenId: "kitchen-aqaba", name: { ar: "خبز العقبة بالسمسم", en: "Aqaba Sesame Bread" }, description: { ar: "خبز طازج بالسمسم يقدم مع لبنة وزيت", en: "Fresh sesame bread with labneh and olive oil" }, category: "bakery", price: 2.75, prepMinutes: 20, dailyLimit: 30, available: true, image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", portionSize: "small" },
 ];
 
 export const orderStatuses: { id: OrderStatus; label: Localized; caption: Localized; icon: string }[] = [
@@ -278,6 +285,19 @@ export const totalCart = (items: CartItem[]) => items.reduce((sum, item) => sum 
 
 export const unitCount = (items: CartItem[]) => items.reduce((sum, item) => sum + item.quantity, 0);
 
+const capacityRank: Record<LoadCapacity, number> = { small: 1, medium: 2, large: 3 };
+
+export const getRequiredLoadCapacity = (items: CartItem[]): LoadCapacity => {
+  const quantity = unitCount(items);
+  const largestMeal = items.reduce<MealSize>((largest, item) => capacityRank[item.meal.portionSize] > capacityRank[largest] ? item.meal.portionSize : largest, "small");
+  if (largestMeal === "large" || quantity >= 6) return "large";
+  if (largestMeal === "medium" || quantity >= 3) return "medium";
+  return "small";
+};
+
+export const canCarryLoad = (capacity: LoadCapacity | null | undefined, required: LoadCapacity | null | undefined) =>
+  Boolean(capacity && required && capacityRank[capacity] >= capacityRank[required]);
+
 export const paymentLabels: Record<Order["paymentMethod"], Localized> = {
   cod: { ar: "الدفع عند الاستلام", en: "Cash on delivery" },
   cliq: { ar: "CliQ", en: "CliQ" },
@@ -308,7 +328,7 @@ export const sampleDriverOrder: Order = {
   pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
   dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
   driverRating: 4.9,
-  driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184" },
+  driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: "motorcycle", cargoCapacity: "medium" },
 };
 
 export const sampleIncomingOrder: Order = {
@@ -326,5 +346,5 @@ export const sampleIncomingOrder: Order = {
   pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
   dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
   driverRating: 4.9,
-  driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184" },
+  driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: "motorcycle", cargoCapacity: "medium" },
 };

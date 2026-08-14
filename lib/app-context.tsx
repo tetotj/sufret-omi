@@ -4,9 +4,11 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import {
   CartItem,
   CategoryId,
-  Kitchen,
+  canCarryLoad,
+  getRequiredLoadCapacity,
   Language,
   Meal,
+  Kitchen,
   Order,
   RegionId,
   Role,
@@ -53,6 +55,7 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
     pickupAddress: value.pickupAddress ?? fallback?.pickupAddress ?? { ar: `${getLocalized(kitchen.name, "ar")}، ${getLocalized(kitchen.neighborhood, "ar")}`, en: `${getLocalized(kitchen.name, "en")}, ${getLocalized(kitchen.neighborhood, "en")}` },
     dropoffAddress: value.dropoffAddress ?? fallback?.dropoffAddress ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
     driverRating: typeof value.driverRating === "number" ? value.driverRating : fallback?.driverRating ?? 4.9,
+    requiredCapacity: value.requiredCapacity ?? fallback?.requiredCapacity ?? getRequiredLoadCapacity(Array.isArray(value.items) ? value.items : fallback?.items ?? []),
     driver: value.driver ?? fallback?.driver,
   };
 }
@@ -219,7 +222,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
           dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
           driverRating: 4.9,
-          driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184" },
+          requiredCapacity: getRequiredLoadCapacity(current.cart),
+          driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: current.driverVerification.vehicleType ?? "motorcycle", cargoCapacity: current.driverVerification.cargoCapacity ?? "medium" },
         },
         cart: [],
       })),
@@ -246,6 +250,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setDriverAvailable: (driverAvailable) => setState((current) => ({ ...current, driverAvailable })),
       advanceDriverOrder: () => {
         const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
+        if (state.driverOrder && !canCarryLoad(state.driverVerification.cargoCapacity ?? "medium", state.driverOrder.requiredCapacity ?? "medium")) {
+          showToast(state.language === "ar" ? "هذه الحمولة أكبر من سعة مركبتك" : "This order is larger than your vehicle capacity");
+          return;
+        }
         setState((current) => current.driverOrder ? { ...current, driverOrder: { ...current.driverOrder, status: nextStatus[current.driverOrder.status] } } : current);
       },
       updateMotherVerification: (patch) => setState((current) => ({ ...current, motherVerification: { ...current.motherVerification, ...patch, approvalStatus: current.motherVerification.approvalStatus === "approved" ? "approved" : patch.approvalStatus ?? "draft" } })),
