@@ -71,6 +71,7 @@ export default function HomeScreen() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [customizingMeal, setCustomizingMeal] = useState<(typeof meals)[number] | null>(null);
   const [query, setQuery] = useState("");
+  const [cartSpecialRequests, setCartSpecialRequests] = useState("");
 
   const confirmMealCustomization = (meal: (typeof meals)[number], specialRequests: string) => {
     addToCart(meal, specialRequests);
@@ -112,7 +113,7 @@ export default function HomeScreen() {
         ) : view === "kitchen" ? (
           <KitchenProfile onBack={() => go("home")} onCart={() => go("cart")} onRequestAdd={setCustomizingMeal} />
         ) : view === "cart" ? (
-          <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} />
+          <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} specialRequests={cartSpecialRequests} onSpecialRequestsChange={setCartSpecialRequests} />
         ) : view === "dashboard" ? (
           role === "mother" ? <MotherDashboard onBack={() => go("home")} /> : <CustomerDashboard onBack={() => go("home")} onNavigate={go} />
         ) : view === "delivery" ? (
@@ -138,7 +139,7 @@ export default function HomeScreen() {
         )}
       </View>
       <MealCustomizationModal meal={customizingMeal} onClose={() => setCustomizingMeal(null)} onConfirm={confirmMealCustomization} />
-      <CheckoutModal visible={checkoutOpen} onClose={() => setCheckoutOpen(false)} onComplete={() => { setCheckoutOpen(false); go("orders"); }} />
+      <CheckoutModal visible={checkoutOpen} initialSpecialRequests={cartSpecialRequests} onClose={() => setCheckoutOpen(false)} onComplete={() => { setCheckoutOpen(false); setCartSpecialRequests(""); go("orders"); }} />
     </ScreenContainer>
   );
 }
@@ -444,7 +445,7 @@ function KitchenProfile({ onBack, onCart, onRequestAdd }: { onBack: () => void; 
   );
 }
 
-function CartScreen({ onBack, onCheckout }: { onBack: () => void; onCheckout: () => void }) {
+function CartScreen({ onBack, onCheckout, specialRequests, onSpecialRequestsChange }: { onBack: () => void; onCheckout: () => void; specialRequests: string; onSpecialRequestsChange: (value: string) => void }) {
   const { language, cart, cartTotal, updateQuantity, clearCart, cartCount } = useApp();
   const pricing = getOrderPricing(cartTotal, cart.length ? 1.25 : 0);
   return (
@@ -453,6 +454,7 @@ function CartScreen({ onBack, onCheckout }: { onBack: () => void; onCheckout: ()
       {cart.length === 0 ? <EmptyCart language={language} onBack={onBack} /> : <>
         <View style={styles.cartItems}>{cart.map((item, index) => <CartItemRow key={`${item.meal.id}-${item.specialRequests ?? "default"}-${index}`} item={item} language={language} onUpdate={updateQuantity} />)}</View>
         <View style={styles.deliveryCard}><View style={styles.deliveryIcon}><MaterialIcons name="two-wheeler" size={21} color="#4F8F3B" /></View><View style={styles.deliveryCopy}><Text style={styles.deliveryTitle}>{language === "ar" ? "توصيل لباب البيت" : "Doorstep delivery"}</Text><Text style={styles.deliveryBody}>{language === "ar" ? "خلدا، شارع وصفي التل" : "Khalda, Wasfi Al-Tal St."}</Text></View><MaterialIcons name="chevron-right" size={20} color="#5E7665" /></View>
+        <View style={styles.cartNoteCard}><View style={styles.cartNoteHeader}><MaterialIcons name="edit-note" size={20} color="#236B45" /><View style={styles.cartNoteCopy}><Text style={styles.cartNoteTitle}>{language === "ar" ? "ملاحظات للطلب" : "Order notes"}</Text><Text style={styles.cartNoteHint}>{language === "ar" ? "إذا بتحبي، اكتبي أي تعليمات عامة للمطبخ أو التوصيل" : "Add any general kitchen or delivery instructions"}</Text></View></View><TextInput value={specialRequests} onChangeText={onSpecialRequestsChange} placeholder={language === "ar" ? "مثال: اتركي الطلب عند الباب..." : "Example: leave the order at the door..."} placeholderTextColor="#A4BDA7" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View>
         <View style={styles.summaryCard}><SummaryRow label={language === "ar" ? "عدد الوجبات" : "Meal quantity"} value={`${cartCount}`} /><SummaryRow label={language === "ar" ? "عدد الأصناف" : "Different meals"} value={`${cart.length}`} /><SummaryRow label={language === "ar" ? "المجموع" : "Subtotal"} value={formatJod(pricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل" : "Delivery"} value={formatJod(pricing.deliveryFee, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "الإجمالي" : "Total"} value={formatJod(pricing.grandTotal, language)} strong /></View>
         <Pressable onPress={onCheckout} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "كمّلي الطلب" : "Continue to checkout"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
       </>}
@@ -488,7 +490,7 @@ function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof me
   return <Modal visible={Boolean(meal)} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalBackdrop}><View style={styles.customizationSheet}><View style={styles.sheetHandle} /><View style={styles.sheetHeader}><View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تخصيص الصنف" : "CUSTOMIZE MEAL"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "اختاري قبل الإضافة للسلة" : "Choose before adding to cart"}</Text></View><Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#132218" /></Pressable></View>{meal && <ScrollView style={styles.customizationScroll} contentContainerStyle={styles.customizationContent} showsVerticalScrollIndicator={false}><View style={styles.customizationMealHeader}><Image source={{ uri: meal.image }} style={styles.customizationMealImage} /><View style={styles.customizationMealCopy}><Text style={styles.customizationMealName}>{getLocalized(meal.name, language)}</Text><Text style={styles.customizationMealPrice}>{formatJod(meal.price, language)}</Text><Text style={styles.customizationHint}>{language === "ar" ? "اختياراتك ستُحفظ مع هذا الصنف في السلة" : "Your choices will be saved with this meal in the cart"}</Text></View></View><Text style={styles.ingredientGroupLabel}>{language === "ar" ? "إضافة مكونات" : "Add ingredients"}</Text><View style={styles.ingredientOptionGrid}>{addIngredientOptions.map((option) => { const selected = selectedAdditions.includes(option.id); return <Pressable key={`add-${option.id}`} onPress={() => toggle(option.id, "add")} style={[styles.ingredientOption, selected && styles.ingredientOptionSelected]}><MaterialIcons name={option.icon} size={17} color={selected ? "#FFFFFF" : "#236B45"} /><Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionTextSelected]}>{getLocalized(option.label, language)}</Text><MaterialIcons name={selected ? "check-circle" : "add-circle-outline"} size={16} color={selected ? "#D9F99D" : "#A4BDA7"} /></Pressable>; })}</View><Text style={styles.ingredientGroupLabel}>{language === "ar" ? "إزالة مكونات" : "Remove ingredients"}</Text><View style={styles.ingredientOptionGrid}>{removeIngredientOptions.map((option) => { const selected = selectedRemovals.includes(option.id); return <Pressable key={`remove-${option.id}`} onPress={() => toggle(option.id, "remove")} style={[styles.ingredientOption, selected && styles.ingredientOptionRemoveSelected]}><MaterialIcons name={option.icon} size={17} color={selected ? "#8A6516" : "#236B45"} /><Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionRemoveTextSelected]}>{getLocalized(option.label, language)}</Text><MaterialIcons name={selected ? "check-circle" : "remove-circle-outline"} size={16} color={selected ? "#C88A16" : "#A4BDA7"} /></Pressable>; })}</View><Text style={styles.ingredientGroupLabel}>{language === "ar" ? "ملاحظات إضافية" : "Extra notes"}</Text><View style={styles.specialRequestInputWrap}><MaterialIcons name="edit-note" size={20} color="#236B45" /><TextInput value={notes} onChangeText={setNotes} placeholder={language === "ar" ? "مثال: الصلصة على الجانب..." : "Example: sauce on the side..."} placeholderTextColor="#A4BDA7" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View></ScrollView>}<Pressable onPress={submit} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أضف للسلة" : "Add to cart"}</Text><MaterialIcons name="shopping-cart" size={18} color="#FFFFFF" /></Pressable></View></View></Modal>;
 }
 
-function CheckoutModal({ visible, onClose, onComplete }: { visible: boolean; onClose: () => void; onComplete: () => void }) {
+function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }: { visible: boolean; initialSpecialRequests: string; onClose: () => void; onComplete: () => void }) {
   const { language, placeOrder, cartTotal } = useApp();
   const pricing = getOrderPricing(cartTotal, 1.25);
   const [payment, setPayment] = useState<"cod" | "cliq" | "wallet">("cod");
@@ -496,6 +498,11 @@ function CheckoutModal({ visible, onClose, onComplete }: { visible: boolean; onC
   const [specialRequests, setSpecialRequests] = useState("");
   const [selectedAdditions, setSelectedAdditions] = useState<string[]>([]);
   const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (visible) setSpecialRequests(initialSpecialRequests);
+  }, [initialSpecialRequests, visible]);
+
   const buildSpecialRequests = () => {
     const additions = selectedAdditions.map((id) => addIngredientOptions.find((option) => option.id === id)).filter(Boolean).map((option) => getLocalized(option!.label, language));
     const removals = selectedRemovals.map((id) => removeIngredientOptions.find((option) => option.id === id)).filter(Boolean).map((option) => getLocalized(option!.label, language));
@@ -885,6 +892,11 @@ const styles = StyleSheet.create({
   quantityButton: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
   quantityText: { fontSize: 12, color: "#132218", fontWeight: "900" },
   deliveryCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: "#EEF9DB", borderRadius: 18, borderWidth: 1, borderColor: "#D9F99D" },
+  cartNoteCard: { padding: 14, backgroundColor: "#F7FFF0", borderRadius: 18, borderWidth: 1, borderColor: "#DDEAD8", gap: 10 },
+  cartNoteHeader: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  cartNoteCopy: { flex: 1 },
+  cartNoteTitle: { color: "#132218", fontSize: 13, fontWeight: "900" },
+  cartNoteHint: { color: "#5E7665", fontSize: 11, lineHeight: 16, marginTop: 2 },
   deliveryIcon: { width: 38, height: 38, borderRadius: 14, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   deliveryCopy: { flex: 1 },
   deliveryTitle: { fontSize: 13, color: "#132218", fontWeight: "900" },
