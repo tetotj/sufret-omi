@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
+import { type Complaint, type ComplaintStatus, type NewComplaint } from "@/lib/complaint-data";
 import {
   CartItem,
   CategoryId,
@@ -87,6 +88,7 @@ type AppState = {
   selectedKitchenId: string;
   cart: CartItem[];
   cartSpecialRequests: string;
+  complaints: Complaint[];
   activeOrder: Order | null;
   kitchenOpen: boolean;
   incomingOrder: Order | null;
@@ -107,6 +109,8 @@ type AppContextValue = AppState & {
   setSelectedCategory: (category: CategoryId | "all") => void;
   setSelectedKitchenId: (kitchenId: string) => void;
   setCartSpecialRequests: (value: string) => void;
+  addComplaint: (input: NewComplaint) => void;
+  updateComplaintStatus: (id: string, status: ComplaintStatus, response?: string) => void;
   addToCart: (meal: Meal, specialRequests?: string) => void;
   updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
@@ -144,6 +148,7 @@ const initialState: AppState = {
   selectedKitchenId: primaryKitchen.id,
   cart: [],
   cartSpecialRequests: "",
+  complaints: [],
   activeOrder: null,
   kitchenOpen: true,
   incomingOrder: sampleIncomingOrder,
@@ -168,6 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...parsed,
           isGuest: parsed.isGuest === true,
           cartSpecialRequests: typeof parsed.cartSpecialRequests === "string" ? parsed.cartSpecialRequests : current.cartSpecialRequests,
+          complaints: Array.isArray(parsed.complaints) ? parsed.complaints : current.complaints,
           activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
           incomingOrder: parsed.incomingOrder === undefined ? current.incomingOrder : normalizeOrder(parsed.incomingOrder as Partial<Order> | null, current.incomingOrder),
           driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
@@ -206,6 +212,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSelectedCategory: (selectedCategory) => setState((current) => ({ ...current, selectedCategory })),
       setSelectedKitchenId: (selectedKitchenId) => setState((current) => ({ ...current, selectedKitchenId })),
       setCartSpecialRequests: (cartSpecialRequests) => setState((current) => ({ ...current, cartSpecialRequests })),
+      addComplaint: (input) => setState((current) => ({ ...current, complaints: [{ ...input, id: `CMP-${Date.now().toString().slice(-6)}`, status: "new", createdAt: new Date().toISOString() }, ...current.complaints] })),
+      updateComplaintStatus: (id, status, response = "") => setState((current) => ({ ...current, complaints: current.complaints.map((complaint) => complaint.id === id ? { ...complaint, status, response: response.trim() || complaint.response } : complaint) })),
       addToCart: (meal, specialRequests = "") => {
         if (state.isGuest) {
           setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], cartSpecialRequests: "" }));

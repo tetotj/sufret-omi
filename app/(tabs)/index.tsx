@@ -1,5 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useMemo, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import {
   Image,
   Modal,
@@ -15,6 +16,7 @@ import * as Linking from "expo-linking";
 
 import { MapPreview } from "@/components/map-preview";
 import { VerificationScreen } from "@/components/verification-screen";
+import { complaintCategories, complaintStatuses, type ComplaintCategory } from "@/lib/complaint-data";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels } from "@/lib/verification-data";
@@ -44,7 +46,7 @@ import {
   unitCount,
 } from "@/lib/food-data";
 
-type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" | "kitchen" | "cart" | "dashboard" | "delivery";
+type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" | "kitchen" | "cart" | "complaints" | "dashboard" | "delivery";
 
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
@@ -113,6 +115,8 @@ export default function HomeScreen() {
           <KitchenProfile onBack={() => go("home")} onCart={() => go("cart")} onRequestAdd={setCustomizingMeal} />
         ) : view === "cart" ? (
           <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} />
+        ) : view === "complaints" ? (
+          <ComplaintsScreen onBack={() => go("home")} />
         ) : view === "dashboard" ? (
           role === "mother" ? <MotherDashboard onBack={() => go("home")} /> : <CustomerDashboard onBack={() => go("home")} onNavigate={go} />
         ) : view === "delivery" ? (
@@ -120,12 +124,12 @@ export default function HomeScreen() {
         ) : view === "orders" ? (
           <OrdersScreen onBack={() => go("home")} />
         ) : view === "profile" ? (
-          <ProfileScreen onRoleChange={changeRole} onDashboard={() => go("dashboard")} />
+          <ProfileScreen onRoleChange={changeRole} onDashboard={() => go("dashboard")} onSupport={() => go("complaints")} />
         ) : (
           <CustomerHome view={view} query={query} setQuery={setQuery} onNavigate={go} onRequestAdd={setCustomizingMeal} />
         )}
 
-        {view !== "kitchen" && view !== "cart" && view !== "dashboard" && view !== "delivery" && view !== "discover" && view !== "meals" && (
+        {view !== "kitchen" && view !== "cart" && view !== "complaints" && view !== "dashboard" && view !== "delivery" && view !== "discover" && view !== "meals" && (
           <BottomNav active={view} onNavigate={go} role={role} language={language} />
         )}
 
@@ -186,12 +190,12 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean)
 }
 
 function CustomerDashboard({ onBack, onNavigate }: { onBack: () => void; onNavigate: (view: ViewId) => void }) {
-  const { language, activeOrder, selectedKitchen, cartCount, signOut } = useApp();
+  const { language, activeOrder, selectedKitchen, cartCount, complaints, signOut } = useApp();
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "لوحة سفرتي" : "MY TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "أهلاً سارة" : "Hello Sara"}</Text></View><Pressable onPress={signOut} style={styles.logoutButton}><MaterialIcons name="logout" size={17} color="#236B45" /><Text style={styles.logoutText}>{language === "ar" ? "خروج" : "Log out"}</Text></Pressable></View>
       <View style={styles.customerDashHero}><View><Text style={styles.customerDashOverline}>{language === "ar" ? "لمّتك الجاية" : "Your next gathering"}</Text><Text style={styles.customerDashTitle}>{activeOrder ? (language === "ar" ? "طلبك بالطريق" : "Your order is moving") : (language === "ar" ? "اختاري طبخة للعيلة" : "Pick a family meal")}</Text><Text style={styles.customerDashBody}>{activeOrder ? `${activeOrder.id} · ${getLocalized(activeOrder.eta, language)}` : (language === "ar" ? "مطابخ بيتية قريبة منك" : "Home kitchens close to you")}</Text></View><View style={styles.customerDashIcon}><MaterialIcons name={activeOrder ? "two-wheeler" : "restaurant"} size={30} color="#236B45" /></View></View>
-      <View style={styles.dashboardGrid}><DashboardTile icon="receipt-long" title={language === "ar" ? "طلباتي" : "My orders"} detail={activeOrder ? (language === "ar" ? "طلب نشط" : "1 active") : (language === "ar" ? "شوفي السابق" : "See history")} onPress={() => onNavigate("orders")} /><DashboardTile icon="favorite-border" title={language === "ar" ? "مطابخي" : "Saved kitchens"} detail={language === "ar" ? "٣ مطابخ" : "3 saved"} onPress={() => onNavigate("kitchen")} /><DashboardTile icon="location-on" title={language === "ar" ? "عناويني" : "Addresses"} detail={language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"} onPress={() => onNavigate("home")} /><DashboardTile icon="support-agent" title={language === "ar" ? "مساعدة" : "Support"} detail={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /></View>
+      <View style={styles.dashboardGrid}><DashboardTile icon="receipt-long" title={language === "ar" ? "طلباتي" : "My orders"} detail={activeOrder ? (language === "ar" ? "طلب نشط" : "1 active") : (language === "ar" ? "شوفي السابق" : "See history")} onPress={() => onNavigate("orders")} /><DashboardTile icon="favorite-border" title={language === "ar" ? "مطابخي" : "Saved kitchens"} detail={language === "ar" ? "٣ مطابخ" : "3 saved"} onPress={() => onNavigate("kitchen")} /><DashboardTile icon="location-on" title={language === "ar" ? "عناويني" : "Addresses"} detail={language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"} onPress={() => onNavigate("home")} /><DashboardTile icon="support-agent" title={language === "ar" ? "شكاوى ومساعدة" : "Complaints & help"} detail={complaints.length ? (language === "ar" ? `${complaints.length} شكوى · متابعة` : `${complaints.length} complaints · Track`) : (language === "ar" ? "أرسلي شكوى" : "Send a complaint")} onPress={() => onNavigate("complaints")} /></View>
       <SectionHeader title={language === "ar" ? "طلبك الحالي" : "Your current order"} action={language === "ar" ? "كل الطلبات" : "All orders"} onAction={() => onNavigate("orders")} />
       {activeOrder ? <Pressable onPress={() => onNavigate("orders")} style={styles.customerOrderCard}><View style={styles.customerOrderIcon}><MaterialIcons name="soup-kitchen" size={20} color="#4F8F3B" /></View><View style={styles.customerOrderCopy}><Text style={styles.customerOrderTitle}>{getLocalized(activeOrder.kitchen.name, language)}</Text><Text style={styles.customerOrderBody}>{activeOrder.id} · {getLocalized(activeOrder.eta, language)}</Text></View><MaterialIcons name="chevron-right" size={20} color="#4F8F3B" /></Pressable> : <Pressable onPress={() => onNavigate("home")} style={styles.customerOrderCard}><View style={styles.customerOrderIcon}><MaterialIcons name="add-circle" size={20} color="#236B45" /></View><View style={styles.customerOrderCopy}><Text style={styles.customerOrderTitle}>{language === "ar" ? "ابدئي أول طلب" : "Start your first order"}</Text><Text style={styles.customerOrderBody}>{language === "ar" ? "اختاري من مطابخ أمهات الأردن" : "Choose from Jordanian home kitchens"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#236B45" /></Pressable>}
       <SectionHeader title={language === "ar" ? "اقتراح أمينة سفرة" : "A table pick for you"} action={language === "ar" ? "افتحي المطبخ" : "Open kitchen"} onAction={() => onNavigate("kitchen")} />
@@ -559,8 +563,66 @@ function OrdersScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
+function ComplaintsScreen({ onBack }: { onBack: () => void }) {
+  const { language, activeOrder, complaints, addComplaint, showToast } = useApp();
+  const [formOpen, setFormOpen] = useState(false);
+  const [category, setCategory] = useState<ComplaintCategory>("order");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
+  const [orderId, setOrderId] = useState(activeOrder?.id ?? "");
+  const [imageUris, setImageUris] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!orderId && activeOrder?.id) setOrderId(activeOrder.id);
+  }, [activeOrder?.id, orderId]);
+
+  const resetForm = () => {
+    setCategory("order");
+    setSubject("");
+    setDescription("");
+    setOrderId(activeOrder?.id ?? "");
+    setImageUris([]);
+  };
+
+  const pickImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, selectionLimit: 4, quality: 0.75 });
+    if (!result.canceled) setImageUris(result.assets.map((asset) => asset.uri).slice(0, 4));
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (permission.status !== "granted") {
+      showToast(language === "ar" ? "نحتاج إذن الكاميرا لإرفاق صورة" : "Camera permission is needed to attach a photo");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.75 });
+    if (!result.canceled && result.assets[0]?.uri) setImageUris((current) => [...current, result.assets[0].uri].slice(0, 4));
+  };
+
+  const submitComplaint = () => {
+    if (subject.trim().length < 3 || description.trim().length < 8) {
+      showToast(language === "ar" ? "اكتبي عنواناً ووصفاً أوضح للشكوى" : "Please add a clearer subject and description");
+      return;
+    }
+    addComplaint({ category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, imageUris });
+    showToast(language === "ar" ? "تم إرسال الشكوى لفريق الدعم" : "Your complaint was sent to support");
+    resetForm();
+    setFormOpen(false);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "الدعم والشكاوى" : "SUPPORT & COMPLAINTS"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "نحن نسمعك" : "We hear you"}</Text></View><Pressable onPress={() => { resetForm(); setFormOpen((current) => !current); }} style={styles.complaintAddButton}><MaterialIcons name={formOpen ? "close" : "add"} size={18} color="#FFFFFF" /><Text style={styles.complaintAddButtonText}>{formOpen ? (language === "ar" ? "إلغاء" : "Close") : (language === "ar" ? "شكوى جديدة" : "New complaint")}</Text></Pressable></View>
+      <View style={styles.complaintHero}><View style={styles.complaintHeroIcon}><MaterialIcons name="support-agent" size={28} color="#236B45" /></View><View style={styles.complaintHeroCopy}><Text style={styles.complaintHeroTitle}>{language === "ar" ? "خلّينا نساعدك" : "Let us help"}</Text><Text style={styles.complaintHeroBody}>{language === "ar" ? "ابعثي تفاصيل المشكلة وصوراً إن وجدت، وفريق سفرة يتابعها معك خطوة بخطوة." : "Share the details and any photos. The Sufret Omi team will follow up step by step."}</Text></View></View>
+      {formOpen && <View style={styles.complaintFormCard}><Text style={styles.complaintFormTitle}>{language === "ar" ? "تفاصيل الشكوى" : "Complaint details"}</Text><Text style={styles.optionLabel}>{language === "ar" ? "نوع الشكوى" : "Complaint type"}</Text><View style={styles.complaintCategoryGrid}>{complaintCategories.map((item) => <Pressable key={item.id} onPress={() => setCategory(item.id)} style={[styles.complaintCategory, category === item.id && styles.complaintCategoryActive]}><MaterialIcons name={item.icon as IconName} size={17} color={category === item.id ? "#FFFFFF" : "#236B45"} /><Text style={[styles.complaintCategoryText, category === item.id && styles.complaintCategoryTextActive]}>{getLocalized(item.label, language)}</Text></Pressable>)}</View><TextInput value={subject} onChangeText={setSubject} placeholder={language === "ar" ? "عنوان مختصر للشكوى" : "Short complaint subject"} placeholderTextColor="#A4BDA7" style={styles.complaintSubjectInput} textAlign={language === "ar" ? "right" : "left"} maxLength={80} /><TextInput value={description} onChangeText={setDescription} placeholder={language === "ar" ? "اكتبي ماذا حدث بالتفصيل..." : "Tell us what happened..."} placeholderTextColor="#A4BDA7" style={styles.complaintDescriptionInput} textAlign={language === "ar" ? "right" : "left"} multiline maxLength={800} /><TextInput value={orderId} onChangeText={setOrderId} placeholder={language === "ar" ? "رقم الطلب (اختياري) مثل SO-2408" : "Order number (optional), e.g. SO-2408"} placeholderTextColor="#A4BDA7" style={styles.complaintSubjectInput} textAlign={language === "ar" ? "right" : "left"} maxLength={24} /><Text style={styles.complaintAttachLabel}>{language === "ar" ? `صور مرفقة (${imageUris.length}/4)` : `Attachments (${imageUris.length}/4)`}</Text><View style={styles.complaintAttachActions}><Pressable onPress={pickImages} style={({ pressed }) => [styles.complaintAttachButton, pressed && styles.pressed]}><MaterialIcons name="photo-library" size={18} color="#236B45" /><Text style={styles.complaintAttachText}>{language === "ar" ? "من الصور" : "Photo library"}</Text></Pressable><Pressable onPress={takePhoto} style={({ pressed }) => [styles.complaintAttachButton, pressed && styles.pressed]}><MaterialIcons name="photo-camera" size={18} color="#236B45" /><Text style={styles.complaintAttachText}>{language === "ar" ? "التقاط صورة" : "Take photo"}</Text></Pressable></View>{imageUris.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.complaintImageRow}>{imageUris.map((uri, index) => <View key={`${uri}-${index}`} style={styles.complaintImageWrap}><Image source={{ uri }} style={styles.complaintImage} /><Pressable onPress={() => setImageUris((current) => current.filter((_, imageIndex) => imageIndex !== index))} style={styles.complaintImageRemove}><MaterialIcons name="close" size={13} color="#FFFFFF" /></Pressable></View>)}</ScrollView>}<Pressable onPress={submitComplaint} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "إرسال الشكوى" : "Send complaint"}</Text><MaterialIcons name="send" size={18} color="#FFFFFF" /></Pressable></View>}
+      <View style={styles.complaintsSectionHeader}><View><Text style={styles.sectionTitle}>{language === "ar" ? "شكاواي" : "My complaints"}</Text><Text style={styles.complaintsSectionHint}>{complaints.length ? (language === "ar" ? `${complaints.length} شكوى محفوظة` : `${complaints.length} saved complaints`) : (language === "ar" ? "تابعي حالة كل طلب دعم" : "Track every support request")}</Text></View>{complaints.length > 0 && <MaterialIcons name="history" size={21} color="#4F8F3B" />}</View>
+      {complaints.length === 0 ? <View style={styles.complaintEmptyCard}><MaterialIcons name="forum" size={32} color="#4F8F3B" /><Text style={styles.emptyTitle}>{language === "ar" ? "ما عندك شكاوى حالياً" : "No complaints yet"}</Text><Text style={styles.emptyBody}>{language === "ar" ? "إذا واجهتك أي مشكلة، أرسليها من زر شكوى جديدة." : "If anything goes wrong, send it from New complaint."}</Text><Pressable onPress={() => setFormOpen(true)} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{language === "ar" ? "ابدئي شكوى" : "Start a complaint"}</Text></Pressable></View> : <View style={styles.complaintList}>{complaints.map((complaint) => { const categoryItem = complaintCategories.find((item) => item.id === complaint.category); return <View key={complaint.id} style={styles.complaintCard}><View style={styles.complaintCardTop}><View style={styles.complaintCardIcon}><MaterialIcons name={(categoryItem?.icon ?? "help-outline") as IconName} size={18} color="#236B45" /></View><View style={styles.complaintCardCopy}><Text style={styles.complaintCardCategory}>{categoryItem ? getLocalized(categoryItem.label, language) : complaint.category}</Text><Text style={styles.complaintCardTitle}>{complaint.subject}</Text></View><View style={[styles.complaintStatus, complaint.status === "resolved" || complaint.status === "closed" ? styles.complaintStatusResolved : complaint.status === "in_review" ? styles.complaintStatusReview : styles.complaintStatusNew]}><Text style={styles.complaintStatusText}>{getLocalized(complaintStatuses[complaint.status], language)}</Text></View></View><Text style={styles.complaintCardDescription}>{complaint.description}</Text><View style={styles.complaintCardMeta}><Text style={styles.complaintCardMetaText}>{complaint.id}</Text>{complaint.orderId && <Text style={styles.complaintCardMetaText}>{complaint.orderId}</Text>}<Text style={styles.complaintCardMetaText}>{new Date(complaint.createdAt).toLocaleDateString(language === "ar" ? "ar-JO" : "en-US")}</Text></View>{complaint.imageUris.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.complaintImageRow}>{complaint.imageUris.map((uri, index) => <Image key={`${complaint.id}-${index}`} source={{ uri }} style={styles.complaintListImage} />)}</ScrollView>}{complaint.response && <View style={styles.complaintResponse}><MaterialIcons name="support-agent" size={16} color="#236B45" /><Text style={styles.complaintResponseText}>{complaint.response}</Text></View>}</View>; })}</View>}
+    </ScrollView>
+  );
+}
+
 function MotherDashboard({ onBack }: { onBack: () => void }) {
-  const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification } = useApp();
+  const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const incomingPricing = incomingOrder ? getOrderPricing(totalCart(incomingOrder.items), incomingOrder.deliveryFee ?? 1.25) : null;
   return (
@@ -570,6 +632,8 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "طلبات اليوم" : "Today's orders"} value="12" icon="receipt-long" /><DashboardMetric label={language === "ar" ? "أرباح الشهر" : "This month"} value={language === "ar" ? "٤٨٦ د.أ" : "JOD 486"} icon="trending-up" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       <View style={styles.capacitySettingsCard}><View style={styles.capacitySettingsIcon}><MaterialIcons name="inventory-2" size={19} color="#236B45" /></View><View style={styles.capacitySettingsCopy}><Text style={styles.capacitySettingsTitle}>{language === "ar" ? "إعدادات حجم الطلب" : "Order-size settings"}</Text><Text style={styles.capacitySettingsBody}>{motherVerification.mealSize && motherVerification.deliveryCapacity ? `${getLocalized(mealSizeLabels[motherVerification.mealSize], language)} · ${getLocalized(loadCapacityLabels[motherVerification.deliveryCapacity], language)}` : language === "ar" ? "أكملي حجم الوجبات وسعة التوصيل من ملف التحقق" : "Complete meal size and delivery capacity in verification"}</Text></View><MaterialIcons name="tune" size={18} color="#4F8F3B" /></View>
       {incomingOrder && <View style={styles.incomingCard}><View style={styles.incomingTop}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "طلب جديد" : "New order"}</Text><Text style={styles.incomingId}>{incomingOrder.id}</Text></View><View style={styles.newPill}><Text style={styles.newPillText}>{language === "ar" ? "جديد" : "NEW"}</Text></View></View><Text style={styles.incomingTitle}>{incomingOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.incomingMeta}>{getLocalized(incomingOrder.eta, language)} · {formatJod(incomingOrder.total, language)} · {t(paymentLabels[incomingOrder.paymentMethod], language)}</Text>{incomingOrder.specialRequests ? <View style={styles.specialRequestCard}><MaterialIcons name="edit-note" size={18} color="#8A6516" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "طلبات العميل الخاصة" : "Customer special requests"}</Text><Text style={styles.specialRequestBody}>{incomingOrder.specialRequests}</Text></View></View> : null}{incomingPricing && <View style={styles.earningsBreakdown}><SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(incomingPricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={`-${formatJod(incomingPricing.commission, language)}`} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "صافي أرباحك" : "Your payout"} value={formatJod(incomingPricing.motherPayout, language)} strong /></View>}{incomingOrder.status === "received" ? <View style={styles.incomingActions}><Pressable onPress={rejectIncomingOrder} style={styles.rejectButton}><Text style={styles.rejectText}>{language === "ar" ? "رفض" : "Decline"}</Text></Pressable><Pressable onPress={acceptIncomingOrder} style={styles.acceptButton}><Text style={styles.acceptText}>{language === "ar" ? "قبول الطلب" : "Accept order"}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View> : <View style={styles.prepNotice}><MaterialIcons name="soup-kitchen" size={18} color="#4F8F3B" /><Text style={styles.prepNoticeText}>{language === "ar" ? "الطلب قيد التحضير - وقت التسليم ٤٥ دقيقة" : "Preparing - ready in 45 minutes"}</Text></View>}</View>}
+      <SectionHeader title={language === "ar" ? "شكاوى العملاء" : "Customer complaints"} action={complaints.length ? (language === "ar" ? "تحديث" : "Update") : ""} onAction={complaints.length ? () => { const next = complaints.find((complaint) => complaint.status === "new") ?? complaints.find((complaint) => complaint.status === "in_review"); if (next) { updateComplaintStatus(next.id, next.status === "new" ? "in_review" : "resolved", next.status === "new" ? (language === "ar" ? "تم استلام شكواك ونراجعها الآن." : "We received your complaint and are reviewing it.") : (language === "ar" ? "تمت معالجة الشكوى." : "The complaint has been addressed.")); showToast(language === "ar" ? "تم تحديث حالة الشكوى" : "Complaint status updated"); } } : undefined} />
+      {complaints.length ? <View style={styles.complaintInbox}>{complaints.slice(0, 3).map((complaint) => { const categoryItem = complaintCategories.find((item) => item.id === complaint.category); return <View key={complaint.id} style={styles.complaintInboxRow}><View style={styles.complaintInboxIcon}><MaterialIcons name={(categoryItem?.icon ?? "help-outline") as IconName} size={16} color="#236B45" /></View><View style={styles.complaintInboxCopy}><Text style={styles.complaintInboxTitle}>{complaint.subject}</Text><Text style={styles.complaintInboxMeta}>{complaint.id} · {getLocalized(complaintStatuses[complaint.status], language)}{complaint.imageUris.length ? ` · ${complaint.imageUris.length} ${language === "ar" ? "صور" : "photos"}` : ""}</Text></View><Pressable onPress={() => { const nextStatus = complaint.status === "new" ? "in_review" : complaint.status === "in_review" ? "resolved" : complaint.status; updateComplaintStatus(complaint.id, nextStatus, nextStatus === "resolved" ? (language === "ar" ? "تمت معالجة الشكوى من فريق سفرة." : "The Sufret Omi team addressed this complaint.") : undefined); showToast(language === "ar" ? "تم تحديث الشكوى" : "Complaint updated"); }} style={styles.complaintInboxAction}><Text style={styles.complaintInboxActionText}>{complaint.status === "new" ? (language === "ar" ? "مراجعة" : "Review") : complaint.status === "in_review" ? (language === "ar" ? "حل" : "Resolve") : (language === "ar" ? "تمت" : "Done")}</Text></Pressable></View>; })}</View> : <View style={styles.supportEmptyCard}><MaterialIcons name="check-circle" size={20} color="#4F8F3B" /><Text style={styles.supportEmptyText}>{language === "ar" ? "لا توجد شكاوى جديدة على مطبخك" : "No new complaints for your kitchen"}</Text></View>}
       <SectionHeader title={language === "ar" ? "إدارة مطبخك" : "Manage your kitchen"} action={language === "ar" ? "عرض القائمة" : "View menu"} onAction={() => setMenuOpen((value) => !value)} />
       <View style={styles.dashboardList}><DashboardAction icon="restaurant-menu" title={language === "ar" ? "قائمة الأكلات" : "Menu items"} detail={language === "ar" ? "٥ أكلات · ٤ متاحة" : "5 meals · 4 available"} onPress={() => setMenuOpen((value) => !value)} /><DashboardAction icon="event" title={language === "ar" ? "طلبات مسبقة" : "Advance orders"} detail={language === "ar" ? "مناسبات الجمعة" : "Friday gatherings"} onPress={() => undefined} /><DashboardAction icon="account-balance" title={language === "ar" ? "الأرباح و CliQ" : "Earnings & CliQ"} detail={lastPayout ? (language === "ar" ? "طلب التحويل قيد المعالجة" : "Payout processing") : (language === "ar" ? "٣٨٦ د.أ جاهزة للتحويل" : "JOD 386 ready to payout")} onPress={() => requestPayout(386)} /> </View>
       {menuOpen && <View style={styles.menuManager}>{getKitchenMeals("umm-ahmad").map((meal) => <View key={meal.id} style={styles.menuManagerRow}><Image source={{ uri: meal.image }} style={styles.menuThumb} /><View style={styles.menuManagerCopy}><Text style={styles.menuManagerName}>{getLocalized(meal.name, language)}</Text><Text style={styles.menuManagerMeta}>{formatJod(meal.price, language)} · {meal.prepMinutes} min</Text></View><View style={styles.menuStatus}><View style={styles.openDot} /><Text style={styles.menuStatusText}>{language === "ar" ? "متاحة" : "Live"}</Text></View></View>)}</View>}
@@ -578,10 +642,10 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ProfileScreen({ onRoleChange, onDashboard }: { onRoleChange: () => void; onDashboard: () => void }) {
+function ProfileScreen({ onRoleChange, onDashboard, onSupport }: { onRoleChange: () => void; onDashboard: () => void; onSupport: () => void }) {
   const { language, setLanguage, selectedRegion, setSelectedRegion, signOut } = useApp();
   const nextRegion = () => { const index = regions.findIndex((item) => item.id === selectedRegion); setSelectedRegion(regions[(index + 1) % regions.length].id); };
-  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#236B45" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><Pressable onPress={onDashboard} style={styles.profileDashboardCard}><View style={styles.profileDashboardIcon}><MaterialIcons name="grid-view" size={20} color="#FFFFFF" /></View><View style={styles.profileDashboardCopy}><Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text><Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#FFFFFF" /></Pressable><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={nextRegion} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} /><SettingRow icon="help-outline" label={language === "ar" ? "مساعدة سفرتي" : "Sufret Omi help"} value={language === "ar" ? "نحن معك" : "We are here"} onPress={() => undefined} /><SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
+  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#236B45" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><Pressable onPress={onDashboard} style={styles.profileDashboardCard}><View style={styles.profileDashboardIcon}><MaterialIcons name="grid-view" size={20} color="#FFFFFF" /></View><View style={styles.profileDashboardCopy}><Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text><Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#FFFFFF" /></Pressable><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={nextRegion} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} /><SettingRow icon="help-outline" label={language === "ar" ? "شكاوى ومساعدة" : "Complaints & help"} value={language === "ar" ? "إرسال ومتابعة شكوى" : "Send and track a complaint"} onPress={onSupport} /><SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
 }
 
 function BottomNav({ active, onNavigate, role, language }: { active: ViewId; onNavigate: (view: ViewId) => void; role: Role; language: "ar" | "en" }) {
@@ -891,6 +955,61 @@ const styles = StyleSheet.create({
   quantityButton: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
   quantityText: { fontSize: 12, color: "#132218", fontWeight: "900" },
   deliveryCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: "#EEF9DB", borderRadius: 18, borderWidth: 1, borderColor: "#D9F99D" },
+  complaintAddButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: 13, backgroundColor: "#236B45", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
+  complaintAddButtonText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
+  complaintHero: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, backgroundColor: "#EEF9DB", borderRadius: 20, borderWidth: 1, borderColor: "#D9F99D" },
+  complaintHeroIcon: { width: 52, height: 52, borderRadius: 17, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  complaintHeroCopy: { flex: 1 },
+  complaintHeroTitle: { color: "#132218", fontSize: 16, fontWeight: "900" },
+  complaintHeroBody: { color: "#4F8F3B", fontSize: 11, lineHeight: 17, marginTop: 3 },
+  complaintFormCard: { padding: 15, backgroundColor: "#FFFFFF", borderRadius: 20, borderWidth: 1, borderColor: "#DDEAD8", gap: 10 },
+  complaintFormTitle: { color: "#132218", fontSize: 15, fontWeight: "900" },
+  complaintCategoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  complaintCategory: { minHeight: 38, paddingHorizontal: 9, borderRadius: 13, backgroundColor: "#F7FFF0", borderWidth: 1, borderColor: "#DDEAD8", flexDirection: "row", alignItems: "center", gap: 5 },
+  complaintCategoryActive: { backgroundColor: "#236B45", borderColor: "#236B45" },
+  complaintCategoryText: { color: "#2B4933", fontSize: 10, fontWeight: "800" },
+  complaintCategoryTextActive: { color: "#FFFFFF" },
+  complaintSubjectInput: { minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: "#DDEAD8", backgroundColor: "#F7FFF0", color: "#132218", fontSize: 11, paddingHorizontal: 12, paddingVertical: 9 },
+  complaintDescriptionInput: { minHeight: 105, borderRadius: 14, borderWidth: 1, borderColor: "#DDEAD8", backgroundColor: "#F7FFF0", color: "#132218", fontSize: 11, lineHeight: 17, paddingHorizontal: 12, paddingVertical: 10, textAlignVertical: "top" },
+  complaintAttachLabel: { color: "#132218", fontSize: 11, fontWeight: "900", marginTop: 2 },
+  complaintAttachActions: { flexDirection: "row", gap: 8 },
+  complaintAttachButton: { flex: 1, minHeight: 42, borderRadius: 14, backgroundColor: "#F0FBEA", borderWidth: 1, borderColor: "#C7E8C8", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  complaintAttachText: { color: "#236B45", fontSize: 10, fontWeight: "900" },
+  complaintImageRow: { gap: 8, paddingVertical: 2 },
+  complaintImageWrap: { width: 82, height: 82, borderRadius: 14, overflow: "hidden", position: "relative" },
+  complaintImage: { width: "100%", height: "100%" },
+  complaintImageRemove: { position: "absolute", top: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: "rgba(19,34,24,0.75)", alignItems: "center", justifyContent: "center" },
+  complaintsSectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  complaintsSectionHint: { color: "#5E7665", fontSize: 10, marginTop: 2 },
+  complaintEmptyCard: { alignItems: "center", padding: 22, backgroundColor: "#F7FFF0", borderRadius: 20, borderWidth: 1, borderColor: "#DDEAD8", gap: 7 },
+  complaintList: { gap: 10 },
+  complaintCard: { padding: 14, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: "#DDEAD8", gap: 9 },
+  complaintCardTop: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
+  complaintCardIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#F0FBEA", alignItems: "center", justifyContent: "center" },
+  complaintCardCopy: { flex: 1 },
+  complaintCardCategory: { color: "#4F8F3B", fontSize: 9, fontWeight: "900" },
+  complaintCardTitle: { color: "#132218", fontSize: 13, fontWeight: "900", marginTop: 2 },
+  complaintStatus: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 10 },
+  complaintStatusNew: { backgroundColor: "#FFF5D6" },
+  complaintStatusReview: { backgroundColor: "#EAF3FF" },
+  complaintStatusResolved: { backgroundColor: "#E8F7E5" },
+  complaintStatusText: { color: "#5E7665", fontSize: 9, fontWeight: "900" },
+  complaintCardDescription: { color: "#405C48", fontSize: 11, lineHeight: 17 },
+  complaintCardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  complaintCardMetaText: { color: "#8AA08D", fontSize: 9 },
+  complaintListImage: { width: 68, height: 68, borderRadius: 12 },
+  complaintResponse: { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 12, backgroundColor: "#F0FBEA" },
+  complaintResponseText: { flex: 1, color: "#236B45", fontSize: 10, lineHeight: 15, fontWeight: "800" },
+  complaintInbox: { backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: "#DDEAD8", overflow: "hidden" },
+  complaintInboxRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 11, borderBottomWidth: 1, borderBottomColor: "#EEF4EC" },
+  complaintInboxIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#F0FBEA", alignItems: "center", justifyContent: "center" },
+  complaintInboxCopy: { flex: 1 },
+  complaintInboxTitle: { color: "#132218", fontSize: 11, fontWeight: "900" },
+  complaintInboxMeta: { color: "#5E7665", fontSize: 9, marginTop: 2 },
+  complaintInboxAction: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 10, backgroundColor: "#EEF9DB" },
+  complaintInboxActionText: { color: "#236B45", fontSize: 9, fontWeight: "900" },
+  supportEmptyCard: { flexDirection: "row", alignItems: "center", gap: 8, padding: 13, backgroundColor: "#F7FFF0", borderRadius: 16, borderWidth: 1, borderColor: "#DDEAD8" },
+  supportEmptyText: { color: "#4F8F3B", fontSize: 10, fontWeight: "800" },
   cartNoteCard: { padding: 14, backgroundColor: "#F7FFF0", borderRadius: 18, borderWidth: 1, borderColor: "#DDEAD8", gap: 10 },
   cartNoteHeader: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   cartNoteCopy: { flex: 1 },
