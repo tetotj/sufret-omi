@@ -6,6 +6,7 @@ import {
   CategoryId,
   canCarryLoad,
   getRequiredLoadCapacity,
+  getOrderPricing,
   Language,
   Meal,
   Kitchen,
@@ -40,11 +41,16 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
   if (!value) return fallback;
   const kitchen = value.kitchen ?? fallback?.kitchen ?? primaryKitchen;
   const pickupRegion = getRegion(kitchen.region);
+  const items = Array.isArray(value.items) ? value.items : fallback?.items ?? [];
+  const pricing = getOrderPricing(totalCart(items), 1.25);
+  const hasCommissionBreakdown = typeof value.commission === "number" || typeof fallback?.commission === "number";
   return {
     id: value.id ?? fallback?.id ?? "SO-2408",
     kitchen,
-    items: Array.isArray(value.items) ? value.items : fallback?.items ?? [],
-    total: typeof value.total === "number" ? value.total : fallback?.total ?? 0,
+    items,
+    total: hasCommissionBreakdown ? (typeof value.total === "number" ? value.total : fallback?.total ?? pricing.grandTotal) : pricing.grandTotal,
+    commission: typeof value.commission === "number" ? value.commission : fallback?.commission ?? pricing.commission,
+    deliveryFee: typeof value.deliveryFee === "number" ? value.deliveryFee : fallback?.deliveryFee ?? pricing.deliveryFee,
     paymentMethod: value.paymentMethod ?? fallback?.paymentMethod ?? "cod",
     schedule: value.schedule ?? fallback?.schedule ?? "now",
     status: value.status ?? fallback?.status ?? "received",
@@ -205,13 +211,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       updateQuantity: (mealId, nextQuantity) => setState((current) => ({ ...current, cart: nextQuantity <= 0 ? current.cart.filter((item) => item.meal.id !== mealId) : current.cart.map((item) => item.meal.id === mealId ? { ...item, quantity: nextQuantity } : item) })),
       clearCart: () => setState((current) => ({ ...current, cart: [] })),
-      placeOrder: (paymentMethod, schedule) => setState((current) => ({
+      placeOrder: (paymentMethod, schedule) => setState((current) => {
+        const pricing = getOrderPricing(totalCart(current.cart), 1.25);
+        return {
         ...current,
         activeOrder: {
           id: `SO-${Math.floor(1000 + Math.random() * 8999)}`,
           kitchen: getKitchen(current.selectedKitchenId),
           items: current.cart,
-          total: totalCart(current.cart) + 1.25,
+          total: pricing.grandTotal,
+          commission: pricing.commission,
+          deliveryFee: pricing.deliveryFee,
           paymentMethod,
           schedule,
           status: "received",
@@ -226,7 +236,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: current.driverVerification.vehicleType ?? "motorcycle", cargoCapacity: current.driverVerification.cargoCapacity ?? "medium" },
         },
         cart: [],
-      })),
+        };
+      }),
       advanceOrder: () => {
         const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
         setState((current) => current.activeOrder ? { ...current, activeOrder: { ...current.activeOrder, status: nextStatus[current.activeOrder.status] } } : current);

@@ -58,6 +58,7 @@ export type CartItem = {
 };
 
 export type OrderStatus = "received" | "preparing" | "ready" | "on_the_way" | "delivered";
+export const PLATFORM_COMMISSION_RATE = 0.05;
 
 export type DriverDetails = {
   name: Localized;
@@ -73,6 +74,8 @@ export type Order = {
   kitchen: Kitchen;
   items: CartItem[];
   total: number;
+  commission?: number;
+  deliveryFee?: number;
   paymentMethod: "cod" | "cliq" | "wallet";
   schedule: "now" | "scheduled";
   status: OrderStatus;
@@ -283,6 +286,21 @@ export const getKitchenDistanceKm = (kitchen: Kitchen, origin: Region) => distan
 
 export const totalCart = (items: CartItem[]) => items.reduce((sum, item) => sum + item.meal.price * item.quantity, 0);
 
+const roundCurrency = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
+
+export const getOrderPricing = (subtotal: number, deliveryFee = 1.25) => {
+  const safeSubtotal = roundCurrency(Math.max(0, subtotal));
+  const safeDeliveryFee = roundCurrency(Math.max(0, deliveryFee));
+  const commission = roundCurrency(safeSubtotal * PLATFORM_COMMISSION_RATE);
+  return {
+    subtotal: safeSubtotal,
+    deliveryFee: safeDeliveryFee,
+    commission,
+    grandTotal: roundCurrency(safeSubtotal + safeDeliveryFee + commission),
+    motherPayout: roundCurrency(Math.max(0, safeSubtotal - commission)),
+  };
+};
+
 export const unitCount = (items: CartItem[]) => items.reduce((sum, item) => sum + item.quantity, 0);
 
 const capacityRank: Record<LoadCapacity, number> = { small: 1, medium: 2, large: 3 };
@@ -317,7 +335,9 @@ export const sampleDriverOrder: Order = {
   id: "SO-2408",
   kitchen: primaryKitchen,
   items: [{ meal: primaryMeal, quantity: 2 }],
-  total: 17,
+  total: 19.1,
+  commission: 0.85,
+  deliveryFee: 1.25,
   paymentMethod: "cliq",
   schedule: "now",
   status: "ready",
@@ -335,7 +355,9 @@ export const sampleIncomingOrder: Order = {
   id: "SO-2408",
   kitchen: primaryKitchen,
   items: [{ meal: primaryMeal, quantity: 2 }],
-  total: 17,
+  total: 19.1,
+  commission: 0.85,
+  deliveryFee: 1.25,
   paymentMethod: "cliq",
   schedule: "scheduled",
   status: "received",

@@ -24,6 +24,7 @@ import {
   distanceKm,
   formatJod,
   getCategory,
+  getOrderPricing,
   getKitchenDistanceKm,
   getKitchenMeals,
   getLocalized,
@@ -38,6 +39,7 @@ import {
   regions,
   scheduleLabels,
   t,
+  totalCart,
   unitCount,
 } from "@/lib/food-data";
 
@@ -47,6 +49,7 @@ type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 export default function HomeScreen() {
   const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal } = useApp();
+  const cartPreviewTotal = getOrderPricing(cartTotal, cartCount > 0 ? 1.25 : 0).grandTotal;
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -103,7 +106,7 @@ export default function HomeScreen() {
           <BottomNav active={view} onNavigate={go} role={role} language={language} />
         )}
 
-        {role === "customer" && cartCount > 0 && view !== "cart" && view !== "dashboard" && view !== "delivery" && <FloatingCart language={language} count={cartCount} total={cartTotal} onPress={() => go("cart")} bottomOffset={view === "home" || view === "explore" || view === "orders" || view === "profile" ? 88 : 24} />}
+        {role === "customer" && cartCount > 0 && view !== "cart" && view !== "dashboard" && view !== "delivery" && <FloatingCart language={language} count={cartCount} total={cartPreviewTotal} onPress={() => go("cart")} bottomOffset={view === "home" || view === "explore" || view === "orders" || view === "profile" ? 88 : 24} />}
         {toast && (
           <Pressable onPress={dismissToast} style={styles.toast}>
             <MaterialIcons name="check-circle" size={18} color="#FFFFFF" />
@@ -418,14 +421,14 @@ function KitchenProfile({ onBack, onCart }: { onBack: () => void; onCart: () => 
 
 function CartScreen({ onBack, onCheckout }: { onBack: () => void; onCheckout: () => void }) {
   const { language, cart, cartTotal, updateQuantity, clearCart, cartCount } = useApp();
-  const deliveryFee = cart.length ? 1.25 : 0;
+  const pricing = getOrderPricing(cartTotal, cart.length ? 1.25 : 0);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.pageTitle}>{language === "ar" ? "سفرتك" : "Your table"}</Text><Text style={styles.pageSubtitle}>{cartCount} {language === "ar" ? "وجبة" : "meals"} · {cart.length} {language === "ar" ? "أصناف" : "items"}</Text></View><Pressable onPress={clearCart} style={styles.clearButton}><Text style={styles.clearText}>{language === "ar" ? "مسح" : "Clear"}</Text></Pressable></View>
       {cart.length === 0 ? <EmptyCart language={language} onBack={onBack} /> : <>
         <View style={styles.cartItems}>{cart.map((item) => <CartItemRow key={item.meal.id} item={item} language={language} onUpdate={updateQuantity} />)}</View>
         <View style={styles.deliveryCard}><View style={styles.deliveryIcon}><MaterialIcons name="two-wheeler" size={21} color="#4F8F3B" /></View><View style={styles.deliveryCopy}><Text style={styles.deliveryTitle}>{language === "ar" ? "توصيل لباب البيت" : "Doorstep delivery"}</Text><Text style={styles.deliveryBody}>{language === "ar" ? "خلدا، شارع وصفي التل" : "Khalda, Wasfi Al-Tal St."}</Text></View><MaterialIcons name="chevron-right" size={20} color="#5E7665" /></View>
-        <View style={styles.summaryCard}><SummaryRow label={language === "ar" ? "عدد الوجبات" : "Meal quantity"} value={`${cartCount}`} /><SummaryRow label={language === "ar" ? "عدد الأصناف" : "Different meals"} value={`${cart.length}`} /><SummaryRow label={language === "ar" ? "المجموع" : "Subtotal"} value={formatJod(cartTotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل" : "Delivery"} value={formatJod(deliveryFee, language)} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "الإجمالي" : "Total"} value={formatJod(cartTotal + deliveryFee, language)} strong /></View>
+        <View style={styles.summaryCard}><SummaryRow label={language === "ar" ? "عدد الوجبات" : "Meal quantity"} value={`${cartCount}`} /><SummaryRow label={language === "ar" ? "عدد الأصناف" : "Different meals"} value={`${cart.length}`} /><SummaryRow label={language === "ar" ? "المجموع" : "Subtotal"} value={formatJod(pricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل" : "Delivery"} value={formatJod(pricing.deliveryFee, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "الإجمالي" : "Total"} value={formatJod(pricing.grandTotal, language)} strong /></View>
         <Pressable onPress={onCheckout} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "كمّلي الطلب" : "Continue to checkout"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
       </>}
     </ScrollView>
@@ -434,6 +437,7 @@ function CartScreen({ onBack, onCheckout }: { onBack: () => void; onCheckout: ()
 
 function CheckoutModal({ visible, onClose, onComplete }: { visible: boolean; onClose: () => void; onComplete: () => void }) {
   const { language, placeOrder, cartTotal } = useApp();
+  const pricing = getOrderPricing(cartTotal, 1.25);
   const [payment, setPayment] = useState<"cod" | "cliq" | "wallet">("cod");
   const [schedule, setSchedule] = useState<"now" | "scheduled">("now");
   return (
@@ -444,7 +448,7 @@ function CheckoutModal({ visible, onClose, onComplete }: { visible: boolean; onC
         <View style={styles.optionRow}>{(["now", "scheduled"] as const).map((item) => <OptionCard key={item} selected={schedule === item} onPress={() => setSchedule(item)} icon={item === "now" ? "bolt" : "event"} title={t(scheduleLabels[item], language)} subtitle={item === "now" ? (language === "ar" ? "٤٥ دقيقة تقريباً" : "About 45 min") : (language === "ar" ? "مناسب للعزائم" : "Great for gatherings")} />)}</View>
         <Text style={styles.optionLabel}>{language === "ar" ? "طريقة الدفع" : "Payment method"}</Text>
         <View style={styles.paymentList}>{(["cod", "cliq", "wallet"] as const).map((item) => <Pressable key={item} onPress={() => setPayment(item)} style={[styles.paymentOption, payment === item && styles.paymentOptionActive]}><View style={[styles.paymentIcon, payment === item && styles.paymentIconActive]}><MaterialIcons name={item === "cod" ? "payments" : item === "cliq" ? "account-balance" : "wallet"} size={18} color={payment === item ? "#FFFFFF" : "#236B45"} /></View><View style={styles.paymentCopy}><Text style={styles.paymentTitle}>{t(paymentLabels[item], language)}</Text><Text style={styles.paymentSubtitle}>{item === "cod" ? (language === "ar" ? "ادفعي عند الباب" : "Pay at the door") : item === "cliq" ? (language === "ar" ? "تحويل فوري وآمن" : "Instant and secure transfer") : (language === "ar" ? "زين كاش، أورانج موني" : "Zain Cash, Orange Money")}</Text></View><MaterialIcons name={payment === item ? "radio-button-checked" : "radio-button-unchecked"} size={22} color={payment === item ? "#236B45" : "#A4BDA7"} /></Pressable>)}</View>
-        <View style={styles.sheetTotal}><Text style={styles.sheetTotalLabel}>{language === "ar" ? "المجموع مع التوصيل" : "Total with delivery"}</Text><Text style={styles.sheetTotalValue}>{formatJod(cartTotal + 1.25, language)}</Text></View>
+        <View style={styles.sheetPriceBreakdown}><SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(pricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل" : "Delivery"} value={formatJod(pricing.deliveryFee, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} /></View><View style={styles.sheetTotal}><Text style={styles.sheetTotalLabel}>{language === "ar" ? "الإجمالي النهائي" : "Final total"}</Text><Text style={styles.sheetTotalValue}>{formatJod(pricing.grandTotal, language)}</Text></View>
         <Pressable onPress={() => { placeOrder(payment, schedule); onComplete(); }} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أكّد واطلب" : "Confirm order"}</Text><MaterialIcons name="check" size={18} color="#FFFFFF" /></Pressable>
       </View></View>
     </Modal>
@@ -482,13 +486,14 @@ function OrdersScreen({ onBack }: { onBack: () => void }) {
 function MotherDashboard({ onBack }: { onBack: () => void }) {
   const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
+  const incomingPricing = incomingOrder ? getOrderPricing(totalCart(incomingOrder.items), incomingOrder.deliveryFee ?? 1.25) : null;
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "لوحة الأم" : "MOTHER'S TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "صباح الخير يا أم أحمد" : "Good morning, Umm Ahmad"}</Text></View><Pressable onPress={() => { setRole("customer"); onBack(); }} style={styles.roleIcon}><MaterialIcons name="person-outline" size={20} color="#236B45" /></Pressable></View>
       <View style={styles.dashboardHero}><View><Text style={styles.dashboardOverline}>{language === "ar" ? "حالة المطبخ" : "Kitchen status"}</Text><Text style={styles.dashboardTitle}>{kitchenOpen ? (language === "ar" ? "مطبخك مفتوح" : "Your kitchen is open") : (language === "ar" ? "المطبخ مغلق" : "Kitchen is closed")}</Text><Text style={styles.dashboardBody}>{kitchenOpen ? (language === "ar" ? "جاهزة تستقبلي طلبات الجيران" : "Ready to welcome neighborhood orders") : (language === "ar" ? "افتحيه لما تكوني جاهزة" : "Open it when you're ready")}</Text></View><Switch value={kitchenOpen} onValueChange={toggleKitchen} trackColor={{ false: "#D6E2D4", true: "#B8F000" }} thumbColor={kitchenOpen ? "#4F8F3B" : "#5E7665"} /></View>
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "طلبات اليوم" : "Today's orders"} value="12" icon="receipt-long" /><DashboardMetric label={language === "ar" ? "أرباح الشهر" : "This month"} value={language === "ar" ? "٤٨٦ د.أ" : "JOD 486"} icon="trending-up" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       <View style={styles.capacitySettingsCard}><View style={styles.capacitySettingsIcon}><MaterialIcons name="inventory-2" size={19} color="#236B45" /></View><View style={styles.capacitySettingsCopy}><Text style={styles.capacitySettingsTitle}>{language === "ar" ? "إعدادات حجم الطلب" : "Order-size settings"}</Text><Text style={styles.capacitySettingsBody}>{motherVerification.mealSize && motherVerification.deliveryCapacity ? `${getLocalized(mealSizeLabels[motherVerification.mealSize], language)} · ${getLocalized(loadCapacityLabels[motherVerification.deliveryCapacity], language)}` : language === "ar" ? "أكملي حجم الوجبات وسعة التوصيل من ملف التحقق" : "Complete meal size and delivery capacity in verification"}</Text></View><MaterialIcons name="tune" size={18} color="#4F8F3B" /></View>
-      {incomingOrder && <View style={styles.incomingCard}><View style={styles.incomingTop}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "طلب جديد" : "New order"}</Text><Text style={styles.incomingId}>{incomingOrder.id}</Text></View><View style={styles.newPill}><Text style={styles.newPillText}>{language === "ar" ? "جديد" : "NEW"}</Text></View></View><Text style={styles.incomingTitle}>{incomingOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.incomingMeta}>{getLocalized(incomingOrder.eta, language)} · {formatJod(incomingOrder.total, language)} · {t(paymentLabels[incomingOrder.paymentMethod], language)}</Text>{incomingOrder.status === "received" ? <View style={styles.incomingActions}><Pressable onPress={rejectIncomingOrder} style={styles.rejectButton}><Text style={styles.rejectText}>{language === "ar" ? "رفض" : "Decline"}</Text></Pressable><Pressable onPress={acceptIncomingOrder} style={styles.acceptButton}><Text style={styles.acceptText}>{language === "ar" ? "قبول الطلب" : "Accept order"}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View> : <View style={styles.prepNotice}><MaterialIcons name="soup-kitchen" size={18} color="#4F8F3B" /><Text style={styles.prepNoticeText}>{language === "ar" ? "الطلب قيد التحضير - وقت التسليم ٤٥ دقيقة" : "Preparing - ready in 45 minutes"}</Text></View>}</View>}
+      {incomingOrder && <View style={styles.incomingCard}><View style={styles.incomingTop}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "طلب جديد" : "New order"}</Text><Text style={styles.incomingId}>{incomingOrder.id}</Text></View><View style={styles.newPill}><Text style={styles.newPillText}>{language === "ar" ? "جديد" : "NEW"}</Text></View></View><Text style={styles.incomingTitle}>{incomingOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.incomingMeta}>{getLocalized(incomingOrder.eta, language)} · {formatJod(incomingOrder.total, language)} · {t(paymentLabels[incomingOrder.paymentMethod], language)}</Text>{incomingPricing && <View style={styles.earningsBreakdown}><SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(incomingPricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={`-${formatJod(incomingPricing.commission, language)}`} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "صافي أرباحك" : "Your payout"} value={formatJod(incomingPricing.motherPayout, language)} strong /></View>}{incomingOrder.status === "received" ? <View style={styles.incomingActions}><Pressable onPress={rejectIncomingOrder} style={styles.rejectButton}><Text style={styles.rejectText}>{language === "ar" ? "رفض" : "Decline"}</Text></Pressable><Pressable onPress={acceptIncomingOrder} style={styles.acceptButton}><Text style={styles.acceptText}>{language === "ar" ? "قبول الطلب" : "Accept order"}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View> : <View style={styles.prepNotice}><MaterialIcons name="soup-kitchen" size={18} color="#4F8F3B" /><Text style={styles.prepNoticeText}>{language === "ar" ? "الطلب قيد التحضير - وقت التسليم ٤٥ دقيقة" : "Preparing - ready in 45 minutes"}</Text></View>}</View>}
       <SectionHeader title={language === "ar" ? "إدارة مطبخك" : "Manage your kitchen"} action={language === "ar" ? "عرض القائمة" : "View menu"} onAction={() => setMenuOpen((value) => !value)} />
       <View style={styles.dashboardList}><DashboardAction icon="restaurant-menu" title={language === "ar" ? "قائمة الأكلات" : "Menu items"} detail={language === "ar" ? "٥ أكلات · ٤ متاحة" : "5 meals · 4 available"} onPress={() => setMenuOpen((value) => !value)} /><DashboardAction icon="event" title={language === "ar" ? "طلبات مسبقة" : "Advance orders"} detail={language === "ar" ? "مناسبات الجمعة" : "Friday gatherings"} onPress={() => undefined} /><DashboardAction icon="account-balance" title={language === "ar" ? "الأرباح و CliQ" : "Earnings & CliQ"} detail={lastPayout ? (language === "ar" ? "طلب التحويل قيد المعالجة" : "Payout processing") : (language === "ar" ? "٣٨٦ د.أ جاهزة للتحويل" : "JOD 386 ready to payout")} onPress={() => requestPayout(386)} /> </View>
       {menuOpen && <View style={styles.menuManager}>{getKitchenMeals("umm-ahmad").map((meal) => <View key={meal.id} style={styles.menuManagerRow}><Image source={{ uri: meal.image }} style={styles.menuThumb} /><View style={styles.menuManagerCopy}><Text style={styles.menuManagerName}>{getLocalized(meal.name, language)}</Text><Text style={styles.menuManagerMeta}>{formatJod(meal.price, language)} · {meal.prepMinutes} min</Text></View><View style={styles.menuStatus}><View style={styles.openDot} /><Text style={styles.menuStatusText}>{language === "ar" ? "متاحة" : "Live"}</Text></View></View>)}</View>}
@@ -572,6 +577,7 @@ const styles = StyleSheet.create({
   capacitySettingsCopy: { flex: 1 },
   capacitySettingsTitle: { color: "#132218", fontSize: 11, fontWeight: "900" },
   capacitySettingsBody: { color: "#5E7665", fontSize: 10, marginTop: 3 },
+  earningsBreakdown: { gap: 7, backgroundColor: "#F7FFF0", borderRadius: 14, padding: 10, borderWidth: 1, borderColor: "#D9F99D" },
   driverHero: { borderRadius: 23, padding: 18, backgroundColor: "#F3FFE6", borderWidth: 1, borderColor: "#D9F99D", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   driverOverline: { color: "#C88A16", fontSize: 10, fontWeight: "900" },
   driverTitle: { color: "#132218", fontSize: 21, fontWeight: "900", marginTop: 5 },
@@ -843,6 +849,7 @@ const styles = StyleSheet.create({
   paymentCopy: { flex: 1 },
   paymentTitle: { color: "#132218", fontSize: 12, fontWeight: "900" },
   paymentSubtitle: { color: "#5E7665", fontSize: 10, marginTop: 2 },
+  sheetPriceBreakdown: { gap: 3, marginTop: 2 },
   sheetTotal: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 2 },
   sheetTotalLabel: { color: "#5E7665", fontSize: 12 },
   sheetTotalValue: { color: "#132218", fontSize: 18, fontWeight: "900" },
