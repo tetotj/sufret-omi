@@ -65,13 +65,12 @@ const removeIngredientOptions: IngredientOption[] = [
 ];
 
 export default function HomeScreen() {
-  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, addToCart } = useApp();
+  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart } = useApp();
   const cartPreviewTotal = getOrderPricing(cartTotal, cartCount > 0 ? 1.25 : 0).grandTotal;
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [customizingMeal, setCustomizingMeal] = useState<(typeof meals)[number] | null>(null);
   const [query, setQuery] = useState("");
-  const [cartSpecialRequests, setCartSpecialRequests] = useState("");
 
   const confirmMealCustomization = (meal: (typeof meals)[number], specialRequests: string) => {
     addToCart(meal, specialRequests);
@@ -113,7 +112,7 @@ export default function HomeScreen() {
         ) : view === "kitchen" ? (
           <KitchenProfile onBack={() => go("home")} onCart={() => go("cart")} onRequestAdd={setCustomizingMeal} />
         ) : view === "cart" ? (
-          <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} specialRequests={cartSpecialRequests} onSpecialRequestsChange={setCartSpecialRequests} />
+          <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} />
         ) : view === "dashboard" ? (
           role === "mother" ? <MotherDashboard onBack={() => go("home")} /> : <CustomerDashboard onBack={() => go("home")} onNavigate={go} />
         ) : view === "delivery" ? (
@@ -445,8 +444,8 @@ function KitchenProfile({ onBack, onCart, onRequestAdd }: { onBack: () => void; 
   );
 }
 
-function CartScreen({ onBack, onCheckout, specialRequests, onSpecialRequestsChange }: { onBack: () => void; onCheckout: () => void; specialRequests: string; onSpecialRequestsChange: (value: string) => void }) {
-  const { language, cart, cartTotal, updateQuantity, clearCart, cartCount } = useApp();
+function CartScreen({ onBack, onCheckout }: { onBack: () => void; onCheckout: () => void }) {
+  const { language, cart, cartTotal, updateQuantity, clearCart, cartCount, cartSpecialRequests, setCartSpecialRequests } = useApp();
   const pricing = getOrderPricing(cartTotal, cart.length ? 1.25 : 0);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -454,7 +453,7 @@ function CartScreen({ onBack, onCheckout, specialRequests, onSpecialRequestsChan
       {cart.length === 0 ? <EmptyCart language={language} onBack={onBack} /> : <>
         <View style={styles.cartItems}>{cart.map((item, index) => <CartItemRow key={`${item.meal.id}-${item.specialRequests ?? "default"}-${index}`} item={item} language={language} onUpdate={updateQuantity} />)}</View>
         <View style={styles.deliveryCard}><View style={styles.deliveryIcon}><MaterialIcons name="two-wheeler" size={21} color="#4F8F3B" /></View><View style={styles.deliveryCopy}><Text style={styles.deliveryTitle}>{language === "ar" ? "توصيل لباب البيت" : "Doorstep delivery"}</Text><Text style={styles.deliveryBody}>{language === "ar" ? "خلدا، شارع وصفي التل" : "Khalda, Wasfi Al-Tal St."}</Text></View><MaterialIcons name="chevron-right" size={20} color="#5E7665" /></View>
-        <View style={styles.cartNoteCard}><View style={styles.cartNoteHeader}><MaterialIcons name="edit-note" size={20} color="#236B45" /><View style={styles.cartNoteCopy}><Text style={styles.cartNoteTitle}>{language === "ar" ? "ملاحظات للطلب" : "Order notes"}</Text><Text style={styles.cartNoteHint}>{language === "ar" ? "إذا بتحبي، اكتبي أي تعليمات عامة للمطبخ أو التوصيل" : "Add any general kitchen or delivery instructions"}</Text></View></View><TextInput value={specialRequests} onChangeText={onSpecialRequestsChange} placeholder={language === "ar" ? "مثال: اتركي الطلب عند الباب..." : "Example: leave the order at the door..."} placeholderTextColor="#A4BDA7" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+        <View style={styles.cartNoteCard}><View style={styles.cartNoteHeader}><MaterialIcons name="edit-note" size={20} color="#236B45" /><View style={styles.cartNoteCopy}><Text style={styles.cartNoteTitle}>{language === "ar" ? "ملاحظات للطلب" : "Order notes"}</Text><Text style={styles.cartNoteHint}>{language === "ar" ? "إذا بتحبي، اكتبي أي تعليمات عامة للمطبخ أو التوصيل" : "Add any general kitchen or delivery instructions"}</Text></View></View><TextInput value={cartSpecialRequests} onChangeText={setCartSpecialRequests} placeholder={language === "ar" ? "مثال: اتركي الطلب عند الباب..." : "Example: leave the order at the door..."} placeholderTextColor="#A4BDA7" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View>
         <View style={styles.summaryCard}><SummaryRow label={language === "ar" ? "عدد الوجبات" : "Meal quantity"} value={`${cartCount}`} /><SummaryRow label={language === "ar" ? "عدد الأصناف" : "Different meals"} value={`${cart.length}`} /><SummaryRow label={language === "ar" ? "المجموع" : "Subtotal"} value={formatJod(pricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل" : "Delivery"} value={formatJod(pricing.deliveryFee, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "الإجمالي" : "Total"} value={formatJod(pricing.grandTotal, language)} strong /></View>
         <Pressable onPress={onCheckout} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "كمّلي الطلب" : "Continue to checkout"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
       </>}
@@ -945,7 +944,7 @@ const styles = StyleSheet.create({
   ingredientOptionTextSelected: { color: "#FFFFFF" },
   ingredientOptionRemoveTextSelected: { color: "#8A6516" },
   specialRequestInputWrap: { minHeight: 72, flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#FFFFFF", borderRadius: 16, borderWidth: 1, borderColor: "#DDEAD8", padding: 11 },
-  specialRequestInput: { flex: 1, minHeight: 48, color: "#132218", fontSize: 11, lineHeight: 17, padding: 0 },
+  specialRequestInput: { flex: 1, minHeight: 64, color: "#132218", fontSize: 11, lineHeight: 17, padding: 0, textAlignVertical: "top" },
   paymentOption: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DDEAD8" },
   paymentOptionActive: { borderColor: "#C7E8C8", backgroundColor: "#F7FFF0" },
   paymentIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#F0FBEA", justifyContent: "center", alignItems: "center" },

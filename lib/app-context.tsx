@@ -86,6 +86,7 @@ type AppState = {
   selectedCategory: CategoryId | "all";
   selectedKitchenId: string;
   cart: CartItem[];
+  cartSpecialRequests: string;
   activeOrder: Order | null;
   kitchenOpen: boolean;
   incomingOrder: Order | null;
@@ -105,6 +106,7 @@ type AppContextValue = AppState & {
   setSelectedRegion: (region: RegionId) => void;
   setSelectedCategory: (category: CategoryId | "all") => void;
   setSelectedKitchenId: (kitchenId: string) => void;
+  setCartSpecialRequests: (value: string) => void;
   addToCart: (meal: Meal, specialRequests?: string) => void;
   updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
@@ -141,6 +143,7 @@ const initialState: AppState = {
   selectedCategory: "all",
   selectedKitchenId: primaryKitchen.id,
   cart: [],
+  cartSpecialRequests: "",
   activeOrder: null,
   kitchenOpen: true,
   incomingOrder: sampleIncomingOrder,
@@ -164,6 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...current,
           ...parsed,
           isGuest: parsed.isGuest === true,
+          cartSpecialRequests: typeof parsed.cartSpecialRequests === "string" ? parsed.cartSpecialRequests : current.cartSpecialRequests,
           activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
           incomingOrder: parsed.incomingOrder === undefined ? current.incomingOrder : normalizeOrder(parsed.incomingOrder as Partial<Order> | null, current.incomingOrder),
           driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
@@ -193,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...state,
       selectedKitchen: getKitchen(state.selectedKitchenId),
       signIn: (role, guest = false) => setState((current) => ({ ...current, isAuthenticated: true, isGuest: guest, role })),
-      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], activeOrder: null })),
+      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], cartSpecialRequests: "", activeOrder: null })),
       cartTotal: totalCart(state.cart),
       cartCount: unitCount(state.cart),
       setLanguage: (language) => setState((current) => ({ ...current, language })),
@@ -201,9 +205,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSelectedRegion: (selectedRegion) => setState((current) => ({ ...current, selectedRegion })),
       setSelectedCategory: (selectedCategory) => setState((current) => ({ ...current, selectedCategory })),
       setSelectedKitchenId: (selectedKitchenId) => setState((current) => ({ ...current, selectedKitchenId })),
+      setCartSpecialRequests: (cartSpecialRequests) => setState((current) => ({ ...current, cartSpecialRequests })),
       addToCart: (meal, specialRequests = "") => {
         if (state.isGuest) {
-          setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [] }));
+          setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], cartSpecialRequests: "" }));
           return;
         }
         setState((current) => {
@@ -215,11 +220,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         showToast(state.language === "ar" ? `انضافت للسفرة · ${unitCount(state.cart) + 1} وجبة` : `Added to your table · ${unitCount(state.cart) + 1} meals`);
       },
       updateQuantity: (mealId, nextQuantity, specialRequests = "") => setState((current) => ({ ...current, cart: nextQuantity <= 0 ? current.cart.filter((item) => !(item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests)) : current.cart.map((item) => item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests ? { ...item, quantity: nextQuantity } : item) })),
-      clearCart: () => setState((current) => ({ ...current, cart: [] })),
+      clearCart: () => setState((current) => ({ ...current, cart: [], cartSpecialRequests: "" })),
       placeOrder: (paymentMethod, schedule, specialRequests = "") => setState((current) => {
         const pricing = getOrderPricing(totalCart(current.cart), 1.25);
         const cartInstructions = current.cart.filter((item) => item.specialRequests?.trim()).map((item) => `${item.meal.name.ar}: ${item.specialRequests?.trim()}`).join(" · ");
-        const mergedSpecialRequests = [cartInstructions, specialRequests.trim()].filter(Boolean).join(" · ");
+        const generalRequest = specialRequests.trim() || current.cartSpecialRequests.trim();
+        const mergedSpecialRequests = [cartInstructions, generalRequest].filter(Boolean).join(" · ");
         return {
         ...current,
         activeOrder: {
@@ -244,6 +250,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: current.driverVerification.vehicleType ?? "motorcycle", cargoCapacity: current.driverVerification.cargoCapacity ?? "medium" },
         },
         cart: [],
+        cartSpecialRequests: "",
         };
       }),
       rateOrder: (rating, review = "") => setState((current) => current.activeOrder ? { ...current, activeOrder: { ...current.activeOrder, restaurantRating: Math.max(1, Math.min(5, Math.round(rating))), restaurantReview: review.trim() } } : current),
