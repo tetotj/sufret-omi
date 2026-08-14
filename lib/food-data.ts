@@ -55,6 +55,7 @@ export type Kitchen = {
 export type CartItem = {
   meal: Meal;
   quantity: number;
+  specialRequests?: string;
 };
 
 export type OrderStatus = "received" | "preparing" | "ready" | "on_the_way" | "delivered";

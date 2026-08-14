@@ -105,8 +105,8 @@ type AppContextValue = AppState & {
   setSelectedRegion: (region: RegionId) => void;
   setSelectedCategory: (category: CategoryId | "all") => void;
   setSelectedKitchenId: (kitchenId: string) => void;
-  addToCart: (meal: Meal) => void;
-  updateQuantity: (mealId: string, nextQuantity: number) => void;
+  addToCart: (meal: Meal, specialRequests?: string) => void;
+  updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
   placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string) => void;
   rateOrder: (rating: number, review?: string) => void;
@@ -201,22 +201,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSelectedRegion: (selectedRegion) => setState((current) => ({ ...current, selectedRegion })),
       setSelectedCategory: (selectedCategory) => setState((current) => ({ ...current, selectedCategory })),
       setSelectedKitchenId: (selectedKitchenId) => setState((current) => ({ ...current, selectedKitchenId })),
-      addToCart: (meal) => {
+      addToCart: (meal, specialRequests = "") => {
         if (state.isGuest) {
           setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [] }));
           return;
         }
         setState((current) => {
-          const existing = current.cart.find((item) => item.meal.id === meal.id);
-          const cart = existing ? current.cart.map((item) => item.meal.id === meal.id ? { ...item, quantity: item.quantity + 1 } : item) : [...current.cart, { meal, quantity: 1 }];
+          const normalizedRequests = specialRequests.trim();
+          const existing = current.cart.find((item) => item.meal.id === meal.id && (item.specialRequests ?? "") === normalizedRequests);
+          const cart = existing ? current.cart.map((item) => item.meal.id === meal.id && (item.specialRequests ?? "") === normalizedRequests ? { ...item, quantity: item.quantity + 1 } : item) : [...current.cart, { meal, quantity: 1, specialRequests: normalizedRequests }];
           return { ...current, cart };
         });
         showToast(state.language === "ar" ? `انضافت للسفرة · ${unitCount(state.cart) + 1} وجبة` : `Added to your table · ${unitCount(state.cart) + 1} meals`);
       },
-      updateQuantity: (mealId, nextQuantity) => setState((current) => ({ ...current, cart: nextQuantity <= 0 ? current.cart.filter((item) => item.meal.id !== mealId) : current.cart.map((item) => item.meal.id === mealId ? { ...item, quantity: nextQuantity } : item) })),
+      updateQuantity: (mealId, nextQuantity, specialRequests = "") => setState((current) => ({ ...current, cart: nextQuantity <= 0 ? current.cart.filter((item) => !(item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests)) : current.cart.map((item) => item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests ? { ...item, quantity: nextQuantity } : item) })),
       clearCart: () => setState((current) => ({ ...current, cart: [] })),
       placeOrder: (paymentMethod, schedule, specialRequests = "") => setState((current) => {
         const pricing = getOrderPricing(totalCart(current.cart), 1.25);
+        const cartInstructions = current.cart.filter((item) => item.specialRequests?.trim()).map((item) => `${item.meal.name.ar}: ${item.specialRequests?.trim()}`).join(" · ");
+        const mergedSpecialRequests = [cartInstructions, specialRequests.trim()].filter(Boolean).join(" · ");
         return {
         ...current,
         activeOrder: {
@@ -226,7 +229,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           total: pricing.grandTotal,
           commission: pricing.commission,
           deliveryFee: pricing.deliveryFee,
-          specialRequests: specialRequests.trim(),
+          specialRequests: mergedSpecialRequests,
           paymentMethod,
           schedule,
           status: "received",
