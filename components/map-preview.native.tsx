@@ -53,24 +53,24 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
         {jordanMapPoints.map((point) => (
           <Marker key={point.id} coordinate={{ latitude: point.latitude, longitude: point.longitude }} title={getLocalized(point.label, language)} pinColor={point.color} onPress={() => onSelectRegion?.(point.id as (typeof regions)[number]["id"])} />
         ))}
-        {pickupCoordinates && <Marker coordinate={pickupCoordinates} title={language === "ar" ? "نقطة الاستلام" : "Pickup point"} description={`${pickupCoordinates.latitude.toFixed(5)}, ${pickupCoordinates.longitude.toFixed(5)}`} pinColor="#C2410C" />}
-        {dropoffCoordinates && <Marker coordinate={dropoffCoordinates} title={language === "ar" ? "نقطة التسليم" : "Drop-off point"} description={`${dropoffCoordinates.latitude.toFixed(5)}, ${dropoffCoordinates.longitude.toFixed(5)}`} pinColor="#4D7C0F" />}
+        {pickupCoordinates && <Marker coordinate={pickupCoordinates} title={language === "ar" ? "نقطة الاستلام" : "Pickup point"} description={`${pickupCoordinates.latitude.toFixed(5)}, ${pickupCoordinates.longitude.toFixed(5)}`} pinColor="#236B45" />}
+        {dropoffCoordinates && <Marker coordinate={dropoffCoordinates} title={language === "ar" ? "نقطة التسليم" : "Drop-off point"} description={`${dropoffCoordinates.latitude.toFixed(5)}, ${dropoffCoordinates.longitude.toFixed(5)}`} pinColor="#4F8F3B" />}
 
       </MapView>
-      {!compact && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#C2410C" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
-      <Pressable onPress={locateMe} style={({ pressed }) => [styles.locateButton, pressed && styles.pressed]}><MaterialIcons name={locating ? "hourglass-top" : "my-location"} size={16} color="#1C1917" /><Text style={styles.locateText}>{language === "ar" ? "موقعي" : "My location"}</Text></Pressable>
+      {!compact && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#236B45" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
+      <Pressable onPress={locateMe} style={({ pressed }) => [styles.locateButton, pressed && styles.pressed]}><MaterialIcons name={locating ? "hourglass-top" : "my-location"} size={16} color="#132218" /><Text style={styles.locateText}>{language === "ar" ? "موقعي" : "My location"}</Text></Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  nativeWrap: { height: 220, borderRadius: 26, overflow: "hidden", backgroundColor: "#E7E5E4" },
+  nativeWrap: { height: 220, borderRadius: 26, overflow: "hidden", backgroundColor: "#E4EFE1" },
   compactWrap: { height: 150, borderRadius: 22 },
   fullScreenMap: { flex: 1, height: undefined, borderRadius: 0 },
   regionBadge: { position: "absolute", top: 16, right: 16, backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 17, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 7 },
-  regionCaption: { fontSize: 10, color: "#78716C" },
-  regionName: { fontSize: 12, color: "#1C1917", fontWeight: "800" },
-  locateButton: { position: "absolute", bottom: 14, right: 16, backgroundColor: "#FFFFFF", borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 5, shadowColor: "#1C1917", shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  locateText: { fontSize: 11, color: "#1C1917", fontWeight: "800" },
+  regionCaption: { fontSize: 10, color: "#5E7665" },
+  regionName: { fontSize: 12, color: "#132218", fontWeight: "800" },
+  locateButton: { position: "absolute", bottom: 14, right: 16, backgroundColor: "#FFFFFF", borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 5, shadowColor: "#132218", shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  locateText: { fontSize: 11, color: "#132218", fontWeight: "800" },
   pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
 });

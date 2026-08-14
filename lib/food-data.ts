@@ -81,10 +81,10 @@ export type Order = {
 };
 
 export const categories: Category[] = [
-  { id: "mansaf", label: { ar: "منسف", en: "Mansaf" }, icon: "restaurant", color: "#C2410C" },
-  { id: "maqluba", label: { ar: "مقلوبة", en: "Maqluba" }, icon: "layers", color: "#B45309" },
-  { id: "mahshi", label: { ar: "محاشي", en: "Mahshi" }, icon: "eco", color: "#4D7C0F" },
-  { id: "bakery", label: { ar: "مخبوزات", en: "Bakery" }, icon: "bakery-dining", color: "#92400E" },
+  { id: "mansaf", label: { ar: "منسف", en: "Mansaf" }, icon: "restaurant", color: "#236B45" },
+  { id: "maqluba", label: { ar: "مقلوبة", en: "Maqluba" }, icon: "layers", color: "#C88A16" },
+  { id: "mahshi", label: { ar: "محاشي", en: "Mahshi" }, icon: "eco", color: "#4F8F3B" },
+  { id: "bakery", label: { ar: "مخبوزات", en: "Bakery" }, icon: "bakery-dining", color: "#1B5E3A" },
   { id: "moona", label: { ar: "مونة", en: "Moona" }, icon: "inventory-2", color: "#6B7280" },
 ];
 
@@ -117,7 +117,7 @@ export const kitchens: Kitchen[] = [
     isOpen: true,
     specialty: "mansaf",
     image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84",
-    accent: "#C2410C",
+    accent: "#236B45",
   },
   {
     id: "teta-sawsan",
@@ -131,7 +131,7 @@ export const kitchens: Kitchen[] = [
     isOpen: true,
     specialty: "maqluba",
     image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84",
-    accent: "#4D7C0F",
+    accent: "#4F8F3B",
   },
   {
     id: "kitchen-ward",
@@ -145,18 +145,18 @@ export const kitchens: Kitchen[] = [
     isOpen: false,
     specialty: "moona",
     image: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=84",
-    accent: "#B45309",
+    accent: "#C88A16",
   },
-  { id: "kitchen-zarqa", name: { ar: "بيت أم يزن", en: "Umm Yazan's Home" }, motherName: { ar: "أم يزن", en: "Umm Yazan" }, region: "zarqa", neighborhood: { ar: "الزرقاء الجديدة", en: "New Zarqa" }, rating: 4.8, reviewCount: 75, prepLabel: { ar: "جاهز خلال ٥٠ دقيقة", en: "Ready in 50 min" }, isOpen: true, specialty: "maqluba", image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", accent: "#B45309" },
-  { id: "kitchen-balqa", name: { ar: "مطبخ أم يزن", en: "Umm Yazan's Kitchen" }, motherName: { ar: "أم يزن", en: "Umm Yazan" }, region: "balqa", neighborhood: { ar: "الفحيص، البلقاء", en: "Fuheis, Balqa" }, rating: 4.9, reviewCount: 82, prepLabel: { ar: "طلبات اليوم", en: "Today's orders" }, isOpen: true, specialty: "mansaf", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", accent: "#C2410C" },
-  { id: "kitchen-madaba", name: { ar: "سفرة أم لؤي", en: "Umm Loay's Table" }, motherName: { ar: "أم لؤي", en: "Umm Loay" }, region: "madaba", neighborhood: { ar: "وسط مادبا", en: "Madaba Center" }, rating: 4.8, reviewCount: 58, prepLabel: { ar: "جاهز خلال ٣٥ دقيقة", en: "Ready in 35 min" }, isOpen: true, specialty: "mahshi", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", accent: "#4D7C0F" },
+  { id: "kitchen-zarqa", name: { ar: "بيت أم يزن", en: "Umm Yazan's Home" }, motherName: { ar: "أم يزن", en: "Umm Yazan" }, region: "zarqa", neighborhood: { ar: "الزرقاء الجديدة", en: "New Zarqa" }, rating: 4.8, reviewCount: 75, prepLabel: { ar: "جاهز خلال ٥٠ دقيقة", en: "Ready in 50 min" }, isOpen: true, specialty: "maqluba", image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", accent: "#C88A16" },
+  { id: "kitchen-balqa", name: { ar: "مطبخ أم يزن", en: "Umm Yazan's Kitchen" }, motherName: { ar: "أم يزن", en: "Umm Yazan" }, region: "balqa", neighborhood: { ar: "الفحيص، البلقاء", en: "Fuheis, Balqa" }, rating: 4.9, reviewCount: 82, prepLabel: { ar: "طلبات اليوم", en: "Today's orders" }, isOpen: true, specialty: "mansaf", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", accent: "#236B45" },
+  { id: "kitchen-madaba", name: { ar: "سفرة أم لؤي", en: "Umm Loay's Table" }, motherName: { ar: "أم لؤي", en: "Umm Loay" }, region: "madaba", neighborhood: { ar: "وسط مادبا", en: "Madaba Center" }, rating: 4.8, reviewCount: 58, prepLabel: { ar: "جاهز خلال ٣٥ دقيقة", en: "Ready in 35 min" }, isOpen: true, specialty: "mahshi", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", accent: "#4F8F3B" },
   { id: "kitchen-jerash", name: { ar: "دار الزيتون", en: "Olive Grove Kitchen" }, motherName: { ar: "أم رامي", en: "Umm Rami" }, region: "jerash", neighborhood: { ar: "سوف، جرش", en: "Souf, Jerash" }, rating: 4.7, reviewCount: 44, prepLabel: { ar: "مونة الموسم", en: "Seasonal pantry" }, isOpen: true, specialty: "moona", image: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=84", accent: "#6B7280" },
-  { id: "kitchen-ajloun", name: { ar: "مونة عجلون", en: "Ajloun Pantry" }, motherName: { ar: "أم نور", en: "Umm Noor" }, region: "ajloun", neighborhood: { ar: "عنجره، عجلون", en: "Anjara, Ajloun" }, rating: 4.9, reviewCount: 61, prepLabel: { ar: "خبز ومونة", en: "Bread & pantry" }, isOpen: true, specialty: "bakery", image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", accent: "#92400E" },
-  { id: "kitchen-mafraq", name: { ar: "طبخات البادية", en: "Badia Home Cooking" }, motherName: { ar: "أم خالد", en: "Umm Khaled" }, region: "mafraq", neighborhood: { ar: "وسط المفرق", en: "Mafraq Center" }, rating: 4.6, reviewCount: 39, prepLabel: { ar: "طلب مسبق", en: "Advance order" }, isOpen: false, specialty: "mansaf", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", accent: "#C2410C" },
-  { id: "kitchen-karak", name: { ar: "مطبخ الكرك", en: "Karak Kitchen" }, motherName: { ar: "أم حمزة", en: "Umm Hamza" }, region: "karak", neighborhood: { ar: "الثنية، الكرك", en: "Al-Thaniyeh, Karak" }, rating: 4.9, reviewCount: 97, prepLabel: { ar: "منسف كركي أصيل", en: "Authentic Karak mansaf" }, isOpen: true, specialty: "mansaf", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", accent: "#C2410C" },
-  { id: "kitchen-tafila", name: { ar: "بيت الطفيلة", en: "Tafilah Home" }, motherName: { ar: "أم سائد", en: "Umm Saed" }, region: "tafila", neighborhood: { ar: "العيص، الطفيلة", en: "Al-Ais, Tafilah" }, rating: 4.7, reviewCount: 31, prepLabel: { ar: "نكهة الجبل", en: "Highland flavor" }, isOpen: true, specialty: "mahshi", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", accent: "#4D7C0F" },
-  { id: "kitchen-maan", name: { ar: "سفرة معان", en: "Ma'an Table" }, motherName: { ar: "أم عادل", en: "Umm Adel" }, region: "maan", neighborhood: { ar: "حي الأمير حسن، معان", en: "Prince Hasan, Ma'an" }, rating: 4.6, reviewCount: 28, prepLabel: { ar: "طبخات جنوبية", en: "Southern dishes" }, isOpen: true, specialty: "maqluba", image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", accent: "#B45309" },
-  { id: "kitchen-aqaba", name: { ar: "مطبخ البحر", en: "Sea Breeze Kitchen" }, motherName: { ar: "أم يارا", en: "Umm Yara" }, region: "aqaba", neighborhood: { ar: "الشاطئ الجنوبي، العقبة", en: "South Beach, Aqaba" }, rating: 4.8, reviewCount: 53, prepLabel: { ar: "سفرة البحر", en: "Red Sea table" }, isOpen: true, specialty: "bakery", image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", accent: "#92400E" },
+  { id: "kitchen-ajloun", name: { ar: "مونة عجلون", en: "Ajloun Pantry" }, motherName: { ar: "أم نور", en: "Umm Noor" }, region: "ajloun", neighborhood: { ar: "عنجره، عجلون", en: "Anjara, Ajloun" }, rating: 4.9, reviewCount: 61, prepLabel: { ar: "خبز ومونة", en: "Bread & pantry" }, isOpen: true, specialty: "bakery", image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", accent: "#1B5E3A" },
+  { id: "kitchen-mafraq", name: { ar: "طبخات البادية", en: "Badia Home Cooking" }, motherName: { ar: "أم خالد", en: "Umm Khaled" }, region: "mafraq", neighborhood: { ar: "وسط المفرق", en: "Mafraq Center" }, rating: 4.6, reviewCount: 39, prepLabel: { ar: "طلب مسبق", en: "Advance order" }, isOpen: false, specialty: "mansaf", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", accent: "#236B45" },
+  { id: "kitchen-karak", name: { ar: "مطبخ الكرك", en: "Karak Kitchen" }, motherName: { ar: "أم حمزة", en: "Umm Hamza" }, region: "karak", neighborhood: { ar: "الثنية، الكرك", en: "Al-Thaniyeh, Karak" }, rating: 4.9, reviewCount: 97, prepLabel: { ar: "منسف كركي أصيل", en: "Authentic Karak mansaf" }, isOpen: true, specialty: "mansaf", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", accent: "#236B45" },
+  { id: "kitchen-tafila", name: { ar: "بيت الطفيلة", en: "Tafilah Home" }, motherName: { ar: "أم سائد", en: "Umm Saed" }, region: "tafila", neighborhood: { ar: "العيص، الطفيلة", en: "Al-Ais, Tafilah" }, rating: 4.7, reviewCount: 31, prepLabel: { ar: "نكهة الجبل", en: "Highland flavor" }, isOpen: true, specialty: "mahshi", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", accent: "#4F8F3B" },
+  { id: "kitchen-maan", name: { ar: "سفرة معان", en: "Ma'an Table" }, motherName: { ar: "أم عادل", en: "Umm Adel" }, region: "maan", neighborhood: { ar: "حي الأمير حسن، معان", en: "Prince Hasan, Ma'an" }, rating: 4.6, reviewCount: 28, prepLabel: { ar: "طبخات جنوبية", en: "Southern dishes" }, isOpen: true, specialty: "maqluba", image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", accent: "#C88A16" },
+  { id: "kitchen-aqaba", name: { ar: "مطبخ البحر", en: "Sea Breeze Kitchen" }, motherName: { ar: "أم يارا", en: "Umm Yara" }, region: "aqaba", neighborhood: { ar: "الشاطئ الجنوبي، العقبة", en: "South Beach, Aqaba" }, rating: 4.8, reviewCount: 53, prepLabel: { ar: "سفرة البحر", en: "Red Sea table" }, isOpen: true, specialty: "bakery", image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", accent: "#1B5E3A" },
 ];
 
 export const meals: Meal[] = [
@@ -245,7 +245,7 @@ export const jordanMapPoints = regions.map((region, index) => ({
   latitude: region.latitude,
   longitude: region.longitude,
   label: region.label,
-  color: ["#C2410C", "#4D7C0F", "#B45309", "#92400E", "#6B7280"][index % 5],
+  color: ["#236B45", "#4F8F3B", "#C88A16", "#1B5E3A", "#6B7280"][index % 5],
 }));
 
 export const formatJod = (amount: number, language: Language) =>
