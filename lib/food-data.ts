@@ -76,6 +76,9 @@ export type Order = {
   total: number;
   commission?: number;
   deliveryFee?: number;
+  specialRequests?: string;
+  restaurantRating?: number;
+  restaurantReview?: string;
   paymentMethod: "cod" | "cliq" | "wallet";
   schedule: "now" | "scheduled";
   status: OrderStatus;
