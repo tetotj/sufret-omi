@@ -6,7 +6,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "customer", "mother", "admin"]).default("customer").notNull(),
+  // Platform auth role: business roles are stored in userProfiles.role.
+  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   accountStatus: mysqlEnum("accountStatus", ["active", "pending_approval", "suspended", "rejected"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

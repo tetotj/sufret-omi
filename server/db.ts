@@ -81,6 +81,11 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export type LocalAccountRole = "customer" | "mother" | "driver";
 
+/** The auth users table stores the platform role; business roles live in userProfiles. */
+export function getLocalDatabaseRole(): "user" {
+  return "user";
+}
+
 export async function upsertLocalUser(input: { phone: string; name?: string; role: LocalAccountRole }) {
   const normalizedPhone = input.phone.replace(/\D/g, "");
   if (normalizedPhone.length < 7) throw new Error("A valid phone number is required");
@@ -123,7 +128,9 @@ export async function upsertLocalUser(input: { phone: string; name?: string; rol
   }
 
   const accountStatus = input.role === "customer" ? "active" : "pending_approval";
-  const databaseRole = input.role === "driver" ? "user" : input.role;
+  // The live users table is the platform-auth table and accepts only `user` or `admin`.
+  // The customer/mother/driver business role is stored in userProfiles.role.
+  const databaseRole = getLocalDatabaseRole();
   await db.insert(users).values({
     openId,
     name: input.name?.trim() || null,
@@ -209,7 +216,7 @@ export async function listUserProfiles(): Promise<AdminUserRecord[]> {
         userId: user.id,
         name: linkedProfile?.name ?? user.name ?? "Sufret Omi user",
         phone: linkedProfile?.phone ?? user.email ?? "—",
-        role: linkedProfile?.role ?? (user.role === "mother" ? "mother" : "customer"),
+        role: linkedProfile?.role ?? "customer",
         status: linkedProfile?.status ?? user.accountStatus,
         region: linkedProfile?.region ?? "—",
         details: linkedProfile?.details ? (() => { try { return JSON.parse(linkedProfile.details) as Record<string, string>; } catch { return undefined; } })() : undefined,
