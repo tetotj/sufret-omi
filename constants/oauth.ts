@@ -30,22 +30,22 @@ export const API_BASE_URL = env.apiBaseUrl;
  * URL pattern: https://PORT-sandboxid.region.domain
  */
 export function getApiBaseUrl(): string {
-  // If API_BASE_URL is set, use it
+  // Web deployments expose the API under the same public origin. Preview web
+  // uses a separate 3000 host, so derive that host only for the 8081 preview.
+  if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+    const { protocol, hostname, origin } = window.location;
+    if (/^8081-/.test(hostname)) {
+      return `${protocol}//${hostname.replace(/^8081-/, "3000-")}`;
+    }
+    return origin;
+  }
+
+  // Native builds cannot inspect a browser origin, so use the configured API URL.
   if (API_BASE_URL) {
     return API_BASE_URL.replace(/\/$/, "");
   }
 
-  // On web, derive from current hostname by replacing port 8081 with 3000
-  if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
-    const { protocol, hostname } = window.location;
-    // Pattern: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
-    const apiHostname = hostname.replace(/^8081-/, "3000-");
-    if (apiHostname !== hostname) {
-      return `${protocol}//${apiHostname}`;
-    }
-  }
-
-  // Fallback to empty (will use relative URL)
+  // Fallback to empty (will use relative URL).
   return "";
 }
 
