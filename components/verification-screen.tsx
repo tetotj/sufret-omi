@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useRef, useState } from "react";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { categories, getLocalized, regions, type CategoryId, type Role } from "@/lib/food-data";
@@ -11,6 +12,9 @@ import { pickVerificationImage, takeVerificationPhoto } from "@/lib/verification
 type VerificationScreenProps = { role: Extract<Role, "mother" | "driver"> };
 
 export function VerificationScreen({ role }: VerificationScreenProps) {
+  const [cameraDocumentType, setCameraDocumentType] = useState<VerificationDocumentType | null>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
   const {
     language,
     motherVerification,
@@ -46,14 +50,33 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
   };
 
   const captureDocument = async (documentType: VerificationDocumentType) => {
+    if (Platform.OS === "web") {
+      try {
+        const uri = await takeVerificationPhoto();
+        attachSelectedDocument(documentType, uri);
+      } catch (error) {
+        const permissionDenied = error instanceof Error && error.message === "CAMERA_PERMISSION_DENIED";
+        showToast(permissionDenied
+          ? language === "ar" ? "اسمحي للمتصفح باستخدام الكاميرا ثم حاولي مرة أخرى" : "Allow camera access in the browser, then try again"
+          : language === "ar" ? "تعذّر فتح الكاميرا" : "Could not open the camera");
+      }
+      return;
+    }
+
+    setCameraDocumentType(documentType);
+    if (!cameraPermission?.granted) await requestCameraPermission();
+  };
+
+  const closeCamera = () => setCameraDocumentType(null);
+
+  const takePhotoFromCamera = async () => {
+    if (!cameraDocumentType || !cameraRef.current) return;
     try {
-      const uri = await takeVerificationPhoto();
-      attachSelectedDocument(documentType, uri);
-    } catch (error) {
-      const permissionDenied = error instanceof Error && error.message === "CAMERA_PERMISSION_DENIED";
-      showToast(permissionDenied
-        ? language === "ar" ? "اسمحي للتطبيق باستخدام الكاميرا من إعدادات الهاتف ثم حاولي مرة أخرى" : "Allow camera access in your phone settings, then try again"
-        : language === "ar" ? "تعذّر فتح الكاميرا" : "Could not open the camera");
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      attachSelectedDocument(cameraDocumentType, photo?.uri ?? null);
+      closeCamera();
+    } catch {
+      showToast(language === "ar" ? "تعذّر التقاط الصورة، حاولي مرة أخرى" : "Could not capture the photo. Please try again.");
     }
   };
 
@@ -126,6 +149,12 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
         <Pressable disabled={profile.approvalStatus === "pending"} onPress={() => submitVerification(role)} style={({ pressed }) => [styles.submitButton, profile.approvalStatus === "pending" && styles.submitDisabled, pressed && styles.pressed]}><Text style={styles.submitText}>{profile.approvalStatus === "pending" ? (language === "ar" ? "بانتظار موافقة الفريق" : "Waiting for supervisor approval") : language === "ar" ? "إرسال للمراجعة" : "Submit for review"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
         <Text style={styles.privacyNote}>{language === "ar" ? "نستخدم الوثائق للتحقق والامتثال فقط، وتبقى محمية ولا تُشارك مع العملاء." : "Documents are used for verification and compliance only, kept private, and never shared with customers."}</Text>
       </ScrollView>
+      <Modal visible={Platform.OS !== "web" && cameraDocumentType !== null} animationType="slide" onRequestClose={closeCamera} presentationStyle="fullScreen">
+        <View style={styles.cameraModal}>
+          {cameraPermission?.granted ? <CameraView ref={cameraRef} style={styles.cameraPreview} facing="back" /> : <View style={styles.cameraPermissionCard}><MaterialIcons name="no-photography" size={48} color="#00AFC4" /><Text style={styles.cameraPermissionTitle}>{language === "ar" ? "نحتاج إلى الكاميرا" : "Camera access required"}</Text><Text style={styles.cameraPermissionText}>{language === "ar" ? "اسمحي بالكاميرا لتصوير الوثيقة مباشرة." : "Allow camera access to photograph this document directly."}</Text><Pressable onPress={() => void requestCameraPermission()} style={styles.cameraPermissionButton}><Text style={styles.cameraPermissionButtonText}>{language === "ar" ? "السماح بالكاميرا" : "Allow camera"}</Text></Pressable></View>}
+          <View style={styles.cameraControls}><Pressable onPress={closeCamera} style={styles.cameraCloseButton}><MaterialIcons name="close" size={24} color="#FFFFFF" /></Pressable>{cameraPermission?.granted && <Pressable accessibilityLabel={language === "ar" ? "التقاط صورة" : "Take photo"} onPress={() => void takePhotoFromCamera()} style={styles.cameraCaptureButton}><MaterialIcons name="photo-camera" size={28} color="#082E34" /></Pressable>}<View style={styles.cameraControlSpacer} /></View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -187,4 +216,15 @@ const styles = StyleSheet.create({
   submitText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
   privacyNote: { color: "#4F8F3B", fontSize: 10, lineHeight: 15, textAlign: "center", paddingHorizontal: 7 },
   pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+  cameraModal: { flex: 1, backgroundColor: "#06181B", justifyContent: "space-between" },
+  cameraPreview: { flex: 1 },
+  cameraPermissionCard: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 12 },
+  cameraPermissionTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "900", textAlign: "center" },
+  cameraPermissionText: { color: "#B8DDE1", fontSize: 13, lineHeight: 20, textAlign: "center" },
+  cameraPermissionButton: { backgroundColor: "#00CFE3", borderRadius: 16, paddingHorizontal: 22, paddingVertical: 13, marginTop: 8 },
+  cameraPermissionButtonText: { color: "#082E34", fontSize: 13, fontWeight: "900" },
+  cameraControls: { minHeight: 110, paddingHorizontal: 24, paddingBottom: 28, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  cameraCloseButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  cameraCaptureButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: "#FFFFFF", borderWidth: 5, borderColor: "#00CFE3", alignItems: "center", justifyContent: "center" },
+  cameraControlSpacer: { width: 48, height: 48 },
 });
