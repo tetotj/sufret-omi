@@ -79,6 +79,65 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 }
 
+export type LocalAccountRole = "customer" | "mother" | "driver";
+
+export async function upsertLocalUser(input: { phone: string; name?: string; role: LocalAccountRole }) {
+  const normalizedPhone = input.phone.replace(/\D/g, "");
+  if (normalizedPhone.length < 7) throw new Error("A valid phone number is required");
+
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const openId = `local:${normalizedPhone}`;
+  const now = new Date();
+  const existing = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const profileId = `local-${normalizedPhone}`;
+  const ensureProfile = async (userId: number, status: "active" | "pending_approval") => {
+    const existingProfile = await db.select().from(userProfiles).where(eq(userProfiles.id, profileId)).limit(1);
+    if (existingProfile[0]) {
+      await db.update(userProfiles).set({ name: input.name?.trim() || existingProfile[0].name, phone: input.phone.trim() }).where(eq(userProfiles.id, profileId));
+      return existingProfile[0];
+    }
+    await db.insert(userProfiles).values({
+      id: profileId,
+      userId,
+      name: input.name?.trim() || `Sufret Omi ${normalizedPhone.slice(-4)}`,
+      phone: input.phone.trim(),
+      role: input.role,
+      status,
+      region: "Amman",
+      details: JSON.stringify({ source: "local_phone" }),
+      joinedDate: now.toISOString().slice(0, 10),
+    });
+    return undefined;
+  };
+
+  if (existing[0]) {
+    await db.update(users).set({
+      name: input.name?.trim() || existing[0].name,
+      loginMethod: "local_phone",
+      lastSignedIn: now,
+    }).where(eq(users.id, existing[0].id));
+    await ensureProfile(existing[0].id, existing[0].accountStatus === "active" ? "active" : "pending_approval");
+    return { ...existing[0], lastSignedIn: now };
+  }
+
+  const accountStatus = input.role === "customer" ? "active" : "pending_approval";
+  const databaseRole = input.role === "driver" ? "user" : input.role;
+  await db.insert(users).values({
+    openId,
+    name: input.name?.trim() || null,
+    email: null,
+    loginMethod: "local_phone",
+    role: databaseRole,
+    accountStatus,
+    lastSignedIn: now,
+  });
+  const created = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  if (created[0]) await ensureProfile(created[0].id, accountStatus);
+  return created[0];
+}
+
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {

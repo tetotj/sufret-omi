@@ -178,19 +178,26 @@ export default function HomeScreen() {
 
 function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean) => void }) {
   const { language, setLanguage } = useApp();
+  const localSignIn = trpc.auth.localSignIn.useMutation();
   const [mode, setMode] = useState<Role>("customer");
   const [isCreate, setIsCreate] = useState(false);
   const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const submit = () => {
+  const submit = async () => {
     if (phone.trim().length < 7 || password.trim().length < 4) {
       setError(language === "ar" ? "اكتبي رقم الموبايل وكلمة مرور من ٤ أحرف على الأقل" : "Enter a mobile number and a password of at least 4 characters");
       return;
     }
     setError("");
-    onSignedIn(mode, false);
+    try {
+      await localSignIn.mutateAsync({ phone: phone.trim(), name: name.trim() || undefined, role: mode });
+      onSignedIn(mode, false);
+    } catch {
+      setError(language === "ar" ? "تعذر حفظ الحساب. تحققي من اتصال الخدمة وحاولي مرة أخرى." : "The account could not be saved. Check the service connection and try again.");
+    }
   };
 
   return (
@@ -202,6 +209,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean)
           <View style={styles.loginTabs}><Pressable onPress={() => setIsCreate(false)} style={[styles.loginTab, !isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, !isCreate && styles.loginTabTextActive]}>{language === "ar" ? "تسجيل الدخول" : "Log in"}</Text></Pressable><Pressable onPress={() => setIsCreate(true)} style={[styles.loginTab, isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, isCreate && styles.loginTabTextActive]}>{language === "ar" ? "حساب جديد" : "Create account"}</Text></Pressable></View>
           <Text style={styles.loginTitle}>{isCreate ? (language === "ar" ? "أهلاً في سفرتك" : "Welcome to your table") : (language === "ar" ? "رجعنا نشتقنالك" : "Welcome back")}</Text>
           <Text style={styles.loginSubtitle}>{isCreate ? (language === "ar" ? "خلّي أول طلب يبدأ من بيت أردني" : "Let your first order start at a Jordanian home") : (language === "ar" ? "دخّلي بياناتك وكمّلي لمة اليوم" : "Enter your details and continue your gathering")}</Text>
+          {isCreate && <><Text style={styles.inputLabel}>{language === "ar" ? "الاسم" : "Name"}</Text><View style={styles.inputWrap}><MaterialIcons name="person-outline" size={18} color="#236B45" /><TextInput value={name} onChangeText={setName} placeholder={language === "ar" ? "الاسم الكامل" : "Full name"} placeholderTextColor="#A4BDA7" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View></>}
           <Text style={styles.inputLabel}>{language === "ar" ? "رقم الموبايل" : "Mobile number"}</Text>
           <View style={styles.inputWrap}><MaterialIcons name="smartphone" size={18} color="#236B45" /><TextInput value={phone} onChangeText={setPhone} placeholder={language === "ar" ? "07X XXX XXXX" : "07X XXX XXXX"} placeholderTextColor="#A4BDA7" keyboardType="phone-pad" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View>
           <Text style={styles.inputLabel}>{language === "ar" ? "كلمة المرور" : "Password"}</Text>
@@ -209,7 +217,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean)
           {error ? <Text style={styles.loginError}>{error}</Text> : null}
           <Text style={styles.rolePrompt}>{language === "ar" ? "كيف رح تستخدمي سفرة أمي؟" : "How will you use Sufret Omi?"}</Text>
           <View style={styles.roleChoiceRow}><Pressable onPress={() => setMode("customer")} style={[styles.roleChoice, mode === "customer" && styles.roleChoiceActive]}><MaterialIcons name="restaurant" size={19} color={mode === "customer" ? "#FFFFFF" : "#236B45"} /><Text style={[styles.roleChoiceText, mode === "customer" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطلب أكل" : "Order food"}</Text></Pressable><Pressable onPress={() => setMode("mother")} style={[styles.roleChoice, mode === "mother" && styles.roleChoiceActive]}><MaterialIcons name="storefront" size={19} color={mode === "mother" ? "#FFFFFF" : "#4F8F3B"} /><Text style={[styles.roleChoiceText, mode === "mother" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطبخ وأبيع" : "Cook & sell"}</Text></Pressable><Pressable onPress={() => setMode("driver")} style={[styles.roleChoice, mode === "driver" && styles.roleChoiceActive]}><MaterialIcons name="two-wheeler" size={19} color={mode === "driver" ? "#FFFFFF" : "#C88A16"} /><Text style={[styles.roleChoiceText, mode === "driver" && styles.roleChoiceTextActive]}>{language === "ar" ? "أوصل الطلبات" : "Deliver"}</Text></Pressable></View>
-          <Pressable onPress={submit} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{isCreate ? (language === "ar" ? "أنشئي حسابك" : "Create my account") : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi")}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
+          <Pressable disabled={localSignIn.isPending} onPress={() => void submit()} style={({ pressed }) => [styles.primaryButton, localSignIn.isPending && styles.disabledButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{localSignIn.isPending ? (language === "ar" ? "جاري حفظ الحساب..." : "Saving account...") : isCreate ? (language === "ar" ? "أنشئي حسابك" : "Create my account") : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi")}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
           <Pressable onPress={() => onSignedIn("customer", true)} style={styles.guestButton}><Text style={styles.guestButtonText}>{language === "ar" ? "تصفّحي كضيفة" : "Continue as guest"}</Text></Pressable>
         </View>
         <View style={styles.loginTrust}><MaterialIcons name="verified-user" size={16} color="#4F8F3B" /><Text style={styles.loginTrustText}>{language === "ar" ? "بياناتك محفوظة، وطلباتك عند أمينة سفرة" : "Your data stays protected and your orders stay cared for"}</Text></View>

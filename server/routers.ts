@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createComplaintRecord, listComplaintRecords, listUserProfiles, updateComplaintRecord, updateUserProfileStatus } from "./db";
+import { createComplaintRecord, listComplaintRecords, listUserProfiles, updateComplaintRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -26,6 +26,12 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    localSignIn: publicProcedure
+      .input(z.object({ phone: z.string().min(7).max(32), name: z.string().max(120).optional(), role: z.enum(["customer", "mother", "driver"]) }))
+      .mutation(async ({ input }) => {
+        const user = await upsertLocalUser(input);
+        return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active" };
+      }),
   }),
   admin: router({
     listUsers: adminProcedure.query(() => listUserProfiles()),
