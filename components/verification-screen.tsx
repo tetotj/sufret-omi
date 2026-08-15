@@ -6,7 +6,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { categories, getLocalized, regions, type CategoryId, type Role } from "@/lib/food-data";
 import { useApp } from "@/lib/app-context";
 import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels, verificationStatusLabel, type VerificationDocumentType } from "@/lib/verification-data";
-import { pickVerificationImage } from "@/lib/verification-image-picker";
+import { pickVerificationImage, takeVerificationPhoto } from "@/lib/verification-image-picker";
 
 type VerificationScreenProps = { role: Extract<Role, "mother" | "driver"> };
 
@@ -37,14 +37,30 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
     else updateDriverVerification(patch);
   };
 
+  const attachSelectedDocument = (documentType: VerificationDocumentType, uri: string | null) => {
+    if (uri) {
+      attachVerificationDocument(role, documentType, uri);
+    } else {
+      showToast(language === "ar" ? "لم يتم اختيار صورة" : "No photo was selected");
+    }
+  };
+
+  const captureDocument = async (documentType: VerificationDocumentType) => {
+    try {
+      const uri = await takeVerificationPhoto();
+      attachSelectedDocument(documentType, uri);
+    } catch (error) {
+      const permissionDenied = error instanceof Error && error.message === "CAMERA_PERMISSION_DENIED";
+      showToast(permissionDenied
+        ? language === "ar" ? "اسمحي للتطبيق باستخدام الكاميرا من إعدادات الهاتف ثم حاولي مرة أخرى" : "Allow camera access in your phone settings, then try again"
+        : language === "ar" ? "تعذّر فتح الكاميرا" : "Could not open the camera");
+    }
+  };
+
   const pickDocument = async (documentType: VerificationDocumentType) => {
     try {
       const uri = await pickVerificationImage();
-      if (uri) {
-        attachVerificationDocument(role, documentType, uri);
-      } else {
-        showToast(language === "ar" ? "لم يتم اختيار صورة" : "No photo was selected");
-      }
+      attachSelectedDocument(documentType, uri);
     } catch (error) {
       const permissionDenied = error instanceof Error && error.message === "PHOTO_PERMISSION_DENIED";
       showToast(permissionDenied
@@ -104,7 +120,7 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
 
         <Text style={styles.sectionTitle}>{language === "ar" ? "الوثائق المطلوبة" : "Required documents"}</Text>
         <Text style={styles.helperText}>{language === "ar" ? "تُعرض هذه الصور لفريق الإشراف فقط، ولا تظهر للعميلات." : "These photos are visible only to the supervisor team, never to customers."}</Text>
-        <View style={styles.documents}>{documentTypes.map((document) => <Pressable key={document.type} onPress={() => void pickDocument(document.type)} style={({ pressed }) => [styles.documentRow, pressed && styles.pressed]}>{document.uri ? <Image source={{ uri: document.uri }} style={styles.documentThumb} /> : <View style={styles.documentIcon}><MaterialIcons name="add-a-photo" size={19} color="#236B45" /></View>}<View style={styles.documentCopy}><Text style={styles.documentTitle}>{getLocalized(document.label, language)}</Text><Text style={styles.documentStatus}>{document.uri ? (language === "ar" ? "تم إرفاق الصورة" : "Photo attached") : (language === "ar" ? "اضغطي لإرفاق صورة" : "Tap to attach a photo")}</Text></View><MaterialIcons name={document.uri ? "check-circle" : "cloud-upload"} size={20} color={document.uri ? "#4F8F3B" : "#236B45"} /></Pressable>)}</View>
+        <View style={styles.documents}>{documentTypes.map((document) => <View key={document.type} style={styles.documentRow}>{document.uri ? <Image source={{ uri: document.uri }} style={styles.documentThumb} /> : <View style={styles.documentIcon}><MaterialIcons name="add-a-photo" size={19} color="#236B45" /></View>}<Pressable onPress={() => void captureDocument(document.type)} style={({ pressed }) => [styles.documentCopy, pressed && styles.pressed]}><Text style={styles.documentTitle}>{getLocalized(document.label, language)}</Text><Text style={styles.documentStatus}>{document.uri ? (language === "ar" ? "تم إرفاق الصورة — اضغطي للتصوير من جديد" : "Photo attached — tap to retake") : (language === "ar" ? "اضغطي لفتح الكاميرا" : "Tap to open camera")}</Text></Pressable><Pressable accessibilityLabel={language === "ar" ? "اختيار صورة من المعرض" : "Choose a photo from the library"} onPress={() => void pickDocument(document.type)} style={({ pressed }) => [styles.documentAction, pressed && styles.pressed]}><MaterialIcons name="photo-library" size={19} color="#236B45" /></Pressable></View>)}</View>
 
         <Pressable onPress={() => updateProfile({ termsAccepted: !profile.termsAccepted })} style={styles.termsRow}><MaterialIcons name={profile.termsAccepted ? "check-box" : "check-box-outline-blank"} size={22} color={profile.termsAccepted ? "#4F8F3B" : "#A4BDA7"} /><Text style={styles.termsText}>{language === "ar" ? "أوافق على شروط منصة سفرة أمي وسياسة السلامة والخصوصية." : "I agree to Sufret Omi platform terms, safety, and privacy policy."}</Text></Pressable>
         <Pressable disabled={profile.approvalStatus === "pending"} onPress={() => submitVerification(role)} style={({ pressed }) => [styles.submitButton, profile.approvalStatus === "pending" && styles.submitDisabled, pressed && styles.pressed]}><Text style={styles.submitText}>{profile.approvalStatus === "pending" ? (language === "ar" ? "بانتظار موافقة الفريق" : "Waiting for supervisor approval") : language === "ar" ? "إرسال للمراجعة" : "Submit for review"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
@@ -159,7 +175,8 @@ const styles = StyleSheet.create({
   documentRow: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "#FFFFFF", borderRadius: 16, borderWidth: 1, borderColor: "#DDEAD8", padding: 10 },
   documentIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#F0FBEA", alignItems: "center", justifyContent: "center" },
   documentThumb: { width: 40, height: 40, borderRadius: 12 },
-  documentCopy: { flex: 1 },
+  documentCopy: { flex: 1, minHeight: 40, justifyContent: "center" },
+  documentAction: { width: 42, height: 42, borderRadius: 13, backgroundColor: "#F0FBEA", alignItems: "center", justifyContent: "center" },
   documentTitle: { color: "#132218", fontSize: 11, fontWeight: "900" },
   documentStatus: { color: "#5E7665", fontSize: 10, marginTop: 3 },
   termsRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 5 },
