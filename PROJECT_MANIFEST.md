@@ -1,0 +1,167 @@
+# Sufret Omi Project Manifest
+
+This manifest describes the exact export contents and the commands required to rebuild the current Sufret Omi project.
+
+## Project Location and Runtime Shape
+
+The source project is located at `/home/ubuntu/sufret-omi/`. It is a single Expo/React Native repository with a Node/Express/tRPC backend in the same workspace. The customer, mother/home-chef, and driver experiences are mobile screens inside the Expo Router app. The supervisor dashboard is a separate route, `/admin`, within the same application bundle; it is not a second repository or a separately deployed process.
+
+## Top-Level Folders
+
+| Folder | Purpose | Main technology |
+|---|---|---|
+| `app/` | Expo Router layouts, customer flows, role dashboards, OAuth callback, and `/admin` | React Native, Expo Router, TypeScript |
+| `components/` | Shared screen containers, maps, icons, verification and UI components | React Native, NativeWind |
+| `constants/` | Theme and app constants | TypeScript |
+| `drizzle/` | MySQL schema and SQL migration history | Drizzle ORM, MySQL |
+| `hooks/` | Authentication, color scheme, and palette hooks | React hooks, TypeScript |
+| `lib/` | Domain models, AppContext, admin data, complaint data, verification logic, and tRPC client | React Context, TypeScript, tRPC |
+| `server/` | Express entry point, tRPC router, auth SDK, database access, storage adapter, and server helpers | Node.js, Express, tRPC |
+| `shared/` | Types, constants, and shared errors | TypeScript |
+| `tests/` | Vitest tests | Vitest |
+| `assets/` | App icons, splash images, favicon, and adaptive icon assets | Expo assets |
+| `scripts/` | Environment loading, development helpers, and QR generation | Node.js |
+
+## Important Root Files
+
+| File | Purpose |
+|---|---|
+| `package.json` | Dependencies and scripts; package manager is pnpm 9.12.0 |
+| `pnpm-lock.yaml` | Locked dependency graph |
+| `app.config.ts` | Expo name, slug, version, bundle/package IDs, permissions, plugins, icon and splash configuration |
+| `drizzle.config.ts` | Drizzle schema and migration configuration |
+| `drizzle/schema.ts` | MySQL schema definitions |
+| `tailwind.config.js` and `theme.config.js` | NativeWind/Tailwind configuration and brand palette |
+| `tsconfig.json` | TypeScript compiler configuration |
+| `babel.config.js`, `metro.config.js`, `nativewind-env.d.ts` | Expo, Metro, Babel, and NativeWind configuration |
+| `global.css` | Web/Tailwind base styles |
+| `eslint.config.js` and `.prettierrc` if present | Linting and formatting configuration |
+| `template.json` | Project template metadata |
+| `todo.md` | Historical implementation checklist |
+| `README.md` | Included only if present in the export; the current root scan did not find one |
+| `eas.json` / `.eas.json` | No file was found in the current root scan; EAS build profiles must be added or supplied separately before store builds |
+| `Dockerfile`, `docker-compose.yml`, `render.yaml`, `railway.json`, `fly.toml` | No such deployment file was found in the current root scan |
+
+The export also includes the requested documentation files: `PROJECT_MANIFEST.md`, `ENVIRONMENT_VARIABLES.example`, and `MANUS_DEPENDENCIES.md`.
+
+## Technology Stack
+
+The mobile application uses React Native 0.81.5, Expo SDK 54, Expo Router 6, React 19, and TypeScript. UI styling uses NativeWind 4 and Tailwind CSS. The backend is Node.js with Express and tRPC 11. The database layer uses MySQL through `mysql2` and Drizzle ORM. Maps and location use `react-native-maps` and `expo-location`. Image selection uses `expo-image-picker`. Local persistence uses AsyncStorage in the app context. Authentication is hybrid: local demo state exists for the prototype, while server sessions use Manus OAuth plus JWT cookies. Complaint images and verification documents use an S3-compatible storage flow through the Manus Forge adapter.
+
+## External Services Currently Referenced
+
+| Service | Current use | Current code location |
+|---|---|---|
+| Manus OAuth | OAuth token exchange, user profile retrieval, and session authentication | `server/_core/sdk.ts`, `server/_core/oauth.ts`, `hooks/use-auth.ts`, `app/oauth/callback.tsx` |
+| Manus Forge Storage | Presigned PUT/GET URLs and `/manus-storage/*` asset delivery | `server/storage.ts`, `server/_core/storageProxy.ts` |
+| MySQL database | User records, profiles, verification documents, complaints, attachments, and existing food/order tables | `server/db.ts`, `drizzle/schema.ts` |
+| Expo/Native platform services | Location, maps, image picker, notifications package, linking, splash, and device builds | `app.config.ts`, `package.json`, app screens |
+
+No live payment gateway, analytics provider, FCM/APNs server, or production SMS provider is referenced by the current source code.
+
+## Environment Variables
+
+The complete placeholder list is in `ENVIRONMENT_VARIABLES.example`. The current server reads `DATABASE_URL`, `JWT_SECRET`, `OAUTH_SERVER_URL`, `VITE_APP_ID`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`, and `BUILT_IN_FORGE_API_KEY`. It also recognizes `OWNER_NAME`, `NODE_ENV`, `PORT`, and `EXPO_PORT`. `scripts/load-env.js` maps selected server variables to `EXPO_PUBLIC_*` aliases for the Expo runtime. No real credentials are included in this export.
+
+## Commands
+
+### Install
+
+```bash
+pnpm install
+```
+
+Use Node.js compatible with the project’s Expo SDK 54 toolchain and pnpm 9.12.0. The lockfile should be preserved for reproducible installs.
+
+### Run the full development stack
+
+```bash
+pnpm dev
+```
+
+This invokes `scripts/dev.mjs` and starts the backend and Metro/web development services. The explicit component commands are:
+
+```bash
+pnpm dev:server
+pnpm dev:metro
+```
+
+The backend listens on the configured `PORT` (the project template uses port 3000). Metro/web uses `EXPO_PORT` (the project template uses port 8081). The admin route is served by the same Expo web runtime at `/admin`; there is no separate admin command.
+
+### Run the mobile application
+
+```bash
+pnpm exec expo start --lan --port 8081
+```
+
+Scan the Expo QR code with a compatible development client or run `pnpm android` / `pnpm ios` after the required native toolchains are installed. The current scripts are `pnpm android` and `pnpm ios`.
+
+### Run the backend only
+
+Development:
+
+```bash
+pnpm dev:server
+```
+
+Production-style local run:
+
+```bash
+pnpm build
+pnpm start
+```
+
+`pnpm build` bundles `server/_core/index.ts` into `dist/index.js`; `pnpm start` runs that generated server bundle. The current export deliberately excludes `dist/` as a build artifact.
+
+### Run the admin dashboard
+
+Start the Expo/web runtime, then open:
+
+```text
+http://localhost:8081/admin
+```
+
+On a deployed web host, use the same host with `/admin`. The dashboard is implemented in `app/admin.tsx`. The production path requires a configured server admin session; the local demo code is not a production authentication mechanism.
+
+### Database migrations
+
+The schema is in `drizzle/schema.ts`, and migration SQL is in `drizzle/`. The package script is:
+
+```bash
+pnpm db:push
+```
+
+For review-first migration generation:
+
+```bash
+pnpm drizzle-kit generate
+pnpm drizzle-kit migrate
+```
+
+Set `DATABASE_URL` first and review generated SQL before applying it. The current database schema includes the existing food/order tables plus `users`, `userProfiles`, `userDocuments`, `complaintsDb`, and `complaintImages`.
+
+### Quality checks
+
+```bash
+pnpm check
+pnpm test -- --run
+pnpm lint
+```
+
+### Production mobile builds
+
+No `eas.json` was found in the current project. After creating your own Expo/EAS account and build profiles, install or invoke EAS CLI and run commands such as:
+
+```bash
+pnpm dlx eas-cli login
+pnpm dlx eas-cli build:configure
+pnpm dlx eas-cli build --platform android
+pnpm dlx eas-cli build --platform ios
+pnpm dlx eas-cli build --platform all
+```
+
+The resulting Android and iOS store artifacts must be signed with your own Google Play and Apple Developer credentials. The source archive itself does not contain signing certificates or store credentials.
+
+## Export Exclusions
+
+The export excludes `node_modules/`, `.cache/`, `.expo/`, `.git/`, `.manus/`, `.manus-logs/`, `dist/`, and other generated build or system artifacts. It also excludes real `.env` files if present. Only the placeholder environment example is included.

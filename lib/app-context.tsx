@@ -12,6 +12,7 @@ import {
   Language,
   Meal,
   Kitchen,
+  meals,
   Order,
   RegionId,
   Role,
@@ -34,6 +35,7 @@ import {
   type MotherVerificationProfile,
   type VerificationDocumentType,
 } from "@/lib/verification-data";
+import { createDefaultWeeklySchedule, getWeekdayFromDate, isDayClosed, normalizeWeeklySchedule, type WeekdayId, type WeeklySchedule } from "@/lib/schedule-data";
 
 const STORAGE_KEY = "sufret-omi-session-v1";
 const DEFAULT_DROPOFF = { latitude: 31.951, longitude: 35.884 };
@@ -91,6 +93,8 @@ type AppState = {
   cartSpecialRequests: string;
   complaints: Complaint[];
   activeOrder: Order | null;
+  orderHistory: Order[];
+  weeklySchedule: WeeklySchedule;
   kitchenOpen: boolean;
   incomingOrder: Order | null;
   toast: string | null;
@@ -118,9 +122,12 @@ type AppContextValue = AppState & {
   updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
   placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string) => void;
+  reorder: (order: Order) => void;
   rateOrder: (rating: number, review?: string) => void;
   advanceOrder: () => void;
   toggleKitchen: () => void;
+  toggleClosedDay: (day: WeekdayId) => void;
+  toggleMealScheduleDay: (mealId: string, day: WeekdayId) => void;
   acceptIncomingOrder: () => void;
   rejectIncomingOrder: () => void;
   requestPayout: (amount: number) => void;
@@ -140,6 +147,7 @@ type AppContextValue = AppState & {
   cartTotal: number;
   cartCount: number;
   selectedKitchen: Kitchen;
+  isKitchenAvailable: boolean;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -156,6 +164,8 @@ const initialState: AppState = {
   cartSpecialRequests: "",
   complaints: [],
   activeOrder: null,
+  orderHistory: [],
+  weeklySchedule: createDefaultWeeklySchedule(meals),
   kitchenOpen: true,
   incomingOrder: sampleIncomingOrder,
   toast: null,
@@ -183,6 +193,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           cartSpecialRequests: typeof parsed.cartSpecialRequests === "string" ? parsed.cartSpecialRequests : current.cartSpecialRequests,
           complaints: Array.isArray(parsed.complaints) ? parsed.complaints : current.complaints,
           activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
+          orderHistory: Array.isArray(parsed.orderHistory) ? parsed.orderHistory.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : current.orderHistory,
+          weeklySchedule: normalizeWeeklySchedule(parsed.weeklySchedule, meals),
           incomingOrder: parsed.incomingOrder === undefined ? current.incomingOrder : normalizeOrder(parsed.incomingOrder as Partial<Order> | null, current.incomingOrder),
           driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
           motherVerification: normalizeMotherVerification(parsed.motherVerification, current.motherVerification),
@@ -208,6 +220,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => setState((current) => ({ ...current, toast: null })), 2600);
     };
     const canAccessRoleDashboard = (requestedRole: Role) => requestedRole === "customer" || (requestedRole === "mother" ? state.motherVerification.approvalStatus === "approved" : state.driverVerification.approvalStatus === "approved");
+    const isKitchenAvailable = state.kitchenOpen && !isDayClosed(state.weeklySchedule, getWeekdayFromDate());
     const adminSignIn = (code: string) => {
       if (code.trim() === "9988" || code.trim() === "admin123") {
         setState((current) => ({ ...current, adminAuthenticated: true }));
@@ -229,6 +242,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return {
       ...state,
       selectedKitchen: getKitchen(state.selectedKitchenId),
+      isKitchenAvailable,
       signIn: (role, guest = false) => setState((current) => ({ ...current, isAuthenticated: true, isGuest: guest, role })),
       signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], cartSpecialRequests: "", activeOrder: null })),
       cartTotal: totalCart(state.cart),
@@ -255,43 +269,76 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         showToast(state.language === "ar" ? `انضافت للسفرة · ${unitCount(state.cart) + 1} وجبة` : `Added to your table · ${unitCount(state.cart) + 1} meals`);
       },
       updateQuantity: (mealId, nextQuantity, specialRequests = "") => setState((current) => ({ ...current, cart: nextQuantity <= 0 ? current.cart.filter((item) => !(item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests)) : current.cart.map((item) => item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests ? { ...item, quantity: nextQuantity } : item) })),
+      reorder: (order) => {
+        if (state.isGuest) {
+          showToast(state.language === "ar" ? "سجّلي الدخول لإعادة الطلب" : "Sign in to reorder");
+          return;
+        }
+        setState((current) => {
+          const cart = [...current.cart];
+          for (const orderItem of order.items) {
+            const normalizedRequests = orderItem.specialRequests ?? "";
+            const existingIndex = cart.findIndex((item) => item.meal.id === orderItem.meal.id && (item.specialRequests ?? "") === normalizedRequests);
+            if (existingIndex >= 0) cart[existingIndex] = { ...cart[existingIndex], quantity: cart[existingIndex].quantity + orderItem.quantity };
+            else cart.push({ ...orderItem });
+          }
+          return { ...current, cart, cartSpecialRequests: order.specialRequests ?? "", selectedKitchenId: order.kitchen.id };
+        });
+        showToast(state.language === "ar" ? "رجّعنا طلبك للسلة مع كل التخصيصات" : "Your order and customizations are back in the cart");
+      },
       clearCart: () => setState((current) => ({ ...current, cart: [], cartSpecialRequests: "" })),
-      placeOrder: (paymentMethod, schedule, specialRequests = "") => setState((current) => {
-        const pricing = getOrderPricing(totalCart(current.cart), 1.25);
-        const cartInstructions = current.cart.filter((item) => item.specialRequests?.trim()).map((item) => `${item.meal.name.ar}: ${item.specialRequests?.trim()}`).join(" · ");
-        const generalRequest = specialRequests.trim() || current.cartSpecialRequests.trim();
-        const mergedSpecialRequests = [cartInstructions, generalRequest].filter(Boolean).join(" · ");
-        return {
-        ...current,
-        activeOrder: {
-          id: `SO-${Math.floor(1000 + Math.random() * 8999)}`,
-          kitchen: getKitchen(current.selectedKitchenId),
-          items: current.cart,
-          total: pricing.grandTotal,
-          commission: pricing.commission,
-          deliveryFee: pricing.deliveryFee,
-          specialRequests: mergedSpecialRequests,
-          paymentMethod,
-          schedule,
-          status: "received",
-          eta: schedule === "scheduled" ? { ar: "الجمعة، ١:٣٠ م", en: "Friday, 1:30 PM" } : { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
-          pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
-          dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
-          driverCoordinates: { latitude: 31.978, longitude: 35.897 },
-          pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
-          dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
-          driverRating: 4.9,
-          requiredCapacity: getRequiredLoadCapacity(current.cart),
-          driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: current.driverVerification.vehicleType ?? "motorcycle", cargoCapacity: current.driverVerification.cargoCapacity ?? "medium" },
-        },
-        cart: [],
-        cartSpecialRequests: "",
-        };
+      toggleClosedDay: (day) => setState((current) => ({ ...current, weeklySchedule: { ...current.weeklySchedule, closedDays: current.weeklySchedule.closedDays.includes(day) ? current.weeklySchedule.closedDays.filter((item) => item !== day) : [...current.weeklySchedule.closedDays, day] } })),
+      toggleMealScheduleDay: (mealId, day) => setState((current) => {
+        const currentDays = current.weeklySchedule.mealDays[mealId] ?? [];
+        const mealDays = { ...current.weeklySchedule.mealDays, [mealId]: currentDays.includes(day) ? currentDays.filter((item) => item !== day) : [...currentDays, day] };
+        return { ...current, weeklySchedule: { ...current.weeklySchedule, mealDays } };
       }),
-      rateOrder: (rating, review = "") => setState((current) => current.activeOrder ? { ...current, activeOrder: { ...current.activeOrder, restaurantRating: Math.max(1, Math.min(5, Math.round(rating))), restaurantReview: review.trim() } } : current),
+      placeOrder: (paymentMethod, schedule, specialRequests = "") => {
+        if (!isKitchenAvailable) {
+          showToast(state.language === "ar" ? "المطبخ مغلق اليوم. اختاري يوماً آخر للطلب." : "This kitchen is closed today. Please choose another day.");
+          return;
+        }
+        setState((current) => {
+          const pricing = getOrderPricing(totalCart(current.cart), 1.25);
+          const cartInstructions = current.cart.filter((item) => item.specialRequests?.trim()).map((item) => `${item.meal.name.ar}: ${item.specialRequests?.trim()}`).join(" · ");
+          const generalRequest = specialRequests.trim() || current.cartSpecialRequests.trim();
+          const mergedSpecialRequests = [cartInstructions, generalRequest].filter(Boolean).join(" · ");
+          const nextOrder: Order = {
+            id: `SO-${Math.floor(1000 + Math.random() * 8999)}`,
+            kitchen: getKitchen(current.selectedKitchenId),
+            items: current.cart,
+            total: pricing.grandTotal,
+            commission: pricing.commission,
+            deliveryFee: pricing.deliveryFee,
+            specialRequests: mergedSpecialRequests,
+            paymentMethod,
+            schedule,
+            status: "received",
+            eta: schedule === "scheduled" ? { ar: "الجمعة، ١:٣٠ م", en: "Friday, 1:30 PM" } : { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
+            pickupCoordinates: { latitude: 31.963, longitude: 35.91 },
+            dropoffCoordinates: { latitude: 31.951, longitude: 35.884 },
+            driverCoordinates: { latitude: 31.978, longitude: 35.897 },
+            pickupAddress: { ar: "مطبخ أم أحمد، خلدا، عمّان", en: "Umm Ahmad's Kitchen, Khalda, Amman" },
+            dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+            driverRating: 4.9,
+            requiredCapacity: getRequiredLoadCapacity(current.cart),
+            driver: { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: current.driverVerification.vehicleType ?? "motorcycle", cargoCapacity: current.driverVerification.cargoCapacity ?? "medium" },
+          };
+          return { ...current, activeOrder: nextOrder, orderHistory: [nextOrder, ...current.orderHistory.filter((order) => order.id !== nextOrder.id)].slice(0, 20), cart: [], cartSpecialRequests: "" };
+        });
+      },
+      rateOrder: (rating, review = "") => setState((current) => {
+        if (!current.activeOrder) return current;
+        const updatedOrder = { ...current.activeOrder, restaurantRating: Math.max(1, Math.min(5, Math.round(rating))), restaurantReview: review.trim() };
+        return { ...current, activeOrder: updatedOrder, orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+      }),
       advanceOrder: () => {
         const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
-        setState((current) => current.activeOrder ? { ...current, activeOrder: { ...current.activeOrder, status: nextStatus[current.activeOrder.status] } } : current);
+        setState((current) => {
+          if (!current.activeOrder) return current;
+          const updatedOrder = { ...current.activeOrder, status: nextStatus[current.activeOrder.status] };
+          return { ...current, activeOrder: updatedOrder, orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+        });
       },
       toggleKitchen: () => {
         setState((current) => ({ ...current, kitchenOpen: !current.kitchenOpen }));

@@ -1,6 +1,9 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useMemo, useState } from "react";
+import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import {
   Image,
   Modal,
@@ -22,6 +25,7 @@ import { trpc } from "@/lib/trpc";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels } from "@/lib/verification-data";
+import { getWeekdayFromDate, isMealAvailableOnDay, weeklyScheduleToCsv, weekdays, type WeekdayId } from "@/lib/schedule-data";
 import {
   categories,
   canCarryLoad,
@@ -39,6 +43,7 @@ import {
   orderStatuses,
   paymentLabels,
   type Localized,
+  type Order,
   type RegionId,
   type Role,
   regions,
@@ -86,7 +91,7 @@ const removeIngredientOptions: IngredientOption[] = [
 ];
 
 export default function HomeScreen() {
-  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart } = useApp();
+  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart, isKitchenAvailable, showToast } = useApp();
   const cartPreviewTotal = getOrderPricing(cartTotal, cartCount > 0 ? 1.25 : 0).grandTotal;
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -94,6 +99,11 @@ export default function HomeScreen() {
   const [query, setQuery] = useState("");
 
   const confirmMealCustomization = (meal: (typeof meals)[number], specialRequests: string) => {
+    if (!isKitchenAvailable) {
+      showToast(language === "ar" ? "المطبخ مغلق اليوم. جرّبي الطلب في يوم متاح." : "This kitchen is closed today. Please order on an available day.");
+      setCustomizingMeal(null);
+      return;
+    }
     addToCart(meal, specialRequests);
     setCustomizingMeal(null);
   };
@@ -141,7 +151,7 @@ export default function HomeScreen() {
         ) : view === "delivery" ? (
           <DriverDashboard onBack={() => go("home")} />
         ) : view === "orders" ? (
-          <OrdersScreen onBack={() => go("home")} />
+          <OrdersScreen onBack={() => go("home")} onOpenCart={() => go("cart")} />
         ) : view === "profile" ? (
           <ProfileScreen onRoleChange={changeRole} onDashboard={() => go("dashboard")} onSupport={() => go("complaints")} />
         ) : (
@@ -337,6 +347,7 @@ function CustomerHome({
     selectedKitchen,
     activeOrder,
     updateQuantity,
+    isKitchenAvailable,
   } = useApp();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">("all");
@@ -382,6 +393,7 @@ function CustomerHome({
         <Pressable onPress={() => setFiltersOpen((value) => !value)} style={({ pressed }) => [styles.unifiedIconButton, filtersOpen && styles.unifiedIconButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#236B45"} /></Pressable>
         <Pressable onPress={() => onNavigate("cart")} style={({ pressed }) => [styles.unifiedCartButton, pressed && styles.pressed]}><MaterialIcons name="shopping-cart" size={19} color="#FFFFFF" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable>
       </View>
+      {!isKitchenAvailable && <View style={styles.scheduleClosedBanner}><MaterialIcons name="event-busy" size={19} color="#A55A40" /><View style={styles.scheduleClosedCopy}><Text style={styles.scheduleClosedTitle}>{language === "ar" ? "المطبخ مغلق اليوم" : "Kitchen closed today"}</Text><Text style={styles.scheduleClosedBody}>{language === "ar" ? "يمكنك التصفح الآن والطلب في يوم متاح." : "You can browse now and order on an available day."}</Text></View></View>}
 
       <Pressable onPress={() => onNavigate("kitchen")} style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}>
         <View style={styles.heroCopy}>
@@ -551,8 +563,8 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
   );
 }
 
-function OrdersScreen({ onBack }: { onBack: () => void }) {
-  const { language, activeOrder, advanceOrder, rateOrder, showToast } = useApp();
+function OrdersScreen({ onBack, onOpenCart }: { onBack: () => void; onOpenCart: () => void }) {
+  const { language, activeOrder, orderHistory, reorder, advanceOrder, rateOrder, showToast } = useApp();
   const currentIndex = activeOrder ? orderStatuses.findIndex((item) => item.id === activeOrder.status) : -1;
   const driver = activeOrder?.driver;
   const [rating, setRating] = useState(0);
@@ -577,9 +589,15 @@ function OrdersScreen({ onBack }: { onBack: () => void }) {
 <Text style={styles.trackingTitle}>{language === "ar" ? "وين وصل طلبك؟" : "Where is your order?"}</Text>{orderStatuses.map((status, index) => { const done = index <= currentIndex; const active = index === currentIndex; return <View key={status.id} style={styles.trackingRow}><View style={styles.trackRail}><View style={[styles.trackDot, done && styles.trackDotDone, active && styles.trackDotActive]}>{done && <MaterialIcons name="check" size={12} color="#FFFFFF" />}</View>{index < orderStatuses.length - 1 && <View style={[styles.trackLine, index < currentIndex && styles.trackLineDone]} />}</View><View style={styles.trackCopy}><Text style={[styles.trackLabel, active && styles.trackLabelActive]}>{getLocalized(status.label, language)}</Text><Text style={styles.trackCaption}>{getLocalized(status.caption, language)}</Text></View><MaterialIcons name={status.icon as IconName} size={19} color={done ? "#4F8F3B" : "#A4BDA7"} /></View>; })}</View>
         {activeOrder.status !== "delivered" && <Pressable onPress={advanceOrder} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><MaterialIcons name="refresh" size={18} color="#236B45" /><Text style={styles.secondaryButtonText}>{language === "ar" ? "تحديث حالة الطلب" : "Refresh order status"}</Text></Pressable>}
         {activeOrder.status === "delivered" && (activeOrder.restaurantRating ? <View style={styles.deliveredCard}><MaterialIcons name="check-circle" size={22} color="#4F8F3B" /><Text style={styles.deliveredText}>{language === "ar" ? `شكراً لتقييمك المطعم ${activeOrder.restaurantRating} ★` : `Thanks for rating the restaurant ${activeOrder.restaurantRating} ★`}</Text></View> : <View style={styles.ratingCard}><View style={styles.ratingHeader}><View style={styles.ratingIcon}><MaterialIcons name="storefront" size={20} color="#236B45" /></View><View style={styles.ratingCopy}><Text style={styles.ratingTitle}>{language === "ar" ? "كيف كانت تجربتك مع المطعم؟" : "How was your restaurant experience?"}</Text><Text style={styles.ratingBody}>{language === "ar" ? "ساعدي أم أحمد بتقييم صادق" : "Help Umm Ahmad with an honest review"}</Text></View></View><View style={styles.ratingStarsRow}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} onPress={() => setRating(value)} style={styles.ratingStarButton}><MaterialIcons name="star" size={30} color={value <= rating ? "#C88A16" : "#D6E2D4"} /></Pressable>)}</View><TextInput value={review} onChangeText={setReview} placeholder={language === "ar" ? "اكتبي تعليقاً اختيارياً..." : "Write an optional comment..."} placeholderTextColor="#A4BDA7" multiline maxLength={240} style={styles.ratingInput} textAlign={language === "ar" ? "right" : "left"} /><Pressable disabled={rating === 0} onPress={() => { rateOrder(rating, review); showToast(language === "ar" ? "تم حفظ تقييم المطعم" : "Restaurant rating saved"); }} style={({ pressed }) => [styles.ratingSubmit, rating === 0 && styles.ratingSubmitDisabled, pressed && styles.pressed]}><Text style={styles.ratingSubmitText}>{language === "ar" ? "حفظ التقييم" : "Save rating"}</Text><MaterialIcons name="send" size={17} color="#FFFFFF" /></Pressable></View>)}
-      </> : <EmptyOrders language={language} onBack={onBack} />}
+        <OrderHistorySection orders={orderHistory.filter((order) => order.id !== activeOrder.id)} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} />
+      </> : <OrderHistorySection orders={orderHistory} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} emptyOnBack={onBack} />}
     </ScrollView>
   );
+}
+
+function OrderHistorySection({ orders, language, onReorder, emptyOnBack }: { orders: Order[]; language: "ar" | "en"; onReorder: (order: Order) => void; emptyOnBack?: () => void }) {
+  if (!orders.length) return emptyOnBack ? <EmptyOrders language={language} onBack={emptyOnBack} /> : null;
+  return <View style={styles.orderHistoryCard}><View style={styles.orderHistoryHeader}><View><Text style={styles.sectionTitle}>{language === "ar" ? "طلباتك السابقة" : "Previous orders"}</Text><Text style={styles.orderHistoryHint}>{language === "ar" ? "أعيدي أي طلب مع تخصيصاته" : "Repeat any order with its customizations"}</Text></View><MaterialIcons name="history" size={22} color="#4F8F3B" /></View>{orders.slice(0, 10).map((order) => <View key={order.id} style={styles.orderHistoryRow}><View style={styles.orderHistoryCopy}><Text style={styles.orderHistoryId}>{order.id}</Text><Text style={styles.orderHistoryKitchen}>{getLocalized(order.kitchen.name, language)}</Text><Text style={styles.orderHistoryItems}>{order.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.orderHistoryMeta}>{formatJod(order.total, language)} · {getLocalized(order.eta, language)}</Text></View><Pressable onPress={() => onReorder(order)} style={({ pressed }) => [styles.reorderButton, pressed && styles.pressed]}><MaterialIcons name="replay" size={16} color="#FFFFFF" /><Text style={styles.reorderButtonText}>{language === "ar" ? "إعادة الطلب" : "Reorder"}</Text></Pressable></View>)}</View>;
 }
 
 function ComplaintsScreen({ onBack }: { onBack: () => void }) {
@@ -660,15 +678,41 @@ function ComplaintsScreen({ onBack }: { onBack: () => void }) {
 }
 
 function MotherDashboard({ onBack }: { onBack: () => void }) {
-  const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast } = useApp();
+  const { language, kitchenOpen, toggleKitchen, incomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast, weeklySchedule, toggleClosedDay, toggleMealScheduleDay, isKitchenAvailable } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
+  const todayClosed = weeklySchedule.closedDays.includes(getWeekdayFromDate());
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const motherMeals = getKitchenMeals("umm-ahmad");
+  const downloadWeeklySchedule = async () => {
+    const csv = weeklyScheduleToCsv(weeklySchedule, motherMeals);
+    if (Platform.OS === "web") {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "sufret-omi-weekly-schedule.csv";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      showToast(language === "ar" ? "تم تنزيل الجدول الأسبوعي" : "Weekly schedule downloaded");
+      return;
+    }
+    try {
+      const fileUri = `${FileSystem.documentDirectory}sufret-omi-weekly-schedule.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fileUri, { mimeType: "text/csv", dialogTitle: language === "ar" ? "الجدول الأسبوعي" : "Weekly schedule" });
+      else showToast(language === "ar" ? "تم إنشاء الجدول داخل الجهاز" : "Schedule created on the device");
+    } catch {
+      showToast(language === "ar" ? "تعذر تنزيل الجدول حالياً" : "Could not download the schedule");
+    }
+  };
   const incomingPricing = incomingOrder ? getOrderPricing(totalCart(incomingOrder.items), incomingOrder.deliveryFee ?? 1.25) : null;
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "لوحة الأم" : "MOTHER'S TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "صباح الخير يا أم أحمد" : "Good morning, Umm Ahmad"}</Text></View><Pressable onPress={() => { setRole("customer"); onBack(); }} style={styles.roleIcon}><MaterialIcons name="person-outline" size={20} color="#236B45" /></Pressable></View>
-      <View style={styles.dashboardHero}><View><Text style={styles.dashboardOverline}>{language === "ar" ? "حالة المطبخ" : "Kitchen status"}</Text><Text style={styles.dashboardTitle}>{kitchenOpen ? (language === "ar" ? "مطبخك مفتوح" : "Your kitchen is open") : (language === "ar" ? "المطبخ مغلق" : "Kitchen is closed")}</Text><Text style={styles.dashboardBody}>{kitchenOpen ? (language === "ar" ? "جاهزة تستقبلي طلبات الجيران" : "Ready to welcome neighborhood orders") : (language === "ar" ? "افتحيه لما تكوني جاهزة" : "Open it when you're ready")}</Text></View><Switch value={kitchenOpen} onValueChange={toggleKitchen} trackColor={{ false: "#D6E2D4", true: "#B8F000" }} thumbColor={kitchenOpen ? "#4F8F3B" : "#5E7665"} /></View>
+      <View style={styles.dashboardHero}><View><Text style={styles.dashboardOverline}>{language === "ar" ? "حالة المطبخ" : "Kitchen status"}</Text><Text style={styles.dashboardTitle}>{isKitchenAvailable ? (language === "ar" ? "مطبخك مفتوح" : "Your kitchen is open") : (language === "ar" ? "المطبخ مغلق" : "Kitchen is closed")}</Text><Text style={styles.dashboardBody}>{todayClosed ? (language === "ar" ? "مغلق حسب جدولك الأسبوعي اليوم" : "Closed according to your weekly schedule") : isKitchenAvailable ? (language === "ar" ? "جاهزة تستقبلي طلبات الجيران" : "Ready to welcome neighborhood orders") : (language === "ar" ? "افتحيه لما تكوني جاهزة" : "Open it when you're ready")}</Text></View><Switch disabled={todayClosed} value={isKitchenAvailable} onValueChange={toggleKitchen} trackColor={{ false: "#D6E2D4", true: "#B8F000" }} thumbColor={isKitchenAvailable ? "#4F8F3B" : "#5E7665"} /></View>
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "طلبات اليوم" : "Today's orders"} value="12" icon="receipt-long" /><DashboardMetric label={language === "ar" ? "أرباح الشهر" : "This month"} value={language === "ar" ? "٤٨٦ د.أ" : "JOD 486"} icon="trending-up" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       <View style={styles.capacitySettingsCard}><View style={styles.capacitySettingsIcon}><MaterialIcons name="inventory-2" size={19} color="#236B45" /></View><View style={styles.capacitySettingsCopy}><Text style={styles.capacitySettingsTitle}>{language === "ar" ? "إعدادات حجم الطلب" : "Order-size settings"}</Text><Text style={styles.capacitySettingsBody}>{motherVerification.mealSize && motherVerification.deliveryCapacity ? `${getLocalized(mealSizeLabels[motherVerification.mealSize], language)} · ${getLocalized(loadCapacityLabels[motherVerification.deliveryCapacity], language)}` : language === "ar" ? "أكملي حجم الوجبات وسعة التوصيل من ملف التحقق" : "Complete meal size and delivery capacity in verification"}</Text></View><MaterialIcons name="tune" size={18} color="#4F8F3B" /></View>
+      <View style={styles.scheduleCard}><View style={styles.scheduleHeader}><View style={styles.scheduleHeaderCopy}><Text style={styles.scheduleTitle}>{language === "ar" ? "جدول مطبخك الأسبوعي" : "Your weekly kitchen schedule"}</Text><Text style={styles.scheduleHint}>{language === "ar" ? "حددي أيام الإغلاق وتوفر كل طبق" : "Set closed days and meal availability"}</Text></View><Pressable onPress={() => void downloadWeeklySchedule()} style={({ pressed }) => [styles.scheduleDownloadButton, pressed && styles.pressed]}><MaterialIcons name="download" size={16} color="#236B45" /><Text style={styles.scheduleDownloadText}>{language === "ar" ? "تنزيل" : "Download"}</Text></Pressable></View><Pressable onPress={() => setScheduleOpen((value) => !value)} style={styles.scheduleToggle}><View style={styles.scheduleToggleIcon}><MaterialIcons name="event-available" size={18} color="#236B45" /></View><View style={styles.scheduleToggleCopy}><Text style={styles.scheduleToggleTitle}>{language === "ar" ? "أيام إغلاق المتجر" : "Store closed days"}</Text><Text style={styles.scheduleToggleHint}>{weeklySchedule.closedDays.length ? weeklySchedule.closedDays.map((day) => weekdays.find((item) => item.id === day)?.label[language]).join("، ") : language === "ar" ? "المتجر مفتوح طوال الأسبوع" : "Open all week"}</Text></View><MaterialIcons name={scheduleOpen ? "expand-less" : "expand-more"} size={20} color="#4F8F3B" /></Pressable>{scheduleOpen && <View style={styles.scheduleEditor}><Text style={styles.scheduleGroupLabel}>{language === "ar" ? "اضغطي على اليوم لإغلاقه" : "Tap a day to close the store"}</Text><View style={styles.weekdayGrid}>{weekdays.map((day) => { const closed = weeklySchedule.closedDays.includes(day.id); return <Pressable key={day.id} onPress={() => toggleClosedDay(day.id)} style={[styles.weekdayChip, closed && styles.weekdayChipClosed]}><MaterialIcons name={closed ? "event-busy" : "event-available"} size={14} color={closed ? "#A55A40" : "#236B45"} /><Text style={[styles.weekdayChipText, closed && styles.weekdayChipTextClosed]}>{day.label[language]}</Text></Pressable>; })}</View><Text style={styles.scheduleGroupLabel}>{language === "ar" ? "توفر الأطباق" : "Meal availability"}</Text>{motherMeals.map((meal) => <View key={meal.id} style={styles.mealScheduleRow}><View style={styles.mealScheduleCopy}><Text style={styles.mealScheduleName}>{getLocalized(meal.name, language)}</Text><Text style={styles.mealScheduleMeta}>{getLocalized(meal.description, language)}</Text></View><View style={styles.mealDayMiniGrid}>{weekdays.map((day) => { const available = isMealAvailableOnDay(weeklySchedule, meal.id, day.id); return <Pressable key={`${meal.id}-${day.id}`} onPress={() => toggleMealScheduleDay(meal.id, day.id)} disabled={weeklySchedule.closedDays.includes(day.id)} style={[styles.mealDayMini, available && styles.mealDayMiniActive, weeklySchedule.closedDays.includes(day.id) && styles.mealDayMiniDisabled]}><Text style={[styles.mealDayMiniText, available && styles.mealDayMiniTextActive]}>{day.label[language].slice(0, 1)}</Text></Pressable>; })}</View></View>)}</View>}</View>
       {incomingOrder && <View style={styles.incomingCard}><View style={styles.incomingTop}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "طلب جديد" : "New order"}</Text><Text style={styles.incomingId}>{incomingOrder.id}</Text></View><View style={styles.newPill}><Text style={styles.newPillText}>{language === "ar" ? "جديد" : "NEW"}</Text></View></View><Text style={styles.incomingTitle}>{incomingOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.incomingMeta}>{getLocalized(incomingOrder.eta, language)} · {formatJod(incomingOrder.total, language)} · {t(paymentLabels[incomingOrder.paymentMethod], language)}</Text>{incomingOrder.specialRequests ? <View style={styles.specialRequestCard}><MaterialIcons name="edit-note" size={18} color="#8A6516" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "طلبات العميل الخاصة" : "Customer special requests"}</Text><Text style={styles.specialRequestBody}>{incomingOrder.specialRequests}</Text></View></View> : null}{incomingPricing && <View style={styles.earningsBreakdown}><SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(incomingPricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={`-${formatJod(incomingPricing.commission, language)}`} /><View style={styles.summaryDivider} /><SummaryRow label={language === "ar" ? "صافي أرباحك" : "Your payout"} value={formatJod(incomingPricing.motherPayout, language)} strong /></View>}{incomingOrder.status === "received" ? <View style={styles.incomingActions}><Pressable onPress={rejectIncomingOrder} style={styles.rejectButton}><Text style={styles.rejectText}>{language === "ar" ? "رفض" : "Decline"}</Text></Pressable><Pressable onPress={acceptIncomingOrder} style={styles.acceptButton}><Text style={styles.acceptText}>{language === "ar" ? "قبول الطلب" : "Accept order"}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View> : <View style={styles.prepNotice}><MaterialIcons name="soup-kitchen" size={18} color="#4F8F3B" /><Text style={styles.prepNoticeText}>{language === "ar" ? "الطلب قيد التحضير - وقت التسليم ٤٥ دقيقة" : "Preparing - ready in 45 minutes"}</Text></View>}</View>}
       <SectionHeader title={language === "ar" ? "شكاوى العملاء" : "Customer complaints"} action={complaints.length ? (language === "ar" ? "تحديث" : "Update") : ""} onAction={complaints.length ? () => { const next = complaints.find((complaint) => complaint.status === "new") ?? complaints.find((complaint) => complaint.status === "in_review"); if (next) { updateComplaintStatus(next.id, next.status === "new" ? "in_review" : "resolved", next.status === "new" ? (language === "ar" ? "تم استلام شكواك ونراجعها الآن." : "We received your complaint and are reviewing it.") : (language === "ar" ? "تمت معالجة الشكوى." : "The complaint has been addressed.")); showToast(language === "ar" ? "تم تحديث حالة الشكوى" : "Complaint status updated"); } } : undefined} />
       {complaints.length ? <View style={styles.complaintInbox}>{complaints.slice(0, 3).map((complaint) => { const categoryItem = complaintCategories.find((item) => item.id === complaint.category); return <View key={complaint.id} style={styles.complaintInboxRow}><View style={styles.complaintInboxIcon}><MaterialIcons name={(categoryItem?.icon ?? "help-outline") as IconName} size={16} color="#236B45" /></View><View style={styles.complaintInboxCopy}><Text style={styles.complaintInboxTitle}>{complaint.subject}</Text><Text style={styles.complaintInboxMeta}>{complaint.id} · {getLocalized(complaintStatuses[complaint.status], language)}{complaint.imageUris.length ? ` · ${complaint.imageUris.length} ${language === "ar" ? "صور" : "photos"}` : ""}</Text></View><Pressable onPress={() => { const nextStatus = complaint.status === "new" ? "in_review" : complaint.status === "in_review" ? "resolved" : complaint.status; updateComplaintStatus(complaint.id, nextStatus, nextStatus === "resolved" ? (language === "ar" ? "تمت معالجة الشكوى من فريق سفرة." : "The Sufret Omi team addressed this complaint.") : undefined); showToast(language === "ar" ? "تم تحديث الشكوى" : "Complaint updated"); }} style={styles.complaintInboxAction}><Text style={styles.complaintInboxActionText}>{complaint.status === "new" ? (language === "ar" ? "مراجعة" : "Review") : complaint.status === "in_review" ? (language === "ar" ? "حل" : "Resolve") : (language === "ar" ? "تمت" : "Done")}</Text></Pressable></View>; })}</View> : <View style={styles.supportEmptyCard}><MaterialIcons name="check-circle" size={20} color="#4F8F3B" /><Text style={styles.supportEmptyText}>{language === "ar" ? "لا توجد شكاوى جديدة على مطبخك" : "No new complaints for your kitchen"}</Text></View>}
@@ -1115,6 +1159,50 @@ const styles = StyleSheet.create({
   sheetTotalLabel: { color: "#5E7665", fontSize: 12 },
   sheetTotalValue: { color: "#132218", fontSize: 18, fontWeight: "900" },
   orderHero: { padding: 16, backgroundColor: "#132218", borderRadius: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  orderHistoryCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 15, borderWidth: 1, borderColor: "#DDEAD8", gap: 10 },
+  orderHistoryHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  orderHistoryHint: { color: "#5E7665", fontSize: 10, marginTop: 3 },
+  orderHistoryRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#EFF6ED" },
+  orderHistoryCopy: { flex: 1, gap: 2 },
+  orderHistoryId: { color: "#236B45", fontSize: 11, fontWeight: "900" },
+  orderHistoryKitchen: { color: "#132218", fontSize: 12, fontWeight: "900" },
+  orderHistoryItems: { color: "#5E7665", fontSize: 10, lineHeight: 15 },
+  orderHistoryMeta: { color: "#8A6516", fontSize: 10, fontWeight: "800" },
+  reorderButton: { minHeight: 38, borderRadius: 13, backgroundColor: "#236B45", paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
+  reorderButtonText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
+  scheduleClosedBanner: { flexDirection: "row", alignItems: "center", gap: 9, padding: 11, borderRadius: 15, backgroundColor: "#FFF1EB", borderWidth: 1, borderColor: "#F0C7B7" },
+  scheduleClosedCopy: { flex: 1, gap: 2 },
+  scheduleClosedTitle: { color: "#A55A40", fontSize: 11, fontWeight: "900" },
+  scheduleClosedBody: { color: "#9A6B5A", fontSize: 10 },
+  scheduleCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 15, borderWidth: 1, borderColor: "#DDEAD8", gap: 12 },
+  scheduleHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
+  scheduleHeaderCopy: { flex: 1 },
+  scheduleTitle: { color: "#132218", fontSize: 14, fontWeight: "900" },
+  scheduleHint: { color: "#5E7665", fontSize: 10, marginTop: 3 },
+  scheduleDownloadButton: { minHeight: 35, borderRadius: 12, backgroundColor: "#F0FBEA", paddingHorizontal: 9, flexDirection: "row", alignItems: "center", gap: 4 },
+  scheduleDownloadText: { color: "#236B45", fontSize: 10, fontWeight: "900" },
+  scheduleToggle: { flexDirection: "row", alignItems: "center", gap: 9, padding: 10, backgroundColor: "#F7FFF0", borderRadius: 15 },
+  scheduleToggleIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  scheduleToggleCopy: { flex: 1 },
+  scheduleToggleTitle: { color: "#132218", fontSize: 11, fontWeight: "900" },
+  scheduleToggleHint: { color: "#5E7665", fontSize: 10, marginTop: 3 },
+  scheduleEditor: { gap: 9, paddingTop: 2 },
+  scheduleGroupLabel: { color: "#236B45", fontSize: 10, fontWeight: "900" },
+  weekdayGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  weekdayChip: { minHeight: 34, borderRadius: 11, backgroundColor: "#F0FBEA", paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: "#DDEAD8" },
+  weekdayChipClosed: { backgroundColor: "#FFF1EB", borderColor: "#F0C7B7" },
+  weekdayChipText: { color: "#236B45", fontSize: 9, fontWeight: "900" },
+  weekdayChipTextClosed: { color: "#A55A40" },
+  mealScheduleRow: { gap: 7, paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#EFF6ED" },
+  mealScheduleCopy: { gap: 2 },
+  mealScheduleName: { color: "#132218", fontSize: 11, fontWeight: "900" },
+  mealScheduleMeta: { color: "#5E7665", fontSize: 9 },
+  mealDayMiniGrid: { flexDirection: "row", gap: 5 },
+  mealDayMini: { width: 27, height: 27, borderRadius: 9, backgroundColor: "#F7FFF0", borderWidth: 1, borderColor: "#DDEAD8", alignItems: "center", justifyContent: "center" },
+  mealDayMiniActive: { backgroundColor: "#236B45", borderColor: "#236B45" },
+  mealDayMiniDisabled: { opacity: 0.4 },
+  mealDayMiniText: { color: "#5E7665", fontSize: 9, fontWeight: "900" },
+  mealDayMiniTextActive: { color: "#D9F99D" },
   orderHeroEyebrow: { color: "#A4BDA7", fontSize: 10, fontWeight: "800" },
   orderHeroId: { color: "#FFFFFF", fontSize: 21, fontWeight: "900", marginTop: 3 },
   orderEta: { alignItems: "flex-end" },
