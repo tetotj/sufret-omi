@@ -1,0 +1,1 @@
+ALTER TABLE `complaintsDb` ADD `customerId` int;

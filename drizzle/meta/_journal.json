@@ -8,6 +8,27 @@
       "when": 1763372440610,
       "tag": "0000_elite_eternals",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786798014030,
+      "tag": "0001_familiar_supreme_intelligence",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786798194168,
+      "tag": "0002_known_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786798663545,
+      "tag": "0003_dizzy_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

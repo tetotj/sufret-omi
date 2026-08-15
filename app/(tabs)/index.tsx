@@ -16,7 +16,9 @@ import * as Linking from "expo-linking";
 
 import { MapPreview } from "@/components/map-preview";
 import { VerificationScreen } from "@/components/verification-screen";
-import { complaintCategories, complaintStatuses, type ComplaintCategory } from "@/lib/complaint-data";
+import { complaintCategories, complaintStatuses, type Complaint, type ComplaintCategory } from "@/lib/complaint-data";
+import { useAuth } from "@/hooks/use-auth";
+import { trpc } from "@/lib/trpc";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels } from "@/lib/verification-data";
@@ -51,6 +53,23 @@ type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" |
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 type IngredientOption = { id: string; label: Localized; icon: IconName };
+
+async function uriToImageDataUrl(uri: string): Promise<string> {
+  if (uri.startsWith("data:image/")) return uri;
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  const mimeType = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = String(reader.result ?? "");
+      const base64 = result.includes(",") ? result.slice(result.indexOf(",") + 1) : result;
+      resolve(`data:${mimeType};base64,${base64}`);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Unable to read image"));
+    reader.readAsDataURL(blob);
+  });
+}
 
 const addIngredientOptions: IngredientOption[] = [
   { id: "extra-rice", label: { ar: "أرز إضافي", en: "Extra rice" }, icon: "restaurant" },
@@ -564,7 +583,11 @@ function OrdersScreen({ onBack }: { onBack: () => void }) {
 }
 
 function ComplaintsScreen({ onBack }: { onBack: () => void }) {
-  const { language, activeOrder, complaints, addComplaint, showToast } = useApp();
+  const { language, activeOrder, complaints: localComplaints, addComplaint, showToast } = useApp();
+  const { user } = useAuth();
+  const remoteComplaintsQuery = trpc.complaints.mine.useQuery(undefined, { enabled: Boolean(user) });
+  const createComplaintMutation = trpc.complaints.create.useMutation();
+  const complaints = user ? ((remoteComplaintsQuery.data ?? []) as unknown as Complaint[]) : localComplaints;
   const [formOpen, setFormOpen] = useState(false);
   const [category, setCategory] = useState<ComplaintCategory>("order");
   const [subject, setSubject] = useState("");
@@ -599,22 +622,37 @@ function ComplaintsScreen({ onBack }: { onBack: () => void }) {
     if (!result.canceled && result.assets[0]?.uri) setImageUris((current) => [...current, result.assets[0].uri].slice(0, 4));
   };
 
-  const submitComplaint = () => {
+  const submitComplaint = async () => {
     if (subject.trim().length < 3 || description.trim().length < 8) {
       showToast(language === "ar" ? "اكتبي عنواناً ووصفاً أوضح للشكوى" : "Please add a clearer subject and description");
       return;
     }
-    addComplaint({ category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, imageUris });
-    showToast(language === "ar" ? "تم إرسال الشكوى لفريق الدعم" : "Your complaint was sent to support");
-    resetForm();
-    setFormOpen(false);
+    const complaintId = `CMP-${Date.now().toString().slice(-6)}`;
+    try {
+      const imagePayloads = await Promise.all(imageUris.map(uriToImageDataUrl));
+      const saved = await createComplaintMutation.mutateAsync({ id: complaintId, category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, images: imagePayloads });
+      addComplaint({ category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, imageUris: saved.imageUris });
+      await remoteComplaintsQuery.refetch();
+      showToast(language === "ar" ? "تم حفظ الشكوى والصور في قاعدة البيانات" : "Complaint and photos saved to the database");
+      resetForm();
+      setFormOpen(false);
+    } catch {
+      if (!user) {
+        addComplaint({ category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, imageUris });
+        showToast(language === "ar" ? "حُفظت محلياً. سجّلي الدخول بحساب المنصة لمزامنتها على الخادم." : "Saved locally. Sign in with a platform account to sync it to the server.");
+        resetForm();
+        setFormOpen(false);
+      } else {
+        showToast(language === "ar" ? "تعذر حفظ الشكوى على الخادم" : "Could not save the complaint on the server");
+      }
+    }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#132218" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "الدعم والشكاوى" : "SUPPORT & COMPLAINTS"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "نحن نسمعك" : "We hear you"}</Text></View><Pressable onPress={() => { resetForm(); setFormOpen((current) => !current); }} style={styles.complaintAddButton}><MaterialIcons name={formOpen ? "close" : "add"} size={18} color="#FFFFFF" /><Text style={styles.complaintAddButtonText}>{formOpen ? (language === "ar" ? "إلغاء" : "Close") : (language === "ar" ? "شكوى جديدة" : "New complaint")}</Text></Pressable></View>
       <View style={styles.complaintHero}><View style={styles.complaintHeroIcon}><MaterialIcons name="support-agent" size={28} color="#236B45" /></View><View style={styles.complaintHeroCopy}><Text style={styles.complaintHeroTitle}>{language === "ar" ? "خلّينا نساعدك" : "Let us help"}</Text><Text style={styles.complaintHeroBody}>{language === "ar" ? "ابعثي تفاصيل المشكلة وصوراً إن وجدت، وفريق سفرة يتابعها معك خطوة بخطوة." : "Share the details and any photos. The Sufret Omi team will follow up step by step."}</Text></View></View>
-      {formOpen && <View style={styles.complaintFormCard}><Text style={styles.complaintFormTitle}>{language === "ar" ? "تفاصيل الشكوى" : "Complaint details"}</Text><Text style={styles.optionLabel}>{language === "ar" ? "نوع الشكوى" : "Complaint type"}</Text><View style={styles.complaintCategoryGrid}>{complaintCategories.map((item) => <Pressable key={item.id} onPress={() => setCategory(item.id)} style={[styles.complaintCategory, category === item.id && styles.complaintCategoryActive]}><MaterialIcons name={item.icon as IconName} size={17} color={category === item.id ? "#FFFFFF" : "#236B45"} /><Text style={[styles.complaintCategoryText, category === item.id && styles.complaintCategoryTextActive]}>{getLocalized(item.label, language)}</Text></Pressable>)}</View><TextInput value={subject} onChangeText={setSubject} placeholder={language === "ar" ? "عنوان مختصر للشكوى" : "Short complaint subject"} placeholderTextColor="#A4BDA7" style={styles.complaintSubjectInput} textAlign={language === "ar" ? "right" : "left"} maxLength={80} /><TextInput value={description} onChangeText={setDescription} placeholder={language === "ar" ? "اكتبي ماذا حدث بالتفصيل..." : "Tell us what happened..."} placeholderTextColor="#A4BDA7" style={styles.complaintDescriptionInput} textAlign={language === "ar" ? "right" : "left"} multiline maxLength={800} /><TextInput value={orderId} onChangeText={setOrderId} placeholder={language === "ar" ? "رقم الطلب (اختياري) مثل SO-2408" : "Order number (optional), e.g. SO-2408"} placeholderTextColor="#A4BDA7" style={styles.complaintSubjectInput} textAlign={language === "ar" ? "right" : "left"} maxLength={24} /><Text style={styles.complaintAttachLabel}>{language === "ar" ? `صور مرفقة (${imageUris.length}/4)` : `Attachments (${imageUris.length}/4)`}</Text><View style={styles.complaintAttachActions}><Pressable onPress={pickImages} style={({ pressed }) => [styles.complaintAttachButton, pressed && styles.pressed]}><MaterialIcons name="photo-library" size={18} color="#236B45" /><Text style={styles.complaintAttachText}>{language === "ar" ? "من الصور" : "Photo library"}</Text></Pressable><Pressable onPress={takePhoto} style={({ pressed }) => [styles.complaintAttachButton, pressed && styles.pressed]}><MaterialIcons name="photo-camera" size={18} color="#236B45" /><Text style={styles.complaintAttachText}>{language === "ar" ? "التقاط صورة" : "Take photo"}</Text></Pressable></View>{imageUris.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.complaintImageRow}>{imageUris.map((uri, index) => <View key={`${uri}-${index}`} style={styles.complaintImageWrap}><Image source={{ uri }} style={styles.complaintImage} /><Pressable onPress={() => setImageUris((current) => current.filter((_, imageIndex) => imageIndex !== index))} style={styles.complaintImageRemove}><MaterialIcons name="close" size={13} color="#FFFFFF" /></Pressable></View>)}</ScrollView>}<Pressable onPress={submitComplaint} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "إرسال الشكوى" : "Send complaint"}</Text><MaterialIcons name="send" size={18} color="#FFFFFF" /></Pressable></View>}
+      {formOpen && <View style={styles.complaintFormCard}><Text style={styles.complaintFormTitle}>{language === "ar" ? "تفاصيل الشكوى" : "Complaint details"}</Text><Text style={styles.optionLabel}>{language === "ar" ? "نوع الشكوى" : "Complaint type"}</Text><View style={styles.complaintCategoryGrid}>{complaintCategories.map((item) => <Pressable key={item.id} onPress={() => setCategory(item.id)} style={[styles.complaintCategory, category === item.id && styles.complaintCategoryActive]}><MaterialIcons name={item.icon as IconName} size={17} color={category === item.id ? "#FFFFFF" : "#236B45"} /><Text style={[styles.complaintCategoryText, category === item.id && styles.complaintCategoryTextActive]}>{getLocalized(item.label, language)}</Text></Pressable>)}</View><TextInput value={subject} onChangeText={setSubject} placeholder={language === "ar" ? "عنوان مختصر للشكوى" : "Short complaint subject"} placeholderTextColor="#A4BDA7" style={styles.complaintSubjectInput} textAlign={language === "ar" ? "right" : "left"} maxLength={80} /><TextInput value={description} onChangeText={setDescription} placeholder={language === "ar" ? "اكتبي ماذا حدث بالتفصيل..." : "Tell us what happened..."} placeholderTextColor="#A4BDA7" style={styles.complaintDescriptionInput} textAlign={language === "ar" ? "right" : "left"} multiline maxLength={800} /><TextInput value={orderId} onChangeText={setOrderId} placeholder={language === "ar" ? "رقم الطلب (اختياري) مثل SO-2408" : "Order number (optional), e.g. SO-2408"} placeholderTextColor="#A4BDA7" style={styles.complaintSubjectInput} textAlign={language === "ar" ? "right" : "left"} maxLength={24} /><Text style={styles.complaintAttachLabel}>{language === "ar" ? `صور مرفقة (${imageUris.length}/4)` : `Attachments (${imageUris.length}/4)`}</Text><View style={styles.complaintAttachActions}><Pressable onPress={pickImages} style={({ pressed }) => [styles.complaintAttachButton, pressed && styles.pressed]}><MaterialIcons name="photo-library" size={18} color="#236B45" /><Text style={styles.complaintAttachText}>{language === "ar" ? "من الصور" : "Photo library"}</Text></Pressable><Pressable onPress={takePhoto} style={({ pressed }) => [styles.complaintAttachButton, pressed && styles.pressed]}><MaterialIcons name="photo-camera" size={18} color="#236B45" /><Text style={styles.complaintAttachText}>{language === "ar" ? "التقاط صورة" : "Take photo"}</Text></Pressable></View>{imageUris.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.complaintImageRow}>{imageUris.map((uri, index) => <View key={`${uri}-${index}`} style={styles.complaintImageWrap}><Image source={{ uri }} style={styles.complaintImage} /><Pressable onPress={() => setImageUris((current) => current.filter((_, imageIndex) => imageIndex !== index))} style={styles.complaintImageRemove}><MaterialIcons name="close" size={13} color="#FFFFFF" /></Pressable></View>)}</ScrollView>}<Pressable disabled={createComplaintMutation.isPending} onPress={submitComplaint} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, createComplaintMutation.isPending && styles.disabledButton]}><Text style={styles.primaryButtonText}>{createComplaintMutation.isPending ? (language === "ar" ? "جارٍ الحفظ..." : "Saving...") : (language === "ar" ? "إرسال الشكوى" : "Send complaint")}</Text><MaterialIcons name={createComplaintMutation.isPending ? "hourglass-top" : "send"} size={18} color="#FFFFFF" /></Pressable></View>}
       <View style={styles.complaintsSectionHeader}><View><Text style={styles.sectionTitle}>{language === "ar" ? "شكاواي" : "My complaints"}</Text><Text style={styles.complaintsSectionHint}>{complaints.length ? (language === "ar" ? `${complaints.length} شكوى محفوظة` : `${complaints.length} saved complaints`) : (language === "ar" ? "تابعي حالة كل طلب دعم" : "Track every support request")}</Text></View>{complaints.length > 0 && <MaterialIcons name="history" size={21} color="#4F8F3B" />}</View>
       {complaints.length === 0 ? <View style={styles.complaintEmptyCard}><MaterialIcons name="forum" size={32} color="#4F8F3B" /><Text style={styles.emptyTitle}>{language === "ar" ? "ما عندك شكاوى حالياً" : "No complaints yet"}</Text><Text style={styles.emptyBody}>{language === "ar" ? "إذا واجهتك أي مشكلة، أرسليها من زر شكوى جديدة." : "If anything goes wrong, send it from New complaint."}</Text><Pressable onPress={() => setFormOpen(true)} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{language === "ar" ? "ابدئي شكوى" : "Start a complaint"}</Text></Pressable></View> : <View style={styles.complaintList}>{complaints.map((complaint) => { const categoryItem = complaintCategories.find((item) => item.id === complaint.category); return <View key={complaint.id} style={styles.complaintCard}><View style={styles.complaintCardTop}><View style={styles.complaintCardIcon}><MaterialIcons name={(categoryItem?.icon ?? "help-outline") as IconName} size={18} color="#236B45" /></View><View style={styles.complaintCardCopy}><Text style={styles.complaintCardCategory}>{categoryItem ? getLocalized(categoryItem.label, language) : complaint.category}</Text><Text style={styles.complaintCardTitle}>{complaint.subject}</Text></View><View style={[styles.complaintStatus, complaint.status === "resolved" || complaint.status === "closed" ? styles.complaintStatusResolved : complaint.status === "in_review" ? styles.complaintStatusReview : styles.complaintStatusNew]}><Text style={styles.complaintStatusText}>{getLocalized(complaintStatuses[complaint.status], language)}</Text></View></View><Text style={styles.complaintCardDescription}>{complaint.description}</Text><View style={styles.complaintCardMeta}><Text style={styles.complaintCardMetaText}>{complaint.id}</Text>{complaint.orderId && <Text style={styles.complaintCardMetaText}>{complaint.orderId}</Text>}<Text style={styles.complaintCardMetaText}>{new Date(complaint.createdAt).toLocaleDateString(language === "ar" ? "ar-JO" : "en-US")}</Text></View>{complaint.imageUris.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.complaintImageRow}>{complaint.imageUris.map((uri, index) => <Image key={`${complaint.id}-${index}`} source={{ uri }} style={styles.complaintListImage} />)}</ScrollView>}{complaint.response && <View style={styles.complaintResponse}><MaterialIcons name="support-agent" size={16} color="#236B45" /><Text style={styles.complaintResponseText}>{complaint.response}</Text></View>}</View>; })}</View>}
     </ScrollView>
@@ -1000,6 +1038,7 @@ const styles = StyleSheet.create({
   complaintListImage: { width: 68, height: 68, borderRadius: 12 },
   complaintResponse: { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 12, backgroundColor: "#F0FBEA" },
   complaintResponseText: { flex: 1, color: "#236B45", fontSize: 10, lineHeight: 15, fontWeight: "800" },
+  disabledButton: { opacity: 0.55 },
   complaintInbox: { backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: "#DDEAD8", overflow: "hidden" },
   complaintInboxRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 11, borderBottomWidth: 1, borderBottomColor: "#EEF4EC" },
   complaintInboxIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#F0FBEA", alignItems: "center", justifyContent: "center" },

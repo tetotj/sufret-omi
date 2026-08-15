@@ -7,6 +7,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "customer", "mother", "admin"]).default("customer").notNull(),
+  accountStatus: mysqlEnum("accountStatus", ["active", "pending_approval", "suspended", "rejected"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -74,6 +75,48 @@ export const transactions = mysqlTable("transactions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const userProfiles = mysqlTable("userProfiles", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: int("userId"),
+  name: text("name").notNull(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  role: mysqlEnum("role", ["customer", "mother", "driver"]).notNull(),
+  status: mysqlEnum("status", ["active", "pending_approval", "suspended", "rejected"]).default("pending_approval").notNull(),
+  region: varchar("region", { length: 64 }).notNull(),
+  details: text("details"), // JSON string of kitchen/vehicle/allergy info
+  rating: decimal("rating", { precision: 3, scale: 2 }),
+  ordersCount: int("ordersCount").default(0).notNull(),
+  joinedDate: varchar("joinedDate", { length: 32 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const userDocuments = mysqlTable("userDocuments", {
+  id: int("id").autoincrement().primaryKey(),
+  userProfileId: varchar("userProfileId", { length: 64 }).notNull(),
+  labelAr: text("labelAr").notNull(),
+  labelEn: text("labelEn").notNull(),
+  uri: text("uri").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const complaintsDb = mysqlTable("complaintsDb", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  category: varchar("category", { length: 64 }).notNull(),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  customerId: int("customerId"),
+  orderId: varchar("orderId", { length: 64 }),
+  status: mysqlEnum("status", ["new", "in_review", "resolved", "closed"]).default("new").notNull(),
+  response: text("response"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const complaintImages = mysqlTable("complaintImages", {
+  id: int("id").autoincrement().primaryKey(),
+  complaintId: varchar("complaintId", { length: 64 }).notNull(),
+  uri: text("uri").notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Kitchen = typeof kitchens.$inferSelect;
@@ -81,3 +124,7 @@ export type Meal = typeof meals.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
+export type UserProfileDb = typeof userProfiles.$inferSelect;
+export type UserDocumentDb = typeof userDocuments.$inferSelect;
+export type ComplaintDb = typeof complaintsDb.$inferSelect;
+export type ComplaintImageDb = typeof complaintImages.$inferSelect;
