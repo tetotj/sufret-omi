@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { type Complaint, type ComplaintStatus, type NewComplaint } from "@/lib/complaint-data";
+import { sampleManagedUsers, type ManagedUser, type UserAccountStatus } from "@/lib/admin-data";
 import {
   CartItem,
   CategoryId,
@@ -98,6 +99,8 @@ type AppState = {
   driverOrder: Order | null;
   motherVerification: MotherVerificationProfile;
   driverVerification: DriverVerificationProfile;
+  managedUsers: ManagedUser[];
+  adminAuthenticated: boolean;
 };
 
 type AppContextValue = AppState & {
@@ -129,6 +132,9 @@ type AppContextValue = AppState & {
   submitVerification: (role: Extract<Role, "mother" | "driver">) => void;
   setVerificationApproval: (role: Extract<Role, "mother" | "driver">, status: Extract<ApprovalStatus, "approved" | "rejected">) => void;
   canAccessRoleDashboard: (role: Role) => boolean;
+  adminSignIn: (code: string) => boolean;
+  adminSignOut: () => void;
+  updateUserStatus: (userId: string, status: UserAccountStatus) => void;
   showToast: (message: string) => void;
   dismissToast: () => void;
   cartTotal: number;
@@ -158,6 +164,8 @@ const initialState: AppState = {
   driverOrder: sampleDriverOrder,
   motherVerification: createMotherVerification("amman"),
   driverVerification: createDriverVerification("amman"),
+  managedUsers: sampleManagedUsers,
+  adminAuthenticated: false,
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -179,6 +187,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
           motherVerification: normalizeMotherVerification(parsed.motherVerification, current.motherVerification),
           driverVerification: normalizeDriverVerification(parsed.driverVerification, current.driverVerification),
+          managedUsers: Array.isArray(parsed.managedUsers) ? parsed.managedUsers : current.managedUsers,
+          adminAuthenticated: parsed.adminAuthenticated === true,
           toast: null,
         }));
       } catch {
@@ -198,6 +208,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => setState((current) => ({ ...current, toast: null })), 2600);
     };
     const canAccessRoleDashboard = (requestedRole: Role) => requestedRole === "customer" || (requestedRole === "mother" ? state.motherVerification.approvalStatus === "approved" : state.driverVerification.approvalStatus === "approved");
+    const adminSignIn = (code: string) => {
+      if (code.trim() === "9988" || code.trim() === "admin123") {
+        setState((current) => ({ ...current, adminAuthenticated: true }));
+        showToast(state.language === "ar" ? "أهلاً بك في لوحة الإدارة العليا" : "Welcome to the supervisor command center");
+        return true;
+      }
+      showToast(state.language === "ar" ? "رمز المشرف غير صحيح (جربي 9988)" : "Incorrect supervisor code (try 9988)");
+      return false;
+    };
+    const adminSignOut = () => setState((current) => ({ ...current, adminAuthenticated: false }));
+    const updateUserStatus = (userId: string, status: UserAccountStatus) => {
+      setState((current) => ({
+        ...current,
+        managedUsers: current.managedUsers.map((user) => user.id === userId ? { ...user, status } : user),
+      }));
+      showToast(state.language === "ar" ? "تم تحديث حالة المستخدم بنجاح" : "User status updated successfully");
+    };
 
     return {
       ...state,
@@ -312,6 +339,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         showToast(status === "approved" ? (state.language === "ar" ? "تم اعتماد الملف وفتح اللوحة" : "Profile approved and dashboard unlocked") : (state.language === "ar" ? "تم طلب تعديلات على الملف" : "Changes requested on the profile"));
       },
       canAccessRoleDashboard,
+      adminSignIn,
+      adminSignOut,
+      updateUserStatus,
       showToast,
       dismissToast: () => setState((current) => ({ ...current, toast: null })),
     };
