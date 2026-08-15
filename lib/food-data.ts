@@ -305,6 +305,31 @@ export const getOrderPricing = (subtotal: number, deliveryFee = 1.25) => {
   };
 };
 
+export type MultiOrderPricing = {
+  groups: Array<{ kitchenId: string; items: CartItem[]; pricing: ReturnType<typeof getOrderPricing> }>;
+  subtotal: number;
+  deliveryFee: number;
+  commission: number;
+  grandTotal: number;
+};
+
+export const splitCartByKitchen = (items: CartItem[]) => {
+  const grouped = new Map<string, CartItem[]>();
+  for (const item of items) grouped.set(item.meal.kitchenId, [...(grouped.get(item.meal.kitchenId) ?? []), item]);
+  return Array.from(grouped.entries()).map(([kitchenId, groupedItems]) => ({ kitchenId, items: groupedItems }));
+};
+
+export const getMultiOrderPricing = (items: CartItem[], deliveryFee = 1.25): MultiOrderPricing => {
+  const groups = splitCartByKitchen(items).map((group) => ({ ...group, pricing: getOrderPricing(totalCart(group.items), deliveryFee) }));
+  return {
+    groups,
+    subtotal: roundCurrency(groups.reduce((sum, group) => sum + group.pricing.subtotal, 0)),
+    deliveryFee: roundCurrency(groups.reduce((sum, group) => sum + group.pricing.deliveryFee, 0)),
+    commission: roundCurrency(groups.reduce((sum, group) => sum + group.pricing.commission, 0)),
+    grandTotal: roundCurrency(groups.reduce((sum, group) => sum + group.pricing.grandTotal, 0)),
+  };
+};
+
 export const unitCount = (items: CartItem[]) => items.reduce((sum, item) => sum + item.quantity, 0);
 
 const capacityRank: Record<LoadCapacity, number> = { small: 1, medium: 2, large: 3 };
