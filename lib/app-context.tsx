@@ -121,7 +121,7 @@ type AppContextValue = AppState & {
   addToCart: (meal: Meal, specialRequests?: string) => void;
   updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
-  placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string) => void;
+  placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string) => boolean;
   reorder: (order: Order) => void;
   rateOrder: (rating: number, review?: string) => void;
   advanceOrder: () => void;
@@ -294,9 +294,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ...current, weeklySchedule: { ...current.weeklySchedule, mealDays } };
       }),
       placeOrder: (paymentMethod, schedule, specialRequests = "") => {
+        if (!state.cart.length) {
+          showToast(state.language === "ar" ? "السلة فارغة. أضيفي وجبة أولاً." : "Your cart is empty. Add a meal first.");
+          return false;
+        }
         if (!isKitchenAvailable) {
           showToast(state.language === "ar" ? "المطبخ مغلق اليوم. اختاري يوماً آخر للطلب." : "This kitchen is closed today. Please choose another day.");
-          return;
+          return false;
         }
         setState((current) => {
           const pricing = getOrderPricing(totalCart(current.cart), 1.25);
@@ -326,6 +330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
           return { ...current, activeOrder: nextOrder, orderHistory: [nextOrder, ...current.orderHistory.filter((order) => order.id !== nextOrder.id)].slice(0, 20), cart: [], cartSpecialRequests: "" };
         });
+        return true;
       },
       rateOrder: (rating, review = "") => setState((current) => {
         if (!current.activeOrder) return current;

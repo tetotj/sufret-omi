@@ -533,6 +533,11 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
     const removals = selectedRemovals.map((id) => removeIngredientOptions.find((option) => option.id === id)).filter(Boolean).map((option) => getLocalized(option!.label, language));
     return [additions.length ? `${language === "ar" ? "إضافة" : "Add"}: ${additions.join(language === "ar" ? "، " : ", ")}` : "", removals.length ? `${language === "ar" ? "إزالة" : "Remove"}: ${removals.join(language === "ar" ? "، " : ", ")}` : "", specialRequests.trim()].filter(Boolean).join(" · ");
   };
+
+  const confirmOrder = () => {
+    const placed = placeOrder(payment, schedule, buildSpecialRequests());
+    if (placed) onComplete();
+  };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}><View style={styles.checkoutSheet}>
@@ -548,7 +553,7 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
         <View style={styles.ingredientOptionGrid}>{removeIngredientOptions.map((option) => { const selected = selectedRemovals.includes(option.id); return <Pressable key={option.id} onPress={() => setSelectedRemovals((current) => selected ? current.filter((id) => id !== option.id) : [...current, option.id])} style={[styles.ingredientOption, selected && styles.ingredientOptionRemoveSelected]}><MaterialIcons name={option.icon} size={17} color={selected ? "#8A6516" : "#00AFC4"} /><Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionRemoveTextSelected]}>{getLocalized(option.label, language)}</Text><MaterialIcons name={selected ? "check-circle" : "remove-circle-outline"} size={16} color={selected ? "#C88A16" : "#8ABAC0"} /></Pressable>; })}</View>
         <View style={styles.specialRequestInputWrap}><MaterialIcons name="edit-note" size={20} color="#00AFC4" /><TextInput value={specialRequests} onChangeText={setSpecialRequests} placeholder={language === "ar" ? "ملاحظات إضافية: الصلصة على الجانب..." : "Extra notes: sauce on the side..."} placeholderTextColor="#8ABAC0" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View>
         <View style={styles.sheetPriceBreakdown}><SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(pricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل" : "Delivery"} value={formatJod(pricing.deliveryFee, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} /></View><View style={styles.sheetTotal}><Text style={styles.sheetTotalLabel}>{language === "ar" ? "الإجمالي النهائي" : "Final total"}</Text><Text style={styles.sheetTotalValue}>{formatJod(pricing.grandTotal, language)}</Text></View>
-        <Pressable onPress={() => { placeOrder(payment, schedule, buildSpecialRequests()); onComplete(); }} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أكّد واطلب" : "Confirm order"}</Text><MaterialIcons name="check" size={18} color="#FFFFFF" /></Pressable>
+        <Pressable onPress={confirmOrder} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أكّد واطلب" : "Confirm order"}</Text><MaterialIcons name="check" size={18} color="#FFFFFF" /></Pressable>
       </View></View>
     </Modal>
   );
