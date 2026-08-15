@@ -1,7 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import {
@@ -25,6 +24,7 @@ import { trpc } from "@/lib/trpc";
 import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels } from "@/lib/verification-data";
+import { chooseImages, imageUriToDataUrl, MediaPermissionError } from "@/lib/media-picker";
 import { getWeekdayFromDate, isMealAvailableOnDay, weeklyScheduleToCsv, weekdays, type WeekdayId } from "@/lib/schedule-data";
 import {
   categories,
@@ -58,23 +58,6 @@ type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" |
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 type IngredientOption = { id: string; label: Localized; icon: IconName };
-
-async function uriToImageDataUrl(uri: string): Promise<string> {
-  if (uri.startsWith("data:image/")) return uri;
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const mimeType = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = String(reader.result ?? "");
-      const base64 = result.includes(",") ? result.slice(result.indexOf(",") + 1) : result;
-      resolve(`data:${mimeType};base64,${base64}`);
-    };
-    reader.onerror = () => reject(reader.error ?? new Error("Unable to read image"));
-    reader.readAsDataURL(blob);
-  });
-}
 
 const addIngredientOptions: IngredientOption[] = [
   { id: "extra-rice", label: { ar: "أرز إضافي", en: "Extra rice" }, icon: "restaurant" },
@@ -633,19 +616,33 @@ function ComplaintsScreen({ onBack }: { onBack: () => void }) {
     setImageUris([]);
   };
 
+  const mediaErrorMessage = (error: unknown, source: "camera" | "library") => {
+    if (error instanceof MediaPermissionError) {
+      return source === "camera"
+        ? language === "ar" ? "اسمحي للتطبيق باستخدام الكاميرا من إعدادات الهاتف ثم حاولي مرة أخرى" : "Allow camera access in phone settings, then try again"
+        : language === "ar" ? "اسمحي للتطبيق بالوصول إلى الصور من إعدادات الهاتف ثم حاولي مرة أخرى" : "Allow photo access in phone settings, then try again";
+    }
+    return source === "camera"
+      ? language === "ar" ? "تعذّر فتح الكاميرا. حاولي مرة أخرى." : "Could not open the camera. Please try again."
+      : language === "ar" ? "تعذّر فتح الاستوديو. حاولي مرة أخرى." : "Could not open the photo library. Please try again.";
+  };
+
   const pickImages = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: true, selectionLimit: 4, quality: 0.75 });
-    if (!result.canceled) setImageUris(result.assets.map((asset) => asset.uri).slice(0, 4));
+    try {
+      const selected = await chooseImages("library", { multiple: true });
+      if (selected.length) setImageUris((current) => [...current, ...selected].slice(0, 4));
+    } catch (error) {
+      showToast(mediaErrorMessage(error, "library"));
+    }
   };
 
   const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (permission.status !== "granted") {
-      showToast(language === "ar" ? "نحتاج إذن الكاميرا لإرفاق صورة" : "Camera permission is needed to attach a photo");
-      return;
+    try {
+      const selected = await chooseImages("camera");
+      if (selected.length) setImageUris((current) => [...current, ...selected].slice(0, 4));
+    } catch (error) {
+      showToast(mediaErrorMessage(error, "camera"));
     }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.75 });
-    if (!result.canceled && result.assets[0]?.uri) setImageUris((current) => [...current, result.assets[0].uri].slice(0, 4));
   };
 
   const submitComplaint = async () => {
@@ -655,7 +652,7 @@ function ComplaintsScreen({ onBack }: { onBack: () => void }) {
     }
     const complaintId = `CMP-${Date.now().toString().slice(-6)}`;
     try {
-      const imagePayloads = await Promise.all(imageUris.map(uriToImageDataUrl));
+      const imagePayloads = await Promise.all(imageUris.map(imageUriToDataUrl));
       const saved = await createComplaintMutation.mutateAsync({ id: complaintId, category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, images: imagePayloads });
       addComplaint({ category, subject: subject.trim(), description: description.trim(), orderId: orderId.trim() || undefined, imageUris: saved.imageUris });
       await remoteComplaintsQuery.refetch();
