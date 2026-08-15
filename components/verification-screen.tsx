@@ -40,10 +40,16 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
   const pickDocument = async (documentType: VerificationDocumentType) => {
     try {
       const uri = await pickVerificationImage();
-      if (uri) attachVerificationDocument(role, documentType, uri);
-      else showToast(language === "ar" ? "إرفاق الصور من الجهاز متاح عند تشغيل النسخة الأصلية" : "On-device photo capture will be enabled in the native build");
-    } catch {
-      showToast(language === "ar" ? "تعذّر فتح معرض الصور" : "Could not open the photo library");
+      if (uri) {
+        attachVerificationDocument(role, documentType, uri);
+      } else {
+        showToast(language === "ar" ? "لم يتم اختيار صورة" : "No photo was selected");
+      }
+    } catch (error) {
+      const permissionDenied = error instanceof Error && error.message === "PHOTO_PERMISSION_DENIED";
+      showToast(permissionDenied
+        ? language === "ar" ? "اسمحي للتطبيق بالوصول إلى الصور من إعدادات الهاتف ثم حاولي مرة أخرى" : "Allow photo access in your phone settings, then try again"
+        : language === "ar" ? "تعذّر فتح معرض الصور" : "Could not open the photo library");
     }
   };
 

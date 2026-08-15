@@ -1,20 +1,26 @@
+import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
 
-/** Returns a selected image as a data URI in web builds; native builds can swap in expo-image-picker later. */
+/**
+ * Returns a selected image URI on native and a browser-compatible URI on web.
+ * Expo ImagePicker supports iOS, Android, and web; using one path keeps the
+ * verification flow consistent across the customer-facing builds.
+ */
 export async function pickVerificationImage(): Promise<string | null> {
-  if (Platform.OS !== "web" || typeof document === "undefined") return null;
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) return resolve(null);
-      const reader = new FileReader();
-      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    };
-    input.click();
+  if (Platform.OS !== "web") {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== ImagePicker.PermissionStatus.GRANTED) {
+      throw new Error("PHOTO_PERMISSION_DENIED");
+    }
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsMultipleSelection: false,
+    allowsEditing: false,
+    quality: 0.8,
   });
+
+  if (result.canceled) return null;
+  return result.assets[0]?.uri ?? null;
 }

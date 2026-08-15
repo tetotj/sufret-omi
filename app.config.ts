@@ -93,6 +93,13 @@ const config: ExpoConfig = {
       },
     ],
     [
+      "expo-image-picker",
+      {
+        photosPermission: "Allow Sufret Omi to access photos for identity and compliance documents.",
+        cameraPermission: "Allow Sufret Omi to use the camera for identity and compliance documents.",
+      },
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
