@@ -1,0 +1,343 @@
+=== RECENT LOG ===
+[2026-08-16T19:12:26.264Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:26.264Z] }
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.264Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.269Z] Web Bundled 3358ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:26.315Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:26.316Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:26.521Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T19:12:26.524Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T19:12:26.730Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T19:12:26.785Z] λ Bundled 30ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T19:12:26.785Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T19:12:26.785Z] '--color-primary': '#00AFC4',
+[2026-08-16T19:12:26.785Z] '--color-background': '#F2FEFF',
+[2026-08-16T19:12:26.785Z] '--color-surface': '#FFFFFF',
+[2026-08-16T19:12:26.785Z] '--color-foreground': '#082E34',
+[2026-08-16T19:12:26.785Z] '--color-muted': '#4C747A',
+[2026-08-16T19:12:26.785Z] '--color-border': '#C6EDEF',
+[2026-08-16T19:12:26.785Z] '--color-success': '#2E9B72',
+[2026-08-16T19:12:26.785Z] '--color-warning': '#C98A2E',
+[2026-08-16T19:12:26.785Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:26.785Z] }
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.785Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:26.795Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:26.801Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:26.907Z] Error: Premature close
+[2026-08-16T19:12:26.907Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:26.907Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:27.014Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T19:12:27.016Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T19:12:27.162Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T19:12:27.234Z] λ Bundled 32ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T19:12:27.234Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T19:12:27.234Z] '--color-primary': '#00AFC4',
+[2026-08-16T19:12:27.234Z] '--color-background': '#F2FEFF',
+[2026-08-16T19:12:27.234Z] '--color-surface': '#FFFFFF',
+[2026-08-16T19:12:27.234Z] '--color-foreground': '#082E34',
+[2026-08-16T19:12:27.234Z] '--color-muted': '#4C747A',
+[2026-08-16T19:12:27.234Z] '--color-border': '#C6EDEF',
+[2026-08-16T19:12:27.234Z] '--color-success': '#2E9B72',
+[2026-08-16T19:12:27.234Z] '--color-warning': '#C98A2E',
+[2026-08-16T19:12:27.234Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:27.234Z] }
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.234Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.246Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:27.247Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:27.437Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T19:12:27.440Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T19:12:27.585Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T19:12:27.639Z] λ Bundled 27ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T19:12:27.639Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T19:12:27.639Z] '--color-primary': '#00AFC4',
+[2026-08-16T19:12:27.639Z] '--color-background': '#F2FEFF',
+[2026-08-16T19:12:27.639Z] '--color-surface': '#FFFFFF',
+[2026-08-16T19:12:27.639Z] '--color-foreground': '#082E34',
+[2026-08-16T19:12:27.639Z] '--color-muted': '#4C747A',
+[2026-08-16T19:12:27.639Z] '--color-border': '#C6EDEF',
+[2026-08-16T19:12:27.639Z] '--color-success': '#2E9B72',
+[2026-08-16T19:12:27.639Z] '--color-warning': '#C98A2E',
+[2026-08-16T19:12:27.639Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:27.639Z] }
+[2026-08-16T19:12:27.639Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.639Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.639Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.639Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.640Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.640Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.640Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.640Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.640Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:27.691Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:27.694Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:27.924Z] λ Bundled 50ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T19:12:27.937Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:27.938Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T19:12:28.127Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T19:12:28.129Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T19:12:28.272Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T19:12:28.387Z] λ Bundled 26ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T19:12:28.387Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T19:12:28.387Z] '--color-primary': '#00AFC4',
+[2026-08-16T19:12:28.387Z] '--color-background': '#F2FEFF',
+[2026-08-16T19:12:28.387Z] '--color-surface': '#FFFFFF',
+[2026-08-16T19:12:28.387Z] '--color-foreground': '#082E34',
+[2026-08-16T19:12:28.387Z] '--color-muted': '#4C747A',
+[2026-08-16T19:12:28.387Z] '--color-border': '#C6EDEF',
+[2026-08-16T19:12:28.387Z] '--color-success': '#2E9B72',
+[2026-08-16T19:12:28.387Z] '--color-warning': '#C98A2E',
+[2026-08-16T19:12:28.387Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:28.387Z] }
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.387Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.486Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T19:12:28.488Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T19:12:28.622Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T19:12:28.622Z] '--color-primary': '#00AFC4',
+[2026-08-16T19:12:28.622Z] '--color-background': '#F2FEFF',
+[2026-08-16T19:12:28.622Z] '--color-surface': '#FFFFFF',
+[2026-08-16T19:12:28.622Z] '--color-foreground': '#082E34',
+[2026-08-16T19:12:28.622Z] '--color-muted': '#4C747A',
+[2026-08-16T19:12:28.622Z] '--color-border': '#C6EDEF',
+[2026-08-16T19:12:28.622Z] '--color-success': '#2E9B72',
+[2026-08-16T19:12:28.622Z] '--color-warning': '#C98A2E',
+[2026-08-16T19:12:28.622Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:28.622Z] }
+[2026-08-16T19:12:28.638Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.642Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.732Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T19:12:28.734Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T19:12:28.866Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T19:12:28.866Z] '--color-primary': '#00AFC4',
+[2026-08-16T19:12:28.866Z] '--color-background': '#F2FEFF',
+[2026-08-16T19:12:28.866Z] '--color-surface': '#FFFFFF',
+[2026-08-16T19:12:28.866Z] '--color-foreground': '#082E34',
+[2026-08-16T19:12:28.866Z] '--color-muted': '#4C747A',
+[2026-08-16T19:12:28.866Z] '--color-border': '#C6EDEF',
+[2026-08-16T19:12:28.866Z] '--color-success': '#2E9B72',
+[2026-08-16T19:12:28.866Z] '--color-warning': '#C98A2E',
+[2026-08-16T19:12:28.866Z] '--color-error': '#C4555D'
+[2026-08-16T19:12:28.866Z] }
+[2026-08-16T19:12:28.883Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T19:12:28.886Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.886Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.886Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.886Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.886Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.887Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.887Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.887Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.887Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.887Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.887Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T19:12:28.996Z] Web Bundled 5123ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.095Z] Web Bundled 5054ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.096Z] Web Bundled 4896ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.132Z] Error: Premature close
+[2026-08-16T19:12:29.132Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.132Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.132Z] Error: Premature close
+[2026-08-16T19:12:29.132Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.132Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.168Z] Error: Premature close
+[2026-08-16T19:12:29.168Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.168Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.168Z] Web Bundled 4191ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.168Z] Web Bundled 3722ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.201Z] Error: Premature close
+[2026-08-16T19:12:29.201Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.201Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.235Z] Error: Premature close
+[2026-08-16T19:12:29.235Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.235Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.235Z] Web Bundled 3349ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.235Z] Web Bundled 2919ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.268Z] Error: Premature close
+[2026-08-16T19:12:29.268Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.268Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.301Z] Error: Premature close
+[2026-08-16T19:12:29.301Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.301Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.301Z] Web Bundled 2466ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.301Z] Web Bundled 2054ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.333Z] Error: Premature close
+[2026-08-16T19:12:29.333Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.333Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.363Z] Error: Premature close
+[2026-08-16T19:12:29.363Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.363Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.395Z] Error: Premature close
+[2026-08-16T19:12:29.395Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T19:12:29.395Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T19:12:29.395Z] Web Bundled 1640ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:29.395Z] Web Bundled 1425ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T19:12:31.215Z] Web Bundled 1592ms node_modules/expo-router/entry.js (1448 modules)
+[2026-08-16T19:12:36.505Z] LOG  [web] Logs will appear in the browser console
+[2026-08-16T19:12:37.213Z] [Auth] Missing session cookie
+[2026-08-16T19:12:37.218Z] [Auth] /api/auth/me failed: HttpError: Invalid session cookie
+[2026-08-16T19:12:37.218Z] at ForbiddenError (/home/ubuntu/sufret-omi/shared/_core/errors.ts:18:48)
+[2026-08-16T19:12:37.218Z] at SDKServer.authenticateRequest (/home/ubuntu/sufret-omi/server/_core/sdk.ts:247:13)
+[2026-08-16T19:12:37.218Z] at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-08-16T19:12:37.218Z] at async <anonymous> (/home/ubuntu/sufret-omi/server/_core/oauth.ts:142:20) {
+[2026-08-16T19:12:37.218Z] statusCode: 403
+[2026-08-16T19:12:37.218Z] }
+
+=== ERROR SUMMARY ===
+7078:[2026-08-16T18:10:26.095Z] at ForbiddenError (/home/ubuntu/sufret-omi/shared/_core/errors.ts:18:48)
+7081:[2026-08-16T18:10:26.095Z] at async <anonymous> (/home/ubuntu/sufret-omi/server/_core/oauth.ts:142:20) {
+7082:[2026-08-16T18:10:26.095Z] statusCode: 403
+7097:[2026-08-16T18:10:28.715Z] '--color-warning': '#C98A2E',
+7098:[2026-08-16T18:10:28.715Z] '--color-error': '#C4555D'
+7100:[2026-08-16T18:10:28.738Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7111:[2026-08-16T18:12:12.401Z] [Auth] Missing session cookie
+7118:[2026-08-16T18:14:22.606Z] WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context
+7119:[2026-08-16T18:14:22.640Z] WARN  expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go with the release of SDK 53. Use a development build instead of Expo Go. Read more at https://docs.expo.dev/develop/development-builds/introduction/.
+7120:[2026-08-16T18:14:22.640Z] WARN  `expo-notifications` functionality is not fully supported in Expo Go:
+7130:[2026-08-16T18:19:50.998Z] WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context
+7131:[2026-08-16T18:19:50.998Z] WARN  expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go with the release of SDK 53. Use a development build instead of Expo Go. Read more at https://docs.expo.dev/develop/development-builds/introduction/.
+7132:[2026-08-16T18:19:50.998Z] WARN  `expo-notifications` functionality is not fully supported in Expo Go:
+7145:[2026-08-16T18:52:46.093Z] WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context
+7146:[2026-08-16T18:52:46.126Z] WARN  expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go with the release of SDK 53. Use a development build instead of Expo Go. Read more at https://docs.expo.dev/develop/development-builds/introduction/.
+7147:[2026-08-16T18:52:46.126Z] WARN  `expo-notifications` functionality is not fully supported in Expo Go:
+7157:[2026-08-16T19:12:01.881Z] ELIFECYCLE  Command failed.
+7158:[2026-08-16T19:12:01.882Z] ELIFECYCLE  Command failed.
+7159:[2026-08-16T19:12:01.886Z] ELIFECYCLE  Command failed.
+7185:[2026-08-16T19:12:09.388Z] [OAuth] Initialized with baseURL: https://api.manus.im
+7245:[2026-08-16T19:12:16.453Z] '--color-warning': '#C98A2E',
+7246:[2026-08-16T19:12:16.453Z] '--color-error': '#C4555D'
+7248:[2026-08-16T19:12:16.502Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7265:[2026-08-16T19:12:16.813Z] '--color-warning': '#C98A2E',
+7266:[2026-08-16T19:12:16.813Z] '--color-error': '#C4555D'
+7268:[2026-08-16T19:12:16.834Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7285:[2026-08-16T19:12:17.145Z] '--color-warning': '#C98A2E',
+7286:[2026-08-16T19:12:17.145Z] '--color-error': '#C4555D'
+7288:[2026-08-16T19:12:17.168Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7305:[2026-08-16T19:12:17.392Z] '--color-warning': '#C98A2E',
+7306:[2026-08-16T19:12:17.392Z] '--color-error': '#C4555D'
+7308:[2026-08-16T19:12:17.413Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7325:[2026-08-16T19:12:17.651Z] '--color-warning': '#C98A2E',
+7326:[2026-08-16T19:12:17.651Z] '--color-error': '#C4555D'
+7328:[2026-08-16T19:12:17.676Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7345:[2026-08-16T19:12:17.950Z] '--color-warning': '#C98A2E',
+7346:[2026-08-16T19:12:17.950Z] '--color-error': '#C4555D'
+7348:[2026-08-16T19:12:17.972Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7362:[2026-08-16T19:12:18.567Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7372:[2026-08-16T19:12:18.622Z] '--color-warning': '#C98A2E',
+7373:[2026-08-16T19:12:18.622Z] '--color-error': '#C4555D'
+7387:[2026-08-16T19:12:19.046Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7397:[2026-08-16T19:12:19.114Z] '--color-warning': '#C98A2E',
+7398:[2026-08-16T19:12:19.114Z] '--color-error': '#C4555D'
+7413:[2026-08-16T19:12:19.504Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7423:[2026-08-16T19:12:19.577Z] '--color-warning': '#C98A2E',
+7424:[2026-08-16T19:12:19.577Z] '--color-error': '#C4555D'
+7440:[2026-08-16T19:12:19.911Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7450:[2026-08-16T19:12:19.975Z] '--color-warning': '#C98A2E',
+7451:[2026-08-16T19:12:19.975Z] '--color-error': '#C4555D'
+7468:[2026-08-16T19:12:20.356Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7478:[2026-08-16T19:12:20.418Z] '--color-warning': '#C98A2E',
+7479:[2026-08-16T19:12:20.418Z] '--color-error': '#C4555D'
+7497:[2026-08-16T19:12:20.748Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7507:[2026-08-16T19:12:20.813Z] '--color-warning': '#C98A2E',
+7508:[2026-08-16T19:12:20.813Z] '--color-error': '#C4555D'
+7533:[2026-08-16T19:12:21.045Z] '--color-warning': '#C98A2E',
+7534:[2026-08-16T19:12:21.045Z] '--color-error': '#C4555D'
+7536:[2026-08-16T19:12:21.062Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7563:[2026-08-16T19:12:21.499Z] '--color-warning': '#C98A2E',
+7564:[2026-08-16T19:12:21.499Z] '--color-error': '#C4555D'
+7566:[2026-08-16T19:12:21.520Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7594:[2026-08-16T19:12:21.882Z] '--color-warning': '#C98A2E',
+7595:[2026-08-16T19:12:21.882Z] '--color-error': '#C4555D'
+7597:[2026-08-16T19:12:21.900Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7626:[2026-08-16T19:12:22.318Z] '--color-warning': '#C98A2E',
+7627:[2026-08-16T19:12:22.318Z] '--color-error': '#C4555D'
+7629:[2026-08-16T19:12:22.336Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7659:[2026-08-16T19:12:23.305Z] '--color-warning': '#C98A2E',
+7660:[2026-08-16T19:12:23.305Z] '--color-error': '#C4555D'
+7662:[2026-08-16T19:12:23.324Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7695:[2026-08-16T19:12:23.864Z] Error: Premature close
+7709:[2026-08-16T19:12:24.578Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7712:[2026-08-16T19:12:24.864Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7722:[2026-08-16T19:12:24.936Z] '--color-warning': '#C98A2E',
+7723:[2026-08-16T19:12:24.936Z] '--color-error': '#C4555D'
+7733:[2026-08-16T19:12:24.936Z] '--color-warning': '#C98A2E',
+7734:[2026-08-16T19:12:24.936Z] '--color-error': '#C4555D'
+7744:[2026-08-16T19:12:25.370Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7754:[2026-08-16T19:12:25.439Z] '--color-warning': '#C98A2E',
+7755:[2026-08-16T19:12:25.439Z] '--color-error': '#C4555D'
+7766:[2026-08-16T19:12:25.785Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7776:[2026-08-16T19:12:25.846Z] '--color-warning': '#C98A2E',
+7777:[2026-08-16T19:12:25.846Z] '--color-error': '#C4555D'
+7789:[2026-08-16T19:12:26.191Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7799:[2026-08-16T19:12:26.264Z] '--color-warning': '#C98A2E',
+7800:[2026-08-16T19:12:26.264Z] '--color-error': '#C4555D'
+7814:[2026-08-16T19:12:26.730Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7824:[2026-08-16T19:12:26.785Z] '--color-warning': '#C98A2E',
+7825:[2026-08-16T19:12:26.785Z] '--color-error': '#C4555D'
+7836:[2026-08-16T19:12:26.907Z] Error: Premature close
+7841:[2026-08-16T19:12:27.162Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7851:[2026-08-16T19:12:27.234Z] '--color-warning': '#C98A2E',
+7852:[2026-08-16T19:12:27.234Z] '--color-error': '#C4555D'
+7866:[2026-08-16T19:12:27.585Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7876:[2026-08-16T19:12:27.639Z] '--color-warning': '#C98A2E',
+7877:[2026-08-16T19:12:27.639Z] '--color-error': '#C4555D'
+7895:[2026-08-16T19:12:28.272Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7905:[2026-08-16T19:12:28.387Z] '--color-warning': '#C98A2E',
+7906:[2026-08-16T19:12:28.387Z] '--color-error': '#C4555D'
+7929:[2026-08-16T19:12:28.622Z] '--color-warning': '#C98A2E',
+7930:[2026-08-16T19:12:28.622Z] '--color-error': '#C4555D'
+7932:[2026-08-16T19:12:28.638Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7954:[2026-08-16T19:12:28.866Z] '--color-warning': '#C98A2E',
+7955:[2026-08-16T19:12:28.866Z] '--color-error': '#C4555D'
+7957:[2026-08-16T19:12:28.883Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+7972:[2026-08-16T19:12:29.132Z] Error: Premature close
+7975:[2026-08-16T19:12:29.132Z] Error: Premature close
+7978:[2026-08-16T19:12:29.168Z] Error: Premature close
+7983:[2026-08-16T19:12:29.201Z] Error: Premature close
+7986:[2026-08-16T19:12:29.235Z] Error: Premature close
+7991:[2026-08-16T19:12:29.268Z] Error: Premature close
+7994:[2026-08-16T19:12:29.301Z] Error: Premature close
+7999:[2026-08-16T19:12:29.333Z] Error: Premature close
+8002:[2026-08-16T19:12:29.363Z] Error: Premature close
+8005:[2026-08-16T19:12:29.395Z] Error: Premature close
+8013:[2026-08-16T19:12:37.218Z] [Auth] /api/auth/me failed: HttpError: Invalid session cookie
+8014:[2026-08-16T19:12:37.218Z] at ForbiddenError (/home/ubuntu/sufret-omi/shared/_core/errors.ts:18:48)
+8017:[2026-08-16T19:12:37.218Z] at async <anonymous> (/home/ubuntu/sufret-omi/server/_core/oauth.ts:142:20) {
+8018:[2026-08-16T19:12:37.218Z] statusCode: 403

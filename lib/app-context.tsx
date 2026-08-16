@@ -40,6 +40,7 @@ import {
   type VerificationDocumentType,
 } from "@/lib/verification-data";
 import { createDefaultWeeklySchedule, getWeekdayFromDate, isDayClosed, normalizeWeeklySchedule, type WeekdayId, type WeeklySchedule } from "@/lib/schedule-data";
+import { isLocalAdminPreviewAllowed } from "@/lib/admin-access";
 
 const STORAGE_KEY = "sufret-omi-session-v1";
 const DEFAULT_DROPOFF = { latitude: 31.951, longitude: 35.884 };
@@ -274,6 +275,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const canAccessRoleDashboard = (requestedRole: Role) => requestedRole === "customer" || (requestedRole === "mother" ? state.motherVerification.approvalStatus === "approved" : state.driverVerification.approvalStatus === "approved");
     const isKitchenAvailable = state.kitchenOpen && !isDayClosed(state.weeklySchedule, getWeekdayFromDate());
     const adminSignIn = (code: string) => {
+      if (!isLocalAdminPreviewAllowed()) {
+        showToast(state.language === "ar" ? "استخدمي حساب المشرف الموثق من الخادم" : "Use the server-validated admin account");
+        return false;
+      }
       if (code.trim() === "9988" || code.trim() === "admin123") {
         setState((current) => ({ ...current, adminAuthenticated: true }));
         showToast(state.language === "ar" ? "أهلاً بك في لوحة الإدارة العليا" : "Welcome to the supervisor command center");

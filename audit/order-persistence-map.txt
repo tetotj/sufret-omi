@@ -1,0 +1,143 @@
+server/db.ts:316:  const rows = await db.select({ customerId: orders.customerId, driverId: orders.driverId, kitchenUserId: kitchens.userId }).from(orders).leftJoin(kitchens, eq(orders.kitchenId, kitchens.id)).where(eq(orders.id, orderId)).limit(1);
+server/db.ts:331:  const assigned = await db.select({ driverId: orders.driverId, status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1);
+server/db.ts:356:export async function createOrderActionRequest(input: { orderId: string; customerId: number; action: OrderActionRequestType; note?: string }) {
+server/db.ts:359:  const rows = await db.select({ customerId: orders.customerId, status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1);
+server/db.ts:391:export async function createOrderMessage(input: { orderId: string; senderId: number; senderRole: "customer" | "mother" | "driver"; senderName: string; body: string }) {
+server/db.ts:426:      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+server/db.ts:428:      deliveredOrderCount: sql<number>`SUM(CASE WHEN ${orders.status} = 'delivered' THEN 1 ELSE 0 END)`,
+server/db.ts:429:    }).from(orders).where(gte(orders.createdAt, start)),
+server/db.ts:431:      day: sql<string>`DATE(${orders.createdAt})`,
+server/db.ts:432:      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+server/db.ts:434:    }).from(orders).where(gte(orders.createdAt, start)).groupBy(sql`DATE(${orders.createdAt})`).orderBy(sql`DATE(${orders.createdAt})`),
+server/db.ts:436:      kitchenId: orders.kitchenId,
+server/db.ts:437:      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+server/db.ts:439:    }).from(orders).where(gte(orders.createdAt, start)).groupBy(orders.kitchenId).orderBy(desc(sql`SUM(${orders.total})`)),
+server/routers.ts:4:import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+server/routers.ts:162:    send: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), senderRole: z.enum(["customer", "mother", "driver"]), senderName: z.string().min(1).max(160), body: z.string().trim().min(1).max(500) })).mutation(({ ctx, input }) => createOrderMessage({ ...input, senderId: ctx.user.id })),
+server/routers.ts:170:    create: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), action: z.enum(["cancellation_requested", "replacement_requested"]), note: z.string().trim().max(240).optional() })).mutation(({ ctx, input }) => createOrderActionRequest({ ...input, customerId: ctx.user.id })),
+drizzle/meta/0001_snapshot.json:483:    "transactions": {
+drizzle/meta/0001_snapshot.json:484:      "name": "transactions",
+drizzle/meta/0001_snapshot.json:535:        "transactions_id": {
+drizzle/meta/0001_snapshot.json:536:          "name": "transactions_id",
+drizzle/meta/0002_snapshot.json:490:    "transactions": {
+drizzle/meta/0002_snapshot.json:491:      "name": "transactions",
+drizzle/meta/0002_snapshot.json:542:        "transactions_id": {
+drizzle/meta/0002_snapshot.json:543:          "name": "transactions_id",
+drizzle/meta/0003_snapshot.json:490:    "transactions": {
+drizzle/meta/0003_snapshot.json:491:      "name": "transactions",
+drizzle/meta/0003_snapshot.json:542:        "transactions_id": {
+drizzle/meta/0003_snapshot.json:543:          "name": "transactions_id",
+drizzle/meta/0004_snapshot.json:490:    "transactions": {
+drizzle/meta/0004_snapshot.json:491:      "name": "transactions",
+drizzle/meta/0004_snapshot.json:542:        "transactions_id": {
+drizzle/meta/0004_snapshot.json:543:          "name": "transactions_id",
+drizzle/meta/0005_snapshot.json:732:    "transactions": {
+drizzle/meta/0005_snapshot.json:733:      "name": "transactions",
+drizzle/meta/0005_snapshot.json:784:        "transactions_id": {
+drizzle/meta/0005_snapshot.json:785:          "name": "transactions_id",
+drizzle/meta/0006_snapshot.json:881:    "transactions": {
+drizzle/meta/0006_snapshot.json:882:      "name": "transactions",
+drizzle/meta/0006_snapshot.json:933:        "transactions_id": {
+drizzle/meta/0006_snapshot.json:934:          "name": "transactions_id",
+drizzle/meta/0007_snapshot.json:895:    "transactions": {
+drizzle/meta/0007_snapshot.json:896:      "name": "transactions",
+drizzle/meta/0007_snapshot.json:947:        "transactions_id": {
+drizzle/meta/0007_snapshot.json:948:          "name": "transactions_id",
+drizzle/meta/0008_snapshot.json:999:    "transactions": {
+drizzle/meta/0008_snapshot.json:1000:      "name": "transactions",
+drizzle/meta/0008_snapshot.json:1049:        "transactions_kitchen_status_idx": {
+drizzle/meta/0008_snapshot.json:1050:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0008_snapshot.json:1057:        "transactions_created_at_idx": {
+drizzle/meta/0008_snapshot.json:1058:          "name": "transactions_created_at_idx",
+drizzle/meta/0008_snapshot.json:1067:        "transactions_id": {
+drizzle/meta/0008_snapshot.json:1068:          "name": "transactions_id",
+drizzle/meta/0009_snapshot.json:1078:    "transactions": {
+drizzle/meta/0009_snapshot.json:1079:      "name": "transactions",
+drizzle/meta/0009_snapshot.json:1128:        "transactions_kitchen_status_idx": {
+drizzle/meta/0009_snapshot.json:1129:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0009_snapshot.json:1136:        "transactions_created_at_idx": {
+drizzle/meta/0009_snapshot.json:1137:          "name": "transactions_created_at_idx",
+drizzle/meta/0009_snapshot.json:1146:        "transactions_id": {
+drizzle/meta/0009_snapshot.json:1147:          "name": "transactions_id",
+drizzle/meta/0010_snapshot.json:1177:    "transactions": {
+drizzle/meta/0010_snapshot.json:1178:      "name": "transactions",
+drizzle/meta/0010_snapshot.json:1227:        "transactions_kitchen_status_idx": {
+drizzle/meta/0010_snapshot.json:1228:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0010_snapshot.json:1235:        "transactions_created_at_idx": {
+drizzle/meta/0010_snapshot.json:1236:          "name": "transactions_created_at_idx",
+drizzle/meta/0010_snapshot.json:1245:        "transactions_id": {
+drizzle/meta/0010_snapshot.json:1246:          "name": "transactions_id",
+drizzle/meta/0011_snapshot.json:1261:    "transactions": {
+drizzle/meta/0011_snapshot.json:1262:      "name": "transactions",
+drizzle/meta/0011_snapshot.json:1311:        "transactions_kitchen_status_idx": {
+drizzle/meta/0011_snapshot.json:1312:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0011_snapshot.json:1319:        "transactions_created_at_idx": {
+drizzle/meta/0011_snapshot.json:1320:          "name": "transactions_created_at_idx",
+drizzle/meta/0011_snapshot.json:1329:        "transactions_id": {
+drizzle/meta/0011_snapshot.json:1330:          "name": "transactions_id",
+drizzle/meta/0012_snapshot.json:1355:    "transactions": {
+drizzle/meta/0012_snapshot.json:1356:      "name": "transactions",
+drizzle/meta/0012_snapshot.json:1405:        "transactions_kitchen_status_idx": {
+drizzle/meta/0012_snapshot.json:1406:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0012_snapshot.json:1413:        "transactions_created_at_idx": {
+drizzle/meta/0012_snapshot.json:1414:          "name": "transactions_created_at_idx",
+drizzle/meta/0012_snapshot.json:1423:        "transactions_id": {
+drizzle/meta/0012_snapshot.json:1424:          "name": "transactions_id",
+drizzle/meta/0013_snapshot.json:1371:    "transactions": {
+drizzle/meta/0013_snapshot.json:1372:      "name": "transactions",
+drizzle/meta/0013_snapshot.json:1421:        "transactions_kitchen_status_idx": {
+drizzle/meta/0013_snapshot.json:1422:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0013_snapshot.json:1429:        "transactions_created_at_idx": {
+drizzle/meta/0013_snapshot.json:1430:          "name": "transactions_created_at_idx",
+drizzle/meta/0013_snapshot.json:1439:        "transactions_id": {
+drizzle/meta/0013_snapshot.json:1440:          "name": "transactions_id",
+drizzle/meta/0014_snapshot.json:1379:    "transactions": {
+drizzle/meta/0014_snapshot.json:1380:      "name": "transactions",
+drizzle/meta/0014_snapshot.json:1429:        "transactions_kitchen_status_idx": {
+drizzle/meta/0014_snapshot.json:1430:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0014_snapshot.json:1437:        "transactions_created_at_idx": {
+drizzle/meta/0014_snapshot.json:1438:          "name": "transactions_created_at_idx",
+drizzle/meta/0014_snapshot.json:1447:        "transactions_id": {
+drizzle/meta/0014_snapshot.json:1448:          "name": "transactions_id",
+drizzle/meta/0015_snapshot.json:1379:    "transactions": {
+drizzle/meta/0015_snapshot.json:1380:      "name": "transactions",
+drizzle/meta/0015_snapshot.json:1429:        "transactions_kitchen_status_idx": {
+drizzle/meta/0015_snapshot.json:1430:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0015_snapshot.json:1437:        "transactions_created_at_idx": {
+drizzle/meta/0015_snapshot.json:1438:          "name": "transactions_created_at_idx",
+drizzle/meta/0015_snapshot.json:1447:        "transactions_id": {
+drizzle/meta/0015_snapshot.json:1448:          "name": "transactions_id",
+drizzle/meta/0016_snapshot.json:1379:    "transactions": {
+drizzle/meta/0016_snapshot.json:1380:      "name": "transactions",
+drizzle/meta/0016_snapshot.json:1429:        "transactions_kitchen_status_idx": {
+drizzle/meta/0016_snapshot.json:1430:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0016_snapshot.json:1437:        "transactions_created_at_idx": {
+drizzle/meta/0016_snapshot.json:1438:          "name": "transactions_created_at_idx",
+drizzle/meta/0016_snapshot.json:1447:        "transactions_id": {
+drizzle/meta/0016_snapshot.json:1448:          "name": "transactions_id",
+drizzle/meta/0017_snapshot.json:1395:    "transactions": {
+drizzle/meta/0017_snapshot.json:1396:      "name": "transactions",
+drizzle/meta/0017_snapshot.json:1445:        "transactions_kitchen_status_idx": {
+drizzle/meta/0017_snapshot.json:1446:          "name": "transactions_kitchen_status_idx",
+drizzle/meta/0017_snapshot.json:1453:        "transactions_created_at_idx": {
+drizzle/meta/0017_snapshot.json:1454:          "name": "transactions_created_at_idx",
+drizzle/meta/0017_snapshot.json:1463:        "transactions_id": {
+drizzle/meta/0017_snapshot.json:1464:          "name": "transactions_id",
+drizzle/schema.ts:133:export const transactions = mysqlTable("transactions", {
+drizzle/schema.ts:141:  kitchenStatusIdx: index("transactions_kitchen_status_idx").on(table.kitchenId, table.status),
+drizzle/schema.ts:142:  createdAtIdx: index("transactions_created_at_idx").on(table.createdAt),
+drizzle/schema.ts:273:export type Order = typeof orders.$inferSelect;
+drizzle/schema.ts:276:export type Transaction = typeof transactions.$inferSelect;
+drizzle/0001_familiar_supreme_intelligence.sql:77:CREATE TABLE `transactions` (
+drizzle/0001_familiar_supreme_intelligence.sql:84:	CONSTRAINT `transactions_id` PRIMARY KEY(`id`)
+drizzle/0008_wild_iron_patriot.sql:14:CREATE INDEX `transactions_kitchen_status_idx` ON `transactions` (`kitchenId`,`status`);--> statement-breakpoint
+drizzle/0008_wild_iron_patriot.sql:15:CREATE INDEX `transactions_created_at_idx` ON `transactions` (`createdAt`);--> statement-breakpoint
+app/(tabs)/index.tsx:104:  const [checkoutOpen, setCheckoutOpen] = useState(false);
+app/(tabs)/index.tsx:183:      <CheckoutModal visible={checkoutOpen} initialSpecialRequests={cartSpecialRequests} onClose={() => setCheckoutOpen(false)} onComplete={() => { setCheckoutOpen(false); setCartSpecialRequests(""); go("orders"); }} />
+app/(tabs)/index.tsx:693:        <Pressable onPress={onCheckout} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "كمّلي الطلب" : "Continue to checkout"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
+app/(tabs)/index.tsx:750:      <View style={styles.modalBackdrop}><View style={styles.checkoutSheet}>
+app/(tabs)/index.tsx:869:  return <View style={styles.multiOrderSection}><View style={styles.multiOrderSectionHeader}><View><Text style={styles.sectionTitle}>{language === "ar" ? "تتبع كل طلب" : "Track every order"}</Text><Text style={styles.multiOrderSectionHint}>{language === "ar" ? "كل مطعم له سائق ووقت وصول ومسار مستقل" : "Each kitchen has its own driver, ETA, and route"}</Text></View><View style={styles.multiOrderCount}><MaterialIcons name="layers" size={15} color="#00AFC4" /><Text style={styles.multiOrderCountText}>{orders.length}</Text></View></View>{orders.map((order) => <MultiOrderTrackingCard key={order.id} order={order} language={language} selected={order.id === selectedOrderId} onSelect={() => onSelectOrder(order.id)} onAdvance={() => onAdvanceOrder(order.id)} onShowToast={onShowToast} />)}</View>;
+app/(tabs)/index.tsx:915:  if (!orders.length) return emptyOnBack ? <EmptyOrders language={language} onBack={emptyOnBack} /> : null;
+app/(tabs)/index.tsx:916:  return <View style={styles.orderHistoryCard}><View style={styles.orderHistoryHeader}><View><Text style={styles.sectionTitle}>{language === "ar" ? "طلباتك السابقة" : "Previous orders"}</Text><Text style={styles.orderHistoryHint}>{language === "ar" ? "أعيدي أي طلب مع تخصيصاته" : "Repeat any order with its customizations"}</Text></View><MaterialIcons name="history" size={22} color="#2E9B72" /></View>{orders.slice(0, 10).map((order) => <View key={order.id} style={styles.orderHistoryRow}><View style={styles.orderHistoryCopy}><Text style={styles.orderHistoryId}>{order.id}</Text><Text style={styles.orderHistoryKitchen}>{getLocalized(order.kitchen.name, language)}</Text><Text style={styles.orderHistoryItems}>{order.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.orderHistoryMeta}>{formatJod(order.total, language)} · {getLocalized(order.eta, language)}</Text></View><Pressable onPress={() => onReorder(order)} style={({ pressed }) => [styles.reorderButton, pressed && styles.pressed]}><MaterialIcons name="replay" size={16} color="#FFFFFF" /><Text style={styles.reorderButtonText}>{language === "ar" ? "إعادة الطلب" : "Reorder"}</Text></Pressable></View>)}</View>;
+app/(tabs)/index.tsx:1663:  checkoutSheet: { backgroundColor: "#F2FEFF", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 18, paddingBottom: 28, gap: 13 },
+app/admin.tsx:166:  return <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}><View style={styles.pageHeading}><View><Text style={styles.pageEyebrow}>{language === "ar" ? "الأرقام الحقيقية" : "LIVE NUMBERS"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "التحليلات المالية" : "Financial analytics"}</Text><Text style={styles.pageSubtitle}>{language === "ar" ? "آخر ٣٠ يوماً · العمولة محسوبة بنسبة ٥٪ على إجمالي الطلبات." : "Last 30 days · commission calculated at 5% of gross orders."}</Text></View><View style={styles.dateBadge}><MaterialIcons name="calendar-today" size={15} color="#00AFC4" /><Text style={styles.dateBadgeText}>{analyticsQuery.isFetching ? (language === "ar" ? "تحديث..." : "Refreshing...") : (language === "ar" ? "مباشر" : "Live")}</Text></View></View>{analyticsQuery.isError ? <EmptyPanel icon="error-outline" text={language === "ar" ? "تعذر تحميل التحليلات. حاولي تحديث الصفحة." : "Could not load analytics. Try refreshing."} /> : <><View style={styles.metricGrid}><View style={styles.metricCard}><View style={styles.metricIcon}><MaterialIcons name="payments" size={20} color="#00AFC4" /></View><Text style={styles.metricLabel}>{language === "ar" ? "إجمالي المبيعات" : "Gross sales"}</Text><Text style={styles.metricValue}>{money(data?.grossSales ?? 0)}</Text><Text style={styles.metricDetail}>{language === "ar" ? "قبل العمولة" : "Before commission"}</Text></View><View style={styles.metricCard}><View style={styles.metricIcon}><MaterialIcons name="account-balance" size={20} color="#00AFC4" /></View><Text style={styles.metricLabel}>{language === "ar" ? "عمولة المنصة" : "Platform commission"}</Text><Text style={styles.metricValue}>{money(data?.platformCommission ?? 0)}</Text><Text style={styles.metricDetail}>5%</Text></View><View style={styles.metricCard}><View style={styles.metricIcon}><MaterialIcons name="store" size={20} color="#00AFC4" /></View><Text style={styles.metricLabel}>{language === "ar" ? "مستحقات المطابخ" : "Kitchen payouts"}</Text><Text style={styles.metricValue}>{money(data?.kitchenPayouts ?? 0)}</Text><Text style={styles.metricDetail}>{language === "ar" ? "بعد العمولة" : "After commission"}</Text></View><View style={styles.metricCard}><View style={styles.metricIcon}><MaterialIcons name="receipt-long" size={20} color="#00AFC4" /></View><Text style={styles.metricLabel}>{language === "ar" ? "الطلبات" : "Orders"}</Text><Text style={styles.metricValue}>{data?.orderCount ?? 0}</Text><Text style={styles.metricDetail}>{data?.deliveredOrderCount ?? 0} {language === "ar" ? "مسلّم" : "delivered"}</Text></View></View><View style={styles.analyticsChartPanel}><View style={styles.panelHeader}><View><Text style={styles.panelTitle}>{language === "ar" ? "اتجاه المبيعات والعمولة" : "Sales & commission trend"}</Text><Text style={styles.panelSubtitle}>{language === "ar" ? "آخر ١٤ يوماً من الفترة المحددة" : "Last 14 days in the selected period"}</Text></View><View style={styles.chartLegend}><View style={styles.chartLegendDot} /><Text style={styles.chartLegendText}>{language === "ar" ? "مبيعات" : "Sales"}</Text></View></View>{chartRows.length === 0 ? <EmptyPanel icon="show-chart" text={language === "ar" ? "لا توجد بيانات يومية للرسم" : "No daily data to chart"} /> : <View style={styles.analyticsBars}>{chartRows.map((row) => <View key={row.day} style={styles.analyticsBarRow}><View style={styles.analyticsBarLabelRow}><Text style={styles.analyticsBarLabel}>{dateLabel(row.day)}</Text><Text style={styles.analyticsBarValue}>{money(row.grossSales)}</Text></View><View style={styles.analyticsBarTrack}><View style={[styles.analyticsBarFill, { width: `${Math.max(4, (row.grossSales / maxDailyGross) * 100)}%` }]} /></View><View style={styles.analyticsBarMeta}><Text style={styles.analyticsBarMetaText}>{row.orderCount} {language === "ar" ? "طلب" : "orders"}</Text><Text style={styles.analyticsBarCommission}>{money(row.grossSales * 0.05)} {language === "ar" ? "عمولة" : "commission"}</Text></View></View>)}</View>}</View><View style={styles.panel}><View style={styles.panelHeader}><View><Text style={styles.panelTitle}>{language === "ar" ? "التقرير الأسبوعي للمطابخ والأمهات" : "Weekly kitchen & mother report"}</Text><Text style={styles.panelSubtitle}>{language === "ar" ? "ملخص أداء آخر ٧ أيام مع توزيع الأرباح والمستحقات" : "Last 7 days performance summary with payouts"}</Text></View>{Platform.OS === "web" && <Pressable onPress={printWeeklyReport} style={styles.chartLegend}><MaterialIcons name="picture-as-pdf" size={13} color="#D76545" /><Text style={styles.chartLegendText}>{language === "ar" ? "طباعة / PDF" : "Print / PDF"}</Text></Pressable>}<Pressable onPress={exportWeeklyExcel} style={styles.chartLegend}><MaterialIcons name="table-view" size={13} color="#2E9B72" /><Text style={styles.chartLegendText}>{language === "ar" ? "Excel" : "Excel"}</Text></Pressable><Pressable onPress={() => weeklyQuery.refetch()} style={styles.chartLegend}><MaterialIcons name="refresh" size={13} color="#00AFC4" /><Text style={styles.chartLegendText}>{language === "ar" ? "تحديث التقرير" : "Refresh report"}</Text></Pressable><Pressable disabled={scheduleMutation.isPending || !useDatabase} onPress={enableWeeklyEmail} style={[styles.chartLegend, (scheduleMutation.isPending || !useDatabase) && { opacity: 0.5 }]}><MaterialIcons name="mark-email-read" size={13} color="#8A6516" /><Text style={styles.chartLegendText}>{scheduleMutation.isPending ? (language === "ar" ? "جارٍ الجدولة" : "Scheduling") : language === "ar" ? "جدولة البريد" : "Schedule email"}</Text></Pressable></View>{scheduleState !== "idle" && <Text style={[styles.panelSubtitle, scheduleState === "success" ? { color: "#2E9B72" } : { color: "#C4555D" }]}>{scheduleState === "success" ? (language === "ar" ? "تم تسجيل التقرير الأسبوعي ليعمل كل اثنين بعد النشر." : "Weekly report is scheduled for Mondays after deployment.") : (language === "ar" ? "تعذر تسجيل الجدولة حالياً." : "Could not schedule the report right now.")}</Text>}{weekly ? <View style={{ gap: 10 }}><View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}><View style={styles.detailItem}><Text style={styles.detailItemLabel}>{language === "ar" ? "مبيعات الأسبوع" : "Weekly sales"}</Text><Text style={styles.detailItemValue}>{money(weekly.grossSales)}</Text></View><View style={styles.detailItem}><Text style={styles.detailItemLabel}>{language === "ar" ? "عمولة الأسبوع (٥٪)" : "Commission (5%)"}</Text><Text style={styles.detailItemValue}>{money(weekly.platformCommission)}</Text></View><View style={styles.detailItem}><Text style={styles.detailItemLabel}>{language === "ar" ? "طلبات الأسبوع" : "Weekly orders"}</Text><Text style={styles.detailItemValue}>{weekly.orderCount}</Text></View></View><View style={{ gap: 3 }}><Text style={styles.panelSubtitle}>{language === "ar" ? "تفصيل مستحقات المطابخ خلال الأسبوع:" : "Kitchen payouts breakdown for the week:"}</Text><Text style={styles.panelSubtitle}>{language === "ar" ? `آخر توليد: ${new Date(weekly.generatedAt).toLocaleString("ar-JO")}` : `Generated: ${new Date(weekly.generatedAt).toLocaleString("en-JO")}`}</Text></View>{weekly.kitchens.map((k) => <View key={k.kitchenId} style={styles.miniComplaint}><View style={styles.miniComplaintIcon}><MaterialIcons name="description" size={17} color="#00AFC4" /></View><View style={styles.miniComplaintCopy}><Text style={styles.miniComplaintTitle}>{getLocalized(kitchens.find((item) => item.id === k.kitchenId)?.name ?? { ar: k.kitchenId, en: k.kitchenId }, language)}</Text><Text style={styles.miniComplaintMeta}>{k.orderCount} {language === "ar" ? "طلب" : "orders"} · {money(k.grossSales)} · {language === "ar" ? "المستحق" : "Payout"} {money(k.grossSales * 0.95)}</Text></View></View>)}</View> : <EmptyPanel icon="description" text={language === "ar" ? "جارٍ إعداد التقرير الأسبوعي..." : "Preparing weekly report..."} />}</View><View style={styles.panel}><View style={styles.panelHeader}><View><Text style={styles.panelTitle}>{language === "ar" ? "أداء المطابخ" : "Kitchen performance"}</Text><Text style={styles.panelSubtitle}>{language === "ar" ? "المبيعات والعمولة لكل مطبخ" : "Sales and commission by kitchen"}</Text></View></View>{(data?.kitchens ?? []).map((kitchen) => <View key={kitchen.kitchenId} style={styles.miniComplaint}><View style={styles.miniComplaintIcon}><MaterialIcons name="storefront" size={17} color="#D76545" /></View><View style={styles.miniComplaintCopy}><Text style={styles.miniComplaintTitle}>{getLocalized(kitchens.find((item) => item.id === kitchen.kitchenId)?.name ?? { ar: kitchen.kitchenId, en: kitchen.kitchenId }, language)}</Text><Text style={styles.miniComplaintMeta}>{kitchen.orderCount} {language === "ar" ? "طلب" : "orders"} · {money(kitchen.grossSales)} · {language === "ar" ? "عمولة" : "commission"} {money(kitchen.platformCommission)}</Text></View></View>)}{(data?.kitchens ?? []).length === 0 && <EmptyPanel icon="storefront" text={language === "ar" ? "لا توجد طلبات في الفترة المحددة" : "No orders in this period"} />}</View></>}</ScrollView>;

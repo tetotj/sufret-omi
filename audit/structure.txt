@@ -1,0 +1,64 @@
+=== TOP LEVEL ===
+.debug-camera-findings.md
+.expo
+.git
+.gitignore
+.gitkeep
+.manus
+.manus-logs
+.npmrc
+.project-config.json
+.watchmanconfig
+ENVIRONMENT_VARIABLES.example
+MANUS_DEPENDENCIES.md
+PROJECT_MANIFEST.md
+admin-verification.md
+app
+app.config.ts
+assets
+audit
+babel.config.js
+components
+constants
+design.md
+dist
+drizzle
+drizzle.config.ts
+eslint.config.js
+expo-env.d.ts
+global.css
+hooks
+lib
+metro.config.js
+nativewind-env.d.ts
+node_modules
+package.json
+pnpm-lock.yaml
+scripts
+server
+shared
+tailwind.config.js
+template.json
+tests
+theme.config.d.ts
+theme.config.js
+todo.md
+tsconfig.json
+visual-refresh-notes.md
+visual-verification.md
+
+=== MAJOR FILE COUNTS ===
+app          6
+components   15
+constants    3
+drizzle      40
+hooks        5
+lib          16
+server       25
+shared       3
+tests        9
+assets       11
+
+=== GIT STATUS ===
+ [31mM[m todo.md
+[31m??[m audit/

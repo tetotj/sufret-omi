@@ -1,0 +1,106 @@
+11:  getOrderPricing,
+12:  getMultiOrderPricing,
+18:  Order,
+19:  OrderCustomerAction,
+20:  OrderMessage,
+27:  sampleDriverOrder,
+28:  sampleIncomingOrder,
+47:const fallbackDrivers: Array<NonNullable<Order["driver"]>> = [
+53:function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Order | null): Order | null {
+59:  const pricing = getOrderPricing(totalCart(items), 1.25);
+113:  activeOrder: Order | null;
+114:  activeOrders: Order[];
+115:  orderHistory: Order[];
+118:  incomingOrder: Order | null;
+119:  incomingOrders: Order[];
+123:  driverOrder: Order | null;
+124:  driverOrders: Order[];
+125:  orderMessages: Record<string, OrderMessage[]>;
+149:  placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string) => boolean;
+150:  reorder: (order: Order) => void;
+151:  selectActiveOrder: (orderId: string) => void;
+152:  rateOrder: (rating: number, review?: string) => void;
+153:  requestOrderAction: (orderId: string, action: Exclude<OrderCustomerAction, "none">, note?: string) => void;
+154:  advanceOrder: (orderId?: string) => void;
+158:  selectIncomingOrder: (orderId: string) => void;
+159:  acceptIncomingOrder: (orderId?: string) => void;
+160:  rejectIncomingOrder: (orderId?: string) => void;
+163:  selectDriverOrder: (orderId: string) => void;
+165:  advanceDriverOrder: (orderId?: string) => void;
+166:  sendOrderMessage: (orderId: string, body: string) => void;
+202:  activeOrder: null,
+203:  activeOrders: [],
+204:  orderHistory: [],
+207:  incomingOrder: sampleIncomingOrder,
+208:  incomingOrders: [sampleIncomingOrder],
+212:  driverOrder: sampleDriverOrder,
+213:  driverOrders: [sampleDriverOrder],
+214:  orderMessages: {},
+238:          activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
+239:          activeOrders: Array.isArray(parsed.activeOrders) ? parsed.activeOrders.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : parsed.activeOrder ? [normalizeOrder(parsed.activeOrder as Partial<Order>, current.activeOrder)].filter((order): order is Order => Boolean(order)) : current.activeOrders,
+240:          orderHistory: Array.isArray(parsed.orderHistory) ? parsed.orderHistory.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : current.orderHistory,
+242:          incomingOrder: parsed.incomingOrder === undefined ? current.incomingOrder : normalizeOrder(parsed.incomingOrder as Partial<Order> | null, current.incomingOrder),
+243:          incomingOrders: Array.isArray(parsed.incomingOrders) ? parsed.incomingOrders.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : parsed.incomingOrder ? [normalizeOrder(parsed.incomingOrder as Partial<Order>, current.incomingOrder)].filter((order): order is Order => Boolean(order)) : current.incomingOrders,
+244:          driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
+245:          driverOrders: Array.isArray(parsed.driverOrders) ? parsed.driverOrders.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : parsed.driverOrder ? [normalizeOrder(parsed.driverOrder as Partial<Order>, current.driverOrder)].filter((order): order is Order => Boolean(order)) : current.driverOrders,
+246:          orderMessages: parsed.orderMessages && typeof parsed.orderMessages === "object" ? parsed.orderMessages as Record<string, OrderMessage[]> : current.orderMessages,
+316:      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, customerPhone: "", cart: [], cartSpecialRequests: "", activeOrder: null, activeOrders: [] })),
+342:      reorder: (order) => {
+344:          showToast(state.language === "ar" ? "سجّلي الدخول لإعادة الطلب" : "Sign in to reorder");
+349:          for (const orderItem of order.items) {
+350:            const normalizedRequests = orderItem.specialRequests ?? "";
+351:            const existingIndex = cart.findIndex((item) => item.meal.id === orderItem.meal.id && (item.specialRequests ?? "") === normalizedRequests);
+352:            if (existingIndex >= 0) cart[existingIndex] = { ...cart[existingIndex], quantity: cart[existingIndex].quantity + orderItem.quantity };
+353:            else cart.push({ ...orderItem });
+355:          return { ...current, cart, cartSpecialRequests: order.specialRequests ?? "", selectedKitchenId: order.kitchen.id };
+357:        showToast(state.language === "ar" ? "رجّعنا طلبك للسلة مع كل التخصيصات" : "Your order and customizations are back in the cart");
+359:      selectActiveOrder: (orderId) => setState((current) => ({ ...current, activeOrder: current.activeOrders.find((order) => order.id === orderId) ?? current.orderHistory.find((order) => order.id === orderId) ?? current.activeOrder })),
+367:      placeOrder: (paymentMethod, schedule, specialRequests = "") => {
+377:          const multiPricing = getMultiOrderPricing(current.cart, 1.25);
+381:          const nextOrders = multiPricing.groups.map((group, index): Order => {
+410:          return { ...current, activeOrder: nextOrders[0] ?? null, activeOrders: nextOrders, incomingOrder: nextOrders[0] ?? null, incomingOrders: nextOrders, driverOrder: nextOrders[0] ?? null, driverOrders: nextOrders, orderHistory: [...nextOrders, ...current.orderHistory].slice(0, 30), cart: [], cartSpecialRequests: "" };
+414:      rateOrder: (rating, review = "") => setState((current) => {
+415:        if (!current.activeOrder) return current;
+416:        const updatedOrder = { ...current.activeOrder, restaurantRating: Math.max(1, Math.min(5, Math.round(rating))), restaurantReview: review.trim() };
+417:        return { ...current, activeOrder: updatedOrder, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+419:      requestOrderAction: (orderId, action, note = "") => {
+421:          const target = current.activeOrders.find((order) => order.id === orderId) ?? current.activeOrder;
+423:          const updatedOrder = { ...target, customerAction: action, customerActionNote: note.trim(), customerActionAt: new Date().toISOString() };
+426:          return { ...current, activeOrder: current.activeOrder?.id === updatedOrder.id ? updatedOrder : current.activeOrder, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+429:      advanceOrder: (orderId) => {
+430:        const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
+432:          const targetId = orderId ?? current.activeOrder?.id;
+433:          const target = current.activeOrders.find((order) => order.id === targetId) ?? current.activeOrder;
+435:          const updatedOrder = { ...target, status: nextStatus[target.status] };
+436:          return { ...current, activeOrder: current.activeOrder?.id === updatedOrder.id ? updatedOrder : current.activeOrder, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+443:      selectIncomingOrder: (orderId) => setState((current) => ({ ...current, incomingOrder: current.incomingOrders.find((order) => order.id === orderId) ?? current.incomingOrder })),
+444:      acceptIncomingOrder: (orderId) => {
+445:        const targetId = orderId ?? state.incomingOrder?.id;
+447:          const incomingOrders = current.incomingOrders.map((order) => order.id === targetId ? { ...order, status: "preparing" as const } : order);
+448:          const incomingOrder = incomingOrders.find((order) => order.id === targetId) ?? current.incomingOrder;
+449:          return { ...current, incomingOrder, incomingOrders };
+451:        showToast(state.language === "ar" ? "تم قبول الطلب" : "Order accepted");
+453:      rejectIncomingOrder: (orderId) => {
+454:        const targetId = orderId ?? state.incomingOrder?.id;
+456:          const incomingOrders = current.incomingOrders.filter((order) => order.id !== targetId);
+457:          return { ...current, incomingOrders, incomingOrder: incomingOrders[0] ?? null };
+459:        showToast(state.language === "ar" ? "تم رفض الطلب" : "Order declined");
+466:      selectDriverOrder: (orderId) => setState((current) => ({ ...current, driverOrder: current.driverOrders.find((order) => order.id === orderId) ?? current.driverOrder })),
+470:          const updateOrder = (order: Order) => ({ ...order, driverCoordinates: coordinates, driverLocationUpdatedAt: updatedAt });
+471:          const driverOrder = current.driverOrder ? updateOrder(current.driverOrder) : null;
+472:          const driverOrders = current.driverOrders.map(updateOrder);
+473:          const activeOrders = current.activeOrders.map((order) => driverOrders.find((driverOrder) => driverOrder.id === order.id) ?? order);
+474:          const activeOrder = current.activeOrder ? activeOrders.find((order) => order.id === current.activeOrder?.id) ?? current.activeOrder : null;
+475:          return { ...current, driverOrder, driverOrders, activeOrder, activeOrders, orderHistory: current.orderHistory.map((order) => driverOrders.find((driverOrder) => driverOrder.id === order.id) ?? order) };
+478:      advanceDriverOrder: (orderId) => {
+479:        const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
+480:        const targetId = orderId ?? state.driverOrder?.id;
+481:        const target = state.driverOrders.find((order) => order.id === targetId) ?? state.driverOrder;
+483:          showToast(state.language === "ar" ? "هذه الحمولة أكبر من سعة مركبتك" : "This order is larger than your vehicle capacity");
+487:          const currentTarget = current.driverOrders.find((order) => order.id === targetId) ?? current.driverOrder;
+489:          const updatedOrder = { ...currentTarget, status: nextStatus[currentTarget.status] };
+490:          const driverOrders = current.driverOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order);
+491:          return { ...current, driverOrder: updatedOrder, driverOrders, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+494:      sendOrderMessage: (orderId, body) => {
+498:        const message: OrderMessage = { id: `MSG-${Date.now()}`, orderId, senderRole: state.role, senderName, body: trimmed, createdAt: new Date().toISOString() };
+499:        setState((current) => ({ ...current, orderMessages: { ...current.orderMessages, [orderId]: [...(current.orderMessages[orderId] ?? []), message].slice(-100) } }));

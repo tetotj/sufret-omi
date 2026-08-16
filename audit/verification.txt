@@ -1,0 +1,59 @@
+=== CHECK ===
+
+> app-template@1.0.0 check /home/ubuntu/sufret-omi
+> tsc --noEmit
+
+check_exit=0
+
+=== TEST ===
+
+> app-template@1.0.0 test /home/ubuntu/sufret-omi
+> vitest run
+
+
+ RUN  v2.1.9 /home/ubuntu/sufret-omi
+
+ ✓ tests/catalog-categories.test.ts (1 test) 3ms
+ ✓ tests/commission.test.ts (3 tests) 5ms
+ ✓ tests/recommendations.test.ts (2 tests) 4ms
+stdout | tests/email.test.ts > weekly email delivery > skips delivery safely when Resend is not configured
+[Email] Skipping weekly email report for مطبخ تجريبي (mother@example.com): Email provider API key is not configured.
+
+ ✓ tests/email.test.ts (1 test) 5ms
+ ✓ tests/order-actions.test.ts (2 tests) 3ms
+ ✓ tests/order-chat.test.ts (3 tests) 3ms
+ ✓ tests/marketing-notifications.test.ts (2 tests) 3ms
+ ↓ tests/auth.logout.test.ts (1 test | 1 skipped)
+stdout | tests/auth.logout.test.ts
+[OAuth] Initialized with baseURL: https://api.manus.im
+
+ ✓ tests/auth.local-user.test.ts (1 test) 2ms
+
+ Test Files  8 passed | 1 skipped (9)
+      Tests  15 passed | 1 skipped (16)
+   Start at  19:16:03
+   Duration  1.07s (transform 540ms, setup 0ms, collect 2.49s, tests 27ms, environment 2ms, prepare 644ms)
+
+test_exit=0
+
+=== LINT ===
+
+> app-template@1.0.0 lint /home/ubuntu/sufret-omi
+> expo lint
+
+(node:283595) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/ubuntu/sufret-omi/eslint.config.js?mtime=1786635086625 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/ubuntu/sufret-omi/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+lint_exit=0
+
+=== BUILD ===
+
+> app-template@1.0.0 build /home/ubuntu/sufret-omi
+> esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+
+  dist/index.js  96.0kb
+
+⚡ Done in 11ms
+build_exit=0

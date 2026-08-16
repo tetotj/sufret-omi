@@ -1,0 +1,200 @@
+=== DRIZZLE FILES ===
+drizzle/0000_elite_eternals.sql
+drizzle/0001_familiar_supreme_intelligence.sql
+drizzle/0002_known_mimic.sql
+drizzle/0003_dizzy_living_tribunal.sql
+drizzle/0004_sleepy_vin_gonzales.sql
+drizzle/0005_keen_the_twelve.sql
+drizzle/0006_brainy_ma_gnuci.sql
+drizzle/0007_unusual_klaw.sql
+drizzle/0008_wild_iron_patriot.sql
+drizzle/0009_premium_nico_minoru.sql
+drizzle/0010_volatile_wrecker.sql
+drizzle/0011_daily_namora.sql
+drizzle/0012_sudden_cassandra_nova.sql
+drizzle/0013_lowly_omega_red.sql
+drizzle/0014_living_silhouette.sql
+drizzle/0015_plain_wendell_rand.sql
+drizzle/0016_aberrant_vengeance.sql
+drizzle/0017_classy_frog_thor.sql
+drizzle/meta/0000_snapshot.json
+drizzle/meta/0001_snapshot.json
+drizzle/meta/0002_snapshot.json
+drizzle/meta/0003_snapshot.json
+drizzle/meta/0004_snapshot.json
+drizzle/meta/0005_snapshot.json
+drizzle/meta/0006_snapshot.json
+drizzle/meta/0007_snapshot.json
+drizzle/meta/0008_snapshot.json
+drizzle/meta/0009_snapshot.json
+drizzle/meta/0010_snapshot.json
+drizzle/meta/0011_snapshot.json
+drizzle/meta/0012_snapshot.json
+drizzle/meta/0013_snapshot.json
+drizzle/meta/0014_snapshot.json
+drizzle/meta/0015_snapshot.json
+drizzle/meta/0016_snapshot.json
+drizzle/meta/0017_snapshot.json
+drizzle/meta/_journal.json
+drizzle/migrations/.gitkeep
+drizzle/relations.ts
+drizzle/schema.ts
+
+=== MIGRATION CONTENT HEADERS ===
+--- drizzle/0000_elite_eternals.sql
+CREATE TABLE `users` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`openId` varchar(64) NOT NULL,
+	`name` text,
+	`email` varchar(320),
+	`loginMethod` varchar(64),
+	`role` enum('user','admin') NOT NULL DEFAULT 'user',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`lastSignedIn` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `users_id` PRIMARY KEY(`id`),
+	CONSTRAINT `users_openId_unique` UNIQUE(`openId`)
+);
+--- drizzle/0001_familiar_supreme_intelligence.sql
+CREATE TABLE `complaintImages` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`complaintId` varchar(64) NOT NULL,
+	`uri` text NOT NULL,
+	CONSTRAINT `complaintImages_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `complaintsDb` (
+	`id` varchar(64) NOT NULL,
+	`category` varchar(64) NOT NULL,
+	`subject` text NOT NULL,
+	`description` text NOT NULL,
+	`orderId` varchar(64),
+	`status` enum('new','in_review','resolved','closed') NOT NULL DEFAULT 'new',
+	`response` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `complaintsDb_id` PRIMARY KEY(`id`)
+);
+--- drizzle/0002_known_mimic.sql
+ALTER TABLE `complaintsDb` ADD `customerId` int;--- drizzle/0003_dizzy_living_tribunal.sql
+ALTER TABLE `users` ADD `accountStatus` enum('active','pending_approval','suspended','rejected') DEFAULT 'active' NOT NULL;--- drizzle/0004_sleepy_vin_gonzales.sql
+ALTER TABLE `users` MODIFY COLUMN `role` enum('user','admin') NOT NULL DEFAULT 'user';--- drizzle/0005_keen_the_twelve.sql
+CREATE TABLE IF NOT EXISTS `announcements` (
+	`id` varchar(64) NOT NULL,
+	`eyebrowAr` text NOT NULL,
+	`eyebrowEn` text NOT NULL,
+	`titleAr` text NOT NULL,
+	`titleEn` text NOT NULL,
+	`bodyAr` text NOT NULL,
+	`bodyEn` text NOT NULL,
+	`ctaAr` text NOT NULL,
+	`ctaEn` text NOT NULL,
+	`icon` varchar(64) NOT NULL DEFAULT 'campaign',
+	`target` enum('meals','orders') NOT NULL DEFAULT 'meals',
+	`sortOrder` int NOT NULL DEFAULT 0,
+	`isActive` boolean NOT NULL DEFAULT true,
+	`startsAt` timestamp,
+	`endsAt` timestamp,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+--- drizzle/0006_brainy_ma_gnuci.sql
+CREATE TABLE `pushTokens` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`token` varchar(512) NOT NULL,
+	`platform` enum('ios','android','web') NOT NULL,
+	`isActive` boolean NOT NULL DEFAULT true,
+	`lastSeenAt` timestamp NOT NULL DEFAULT (now()),
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `pushTokens_id` PRIMARY KEY(`id`),
+	CONSTRAINT `push_tokens_token_unique` UNIQUE(`token`)
+);
+--> statement-breakpoint
+ALTER TABLE `announcements` ADD `imageUrl` text;--> statement-breakpoint
+ALTER TABLE `offers` ADD `imageUrl` text;--> statement-breakpoint
+CREATE INDEX `push_tokens_user_active_idx` ON `pushTokens` (`userId`,`isActive`);--> statement-breakpoint
+CREATE INDEX `announcements_active_order_idx` ON `announcements` (`isActive`,`sortOrder`);--> statement-breakpoint
+CREATE INDEX `announcements_schedule_idx` ON `announcements` (`startsAt`,`endsAt`);--> statement-breakpoint
+--- drizzle/0007_unusual_klaw.sql
+ALTER TABLE `announcements` ADD `notificationSentAt` timestamp;--> statement-breakpoint
+ALTER TABLE `offers` ADD `notificationSentAt` timestamp;--- drizzle/0008_wild_iron_patriot.sql
+CREATE INDEX `complaint_images_complaint_idx` ON `complaintImages` (`complaintId`);--> statement-breakpoint
+CREATE INDEX `complaints_customer_status_idx` ON `complaintsDb` (`customerId`,`status`);--> statement-breakpoint
+CREATE INDEX `complaints_order_idx` ON `complaintsDb` (`orderId`);--> statement-breakpoint
+CREATE INDEX `complaints_created_at_idx` ON `complaintsDb` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `kitchens_user_idx` ON `kitchens` (`userId`);--> statement-breakpoint
+CREATE INDEX `kitchens_region_open_idx` ON `kitchens` (`region`,`isOpen`);--> statement-breakpoint
+CREATE INDEX `meals_kitchen_available_idx` ON `meals` (`kitchenId`,`available`);--> statement-breakpoint
+CREATE INDEX `meals_category_price_idx` ON `meals` (`category`,`price`);--> statement-breakpoint
+CREATE INDEX `orders_customer_status_idx` ON `orders` (`customerId`,`status`);--> statement-breakpoint
+CREATE INDEX `orders_kitchen_status_idx` ON `orders` (`kitchenId`,`status`);--> statement-breakpoint
+CREATE INDEX `orders_created_at_idx` ON `orders` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `reviews_order_idx` ON `reviews` (`orderId`);--> statement-breakpoint
+CREATE INDEX `reviews_kitchen_created_idx` ON `reviews` (`kitchenId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transactions_kitchen_status_idx` ON `transactions` (`kitchenId`,`status`);--> statement-breakpoint
+CREATE INDEX `transactions_created_at_idx` ON `transactions` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `documents_profile_idx` ON `userDocuments` (`userProfileId`);--> statement-breakpoint
+CREATE INDEX `profiles_user_role_idx` ON `userProfiles` (`userId`,`role`);--> statement-breakpoint
+CREATE INDEX `profiles_status_region_idx` ON `userProfiles` (`status`,`region`);--> statement-breakpoint
+--- drizzle/0009_premium_nico_minoru.sql
+CREATE TABLE `favorites` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`entityType` enum('meal','kitchen') NOT NULL,
+	`entityId` varchar(64) NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `favorites_id` PRIMARY KEY(`id`),
+	CONSTRAINT `favorites_user_entity_unique` UNIQUE(`userId`,`entityType`,`entityId`)
+);
+--> statement-breakpoint
+CREATE INDEX `favorites_user_type_idx` ON `favorites` (`userId`,`entityType`);--> statement-breakpoint
+CREATE INDEX `favorites_entity_idx` ON `favorites` (`entityType`,`entityId`);--- drizzle/0010_volatile_wrecker.sql
+CREATE TABLE `orderMessages` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`orderId` varchar(64) NOT NULL,
+	`senderId` int NOT NULL,
+	`senderRole` enum('customer','mother','driver') NOT NULL,
+	`senderName` varchar(160) NOT NULL,
+	`body` text NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `orderMessages_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+ALTER TABLE `orders` ADD `driverId` int;--> statement-breakpoint
+CREATE INDEX `order_messages_order_created_idx` ON `orderMessages` (`orderId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `order_messages_sender_idx` ON `orderMessages` (`senderId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `orders_driver_status_idx` ON `orders` (`driverId`,`status`);--- drizzle/0011_daily_namora.sql
+CREATE TABLE `driverLocations` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`orderId` varchar(64) NOT NULL,
+	`driverId` int NOT NULL,
+	`latitude` decimal(10,7) NOT NULL,
+	`longitude` decimal(10,7) NOT NULL,
+	`accuracy` decimal(8,2),
+	`capturedAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `driverLocations_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE INDEX `driver_locations_order_captured_idx` ON `driverLocations` (`orderId`,`capturedAt`);--> statement-breakpoint
+CREATE INDEX `driver_locations_driver_captured_idx` ON `driverLocations` (`driverId`,`capturedAt`);--- drizzle/0012_sudden_cassandra_nova.sql
+CREATE TABLE `orderActionRequests` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`orderId` varchar(64) NOT NULL,
+	`customerId` int NOT NULL,
+	`action` enum('cancellation_requested','replacement_requested') NOT NULL,
+	`note` text,
+	`status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `orderActionRequests_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE INDEX `order_action_order_status_idx` ON `orderActionRequests` (`orderId`,`status`);--> statement-breakpoint
+CREATE INDEX `order_action_customer_created_idx` ON `orderActionRequests` (`customerId`,`createdAt`);--- drizzle/0013_lowly_omega_red.sql
+ALTER TABLE `kitchens` ADD `descriptionAr` varchar(500) DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE `kitchens` ADD `descriptionEn` varchar(500) DEFAULT '' NOT NULL;--- drizzle/0014_living_silhouette.sql
+ALTER TABLE `kitchens` ADD `showDescription` boolean DEFAULT true NOT NULL;--- drizzle/0015_plain_wendell_rand.sql
+ALTER TABLE `kitchens` MODIFY COLUMN `showDescription` boolean NOT NULL DEFAULT false;--- drizzle/0016_aberrant_vengeance.sql
+ALTER TABLE `meals` MODIFY COLUMN `category` enum('mansaf','maqluba','mahshi','bakery','moona','desserts','dairy','cheese') NOT NULL;--- drizzle/0017_classy_frog_thor.sql
+ALTER TABLE `kitchens` ADD `descriptionApprovalStatus` enum('pending','approved','rejected') DEFAULT 'approved' NOT NULL;--> statement-breakpoint
+ALTER TABLE `meals` ADD `approvalStatus` enum('pending','approved','rejected') DEFAULT 'approved' NOT NULL;

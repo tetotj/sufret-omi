@@ -1,0 +1,34 @@
+=== SERVER ORDER WRITES ===
+server/db.ts:356:export async function createOrderActionRequest(input: { orderId: string; customerId: number; action: OrderActionRequestType; note?: string }) {
+server/db.ts:391:export async function createOrderMessage(input: { orderId: string; senderId: number; senderRole: "customer" | "mother" | "driver"; senderName: string; body: string }) {
+server/routers.ts:4:import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+server/routers.ts:162:    send: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), senderRole: z.enum(["customer", "mother", "driver"]), senderName: z.string().min(1).max(160), body: z.string().trim().min(1).max(500) })).mutation(({ ctx, input }) => createOrderMessage({ ...input, senderId: ctx.user.id })),
+server/routers.ts:170:    create: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), action: z.enum(["cancellation_requested", "replacement_requested"]), note: z.string().trim().max(240).optional() })).mutation(({ ctx, input }) => createOrderActionRequest({ ...input, customerId: ctx.user.id })),
+
+=== SERVER ORDER READS ===
+server/db.ts:316:  const rows = await db.select({ customerId: orders.customerId, driverId: orders.driverId, kitchenUserId: kitchens.userId }).from(orders).leftJoin(kitchens, eq(orders.kitchenId, kitchens.id)).where(eq(orders.id, orderId)).limit(1);
+server/db.ts:331:  const assigned = await db.select({ driverId: orders.driverId, status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1);
+server/db.ts:359:  const rows = await db.select({ customerId: orders.customerId, status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1);
+server/db.ts:426:      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+server/db.ts:428:      deliveredOrderCount: sql<number>`SUM(CASE WHEN ${orders.status} = 'delivered' THEN 1 ELSE 0 END)`,
+server/db.ts:429:    }).from(orders).where(gte(orders.createdAt, start)),
+server/db.ts:431:      day: sql<string>`DATE(${orders.createdAt})`,
+server/db.ts:432:      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+server/db.ts:434:    }).from(orders).where(gte(orders.createdAt, start)).groupBy(sql`DATE(${orders.createdAt})`).orderBy(sql`DATE(${orders.createdAt})`),
+server/db.ts:436:      kitchenId: orders.kitchenId,
+server/db.ts:437:      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+server/db.ts:439:    }).from(orders).where(gte(orders.createdAt, start)).groupBy(orders.kitchenId).orderBy(desc(sql`SUM(${orders.total})`)),
+
+=== ROUTER PROCEDURES ===
+19:const orderSmsSchema = z.object({ phone: z.string().min(8).max(32), orderCount: z.number().int().min(1).max(50), total: z.number().finite().nonnegative(), language: z.enum(["ar", "en"]) });
+52:  target: z.enum(["meals", "orders"]),
+157:    sendOrderConfirmationSms: protectedProcedure.input(orderSmsSchema).mutation(({ input }) => sendOrderConfirmationSms(input)),
+158:    notifyDriverOrderAssigned: adminProcedure.input(z.object({ driverUserId: z.number().int().positive(), orderId: z.string().min(1).max(64), kitchenNameAr: z.string().min(1).max(240), kitchenNameEn: z.string().min(1).max(240), language: z.enum(["ar", "en"]) })).mutation(({ input }) => sendPushNotificationToUser(input.driverUserId, { title: input.language === "ar" ? "طلب توصيل جديد" : "New delivery order", body: input.language === "ar" ? `تم تعيين الطلب ${input.orderId} من ${input.kitchenNameAr} لك` : `Order ${input.orderId} from ${input.kitchenNameEn} was assigned to you`, data: { type: "driver_order_assigned", orderId: input.orderId } })),
+161:    list: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => listOrderMessages(input.orderId, ctx.user.id)),
+162:    send: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), senderRole: z.enum(["customer", "mother", "driver"]), senderName: z.string().min(1).max(160), body: z.string().trim().min(1).max(500) })).mutation(({ ctx, input }) => createOrderMessage({ ...input, senderId: ctx.user.id })),
+165:    update: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180), accuracy: z.number().min(0).max(10000).optional() })).mutation(({ ctx, input }) => recordDriverLocation({ ...input, driverId: ctx.user.id })),
+166:    latest: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => getLatestDriverLocation(input.orderId, ctx.user.id)),
+168:  orderActions: router({
+169:    list: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => listOrderActionRequests(input.orderId, ctx.user.id)),
+170:    create: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), action: z.enum(["cancellation_requested", "replacement_requested"]), note: z.string().trim().max(240).optional() })).mutation(({ ctx, input }) => createOrderActionRequest({ ...input, customerId: ctx.user.id })),
+180:        orderId: z.string().max(64).optional(),

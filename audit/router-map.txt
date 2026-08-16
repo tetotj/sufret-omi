@@ -1,0 +1,93 @@
+10:import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+23:  descriptionAr: z.string().trim().max(500),
+24:  descriptionEn: z.string().trim().max(500),
+25:  showDescription: z.boolean(),
+30:  kitchenId: z.string().trim().min(1).max(64),
+31:  nameAr: z.string().trim().min(1).max(120),
+32:  nameEn: z.string().trim().min(1).max(120),
+33:  descriptionAr: z.string().trim().max(500),
+34:  descriptionEn: z.string().trim().max(500),
+35:  category: z.enum(["mansaf", "maqluba", "mahshi", "bakery", "moona", "desserts", "dairy", "cheese"]),
+36:  price: z.string().trim().min(1).max(16),
+37:  prepMinutes: z.number().int().min(1).max(300),
+38:  dailyLimit: z.number().int().min(1).max(200),
+39:  image: z.string().min(1),
+42:  id: z.string().min(1).max(64),
+43:  eyebrowAr: z.string().min(1).max(240),
+44:  eyebrowEn: z.string().min(1).max(240),
+45:  titleAr: z.string().min(1).max(240),
+46:  titleEn: z.string().min(1).max(240),
+47:  bodyAr: z.string().min(1).max(1000),
+48:  bodyEn: z.string().min(1).max(1000),
+49:  ctaAr: z.string().min(1).max(120),
+50:  ctaEn: z.string().min(1).max(120),
+51:  icon: z.string().min(1).max(64),
+52:  target: z.enum(["meals", "orders"]),
+53:  sortOrder: z.number().int().min(0).max(9999),
+54:  isActive: z.boolean(),
+55:  startsAt: marketingDateSchema,
+56:  endsAt: marketingDateSchema,
+57:  imageUrl: z.string().url().nullable().optional(),
+60:  id: z.string().min(1).max(64),
+61:  mealId: z.string().min(1).max(64),
+62:  badgeAr: z.string().min(1).max(240),
+63:  badgeEn: z.string().min(1).max(240),
+64:  discountPercent: z.number().min(0).max(100).nullable().optional(),
+65:  sortOrder: z.number().int().min(0).max(9999),
+66:  isActive: z.boolean(),
+67:  startsAt: marketingDateSchema,
+68:  endsAt: marketingDateSchema,
+69:  imageUrl: z.string().url().nullable().optional(),
+83:  system: systemRouter,
+84:  auth: router({
+85:    me: publicProcedure.query((opts) => opts.ctx.user),
+86:    logout: publicProcedure.mutation(({ ctx }) => {
+91:    localSignIn: publicProcedure
+98:  admin: router({
+99:    listUsers: adminProcedure.query(() => listUserProfiles()),
+100:    updateUserStatus: adminProcedure
+103:    listPendingKitchenDescriptions: adminProcedure.query(() => listPendingKitchenDescriptions()),
+104:    decideKitchenDescription: adminProcedure.input(kitchenDescriptionDecisionInput).mutation(({ input }) => decideKitchenDescription(input.kitchenId, input.status)),
+105:    listPendingMealApprovals: adminProcedure.query(() => listPendingMealApprovals()),
+106:    decideMealApproval: adminProcedure.input(mealApprovalDecisionInput).mutation(({ input }) => decideMealApproval(input.mealId, input.status)),
+108:    financialAnalytics: adminProcedure
+111:    weeklyReport: adminProcedure.query(() => generateWeeklyKitchenReports()),
+112:    ensureWeeklyReportSchedule: adminProcedure.mutation(() => ensureWeeklyReportHeartbeatJob()),
+113:    listComplaints: adminProcedure.query(() => listComplaintRecords()),
+114:    updateComplaint: adminProcedure
+117:    listAnnouncements: adminProcedure.query(() => listAllAnnouncements()),
+118:    createAnnouncement: adminProcedure.input(announcementInput).mutation(({ input }) => createAnnouncementRecord({ ...input, startsAt: parseMarketingDate(input.startsAt), endsAt: parseMarketingDate(input.endsAt) })),
+119:    updateAnnouncement: adminProcedure.input(announcementInput.partial().extend({ id: z.string().min(1).max(64) })).mutation(({ input }) => {
+123:    deleteAnnouncement: adminProcedure.input(z.object({ id: z.string().min(1).max(64) })).mutation(({ input }) => deleteAnnouncementRecord(input.id)),
+124:    uploadAnnouncementImage: adminProcedure.input(z.object({ id: z.string().min(1).max(64), image: marketingImageSchema })).mutation(async ({ input }) => { const decoded = decodeImageDataUrl(input.image); const uploaded = await storagePut(`marketing/announcements/${input.id}`, decoded.data, decoded.contentType); await updateAnnouncementRecord(input.id, { imageUrl: uploaded.url }); return { url: uploaded.url }; }),
+125:    listOffers: adminProcedure.query(() => listAllOffers()),
+126:    createOffer: adminProcedure.input(offerInput).mutation(({ input }) => createOfferRecord({ ...input, startsAt: parseMarketingDate(input.startsAt), endsAt: parseMarketingDate(input.endsAt) })),
+127:    updateOffer: adminProcedure.input(offerInput.partial().extend({ id: z.string().min(1).max(64) })).mutation(({ input }) => {
+131:    deleteOffer: adminProcedure.input(z.object({ id: z.string().min(1).max(64) })).mutation(({ input }) => deleteOfferRecord(input.id)),
+132:    uploadOfferImage: adminProcedure.input(z.object({ id: z.string().min(1).max(64), image: marketingImageSchema })).mutation(async ({ input }) => { const decoded = decodeImageDataUrl(input.image); const uploaded = await storagePut(`marketing/offers/${input.id}`, decoded.data, decoded.contentType); await updateOfferRecord(input.id, { imageUrl: uploaded.url }); return { url: uploaded.url }; }),
+134:  marketing: router({
+135:    announcements: publicProcedure.query(() => listActiveAnnouncements()),
+136:    offers: publicProcedure.query(() => listActiveOffers()),
+138:  kitchens: router({
+139:    profile: publicProcedure.input(kitchenIdSchema).query(({ input }) => getKitchenDescription(input.kitchenId)),
+140:    updateDescription: protectedProcedure.input(kitchenDescriptionInput).mutation(({ ctx, input }) => updateKitchenDescription(ctx.user.id, input.kitchenId, { descriptionAr: input.descriptionAr, descriptionEn: input.descriptionEn, showDescription: input.showDescription })),
+141:    createMeal: protectedProcedure.input(createMealInput).mutation(async ({ ctx, input }) => {
+151:  favorites: router({
+152:    mine: protectedProcedure.query(async ({ ctx }) => ({ mealIds: await listFavoriteIds(ctx.user.id, "meal"), kitchenIds: await listFavoriteIds(ctx.user.id, "kitchen") })),
+153:    toggle: protectedProcedure.input(favoriteSchema).mutation(({ ctx, input }) => toggleFavorite(ctx.user.id, input.entityType, input.entityId)),
+155:  notifications: router({
+156:    registerPushToken: protectedProcedure.input(pushTokenSchema).mutation(({ ctx, input }) => { if (input.platform !== "web" && !isExpoPushToken(input.token)) throw new Error("Invalid Expo push token"); return registerPushToken(ctx.user.id, input.token, input.platform); }),
+157:    sendOrderConfirmationSms: protectedProcedure.input(orderSmsSchema).mutation(({ input }) => sendOrderConfirmationSms(input)),
+158:    notifyDriverOrderAssigned: adminProcedure.input(z.object({ driverUserId: z.number().int().positive(), orderId: z.string().min(1).max(64), kitchenNameAr: z.string().min(1).max(240), kitchenNameEn: z.string().min(1).max(240), language: z.enum(["ar", "en"]) })).mutation(({ input }) => sendPushNotificationToUser(input.driverUserId, { title: input.language === "ar" ? "طلب توصيل جديد" : "New delivery order", body: input.language === "ar" ? `تم تعيين الطلب ${input.orderId} من ${input.kitchenNameAr} لك` : `Order ${input.orderId} from ${input.kitchenNameEn} was assigned to you`, data: { type: "driver_order_assigned", orderId: input.orderId } })),
+160:  chat: router({
+161:    list: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => listOrderMessages(input.orderId, ctx.user.id)),
+162:    send: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), senderRole: z.enum(["customer", "mother", "driver"]), senderName: z.string().min(1).max(160), body: z.string().trim().min(1).max(500) })).mutation(({ ctx, input }) => createOrderMessage({ ...input, senderId: ctx.user.id })),
+164:  driverLocation: router({
+165:    update: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180), accuracy: z.number().min(0).max(10000).optional() })).mutation(({ ctx, input }) => recordDriverLocation({ ...input, driverId: ctx.user.id })),
+166:    latest: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => getLatestDriverLocation(input.orderId, ctx.user.id)),
+168:  orderActions: router({
+169:    list: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => listOrderActionRequests(input.orderId, ctx.user.id)),
+170:    create: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), action: z.enum(["cancellation_requested", "replacement_requested"]), note: z.string().trim().max(240).optional() })).mutation(({ ctx, input }) => createOrderActionRequest({ ...input, customerId: ctx.user.id })),
+172:  complaints: router({
+173:    mine: protectedProcedure.query(({ ctx }) => listComplaintRecords(ctx.user.id)),
+174:    create: publicProcedure

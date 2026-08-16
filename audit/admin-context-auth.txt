@@ -1,0 +1,94 @@
+125-  orderMessages: Record<string, OrderMessage[]>;
+126-  motherVerification: MotherVerificationProfile;
+127-  driverVerification: DriverVerificationProfile;
+128-  managedUsers: ManagedUser[];
+129-  hiddenMealIds: string[];
+130-  kitchenDescriptions: Record<string, KitchenDescriptionState>;
+131:  adminAuthenticated: boolean;
+132-};
+133-
+134-type AppContextValue = AppState & {
+135-  signIn: (role: Role, guest?: boolean, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void;
+136-  signOut: () => void;
+137-  setLanguage: (language: Language) => void;
+--
+167-  updateMotherVerification: (patch: Partial<MotherVerificationProfile>) => void;
+168-  updateDriverVerification: (patch: Partial<DriverVerificationProfile>) => void;
+169-  attachVerificationDocument: (role: Extract<Role, "mother" | "driver">, documentType: VerificationDocumentType, uri: string) => void;
+170-  submitVerification: (role: Extract<Role, "mother" | "driver">) => void;
+171-  setVerificationApproval: (role: Extract<Role, "mother" | "driver">, status: Extract<ApprovalStatus, "approved" | "rejected">) => void;
+172-  canAccessRoleDashboard: (role: Role) => boolean;
+173:  adminSignIn: (code: string) => boolean;
+174:  adminSignOut: () => void;
+175-  updateUserStatus: (userId: string, status: UserAccountStatus) => void;
+176-  updateKitchenDescription: (kitchenId: string, description: { ar: string; en: string; showDescription: boolean }) => void;
+177-  removeMeal: (mealId: string) => void;
+178-  showToast: (message: string) => void;
+179-  dismissToast: () => void;
+180-  cartTotal: number;
+--
+214-  orderMessages: {},
+215-  motherVerification: createMotherVerification("amman"),
+216-  driverVerification: createDriverVerification("amman"),
+217-  managedUsers: sampleManagedUsers,
+218-  hiddenMealIds: [],
+219-  kitchenDescriptions: Object.fromEntries(kitchens.filter((kitchen) => kitchen.description).map((kitchen) => [kitchen.id, { ...kitchen.description!, showDescription: false }])),
+220:  adminAuthenticated: false,
+221-};
+222-
+223-export function AppProvider({ children }: { children: React.ReactNode }) {
+224-  const [state, setState] = useState<AppState>(initialState);
+225-
+226-  useEffect(() => {
+--
+246-          orderMessages: parsed.orderMessages && typeof parsed.orderMessages === "object" ? parsed.orderMessages as Record<string, OrderMessage[]> : current.orderMessages,
+247-          motherVerification: normalizeMotherVerification(parsed.motherVerification, current.motherVerification),
+248-          driverVerification: normalizeDriverVerification(parsed.driverVerification, current.driverVerification),
+249-          managedUsers: Array.isArray(parsed.managedUsers) ? parsed.managedUsers : current.managedUsers,
+250-          hiddenMealIds: Array.isArray(parsed.hiddenMealIds) ? parsed.hiddenMealIds.filter((mealId): mealId is string => typeof mealId === "string" && meals.some((meal) => meal.id === mealId)) : current.hiddenMealIds,
+251-          kitchenDescriptions: parsed.kitchenDescriptions && typeof parsed.kitchenDescriptions === "object" ? Object.fromEntries(Object.entries(parsed.kitchenDescriptions).filter(([kitchenId, value]) => kitchens.some((kitchen) => kitchen.id === kitchenId) && value && typeof value === "object" && typeof (value as { ar?: unknown }).ar === "string" && typeof (value as { en?: unknown }).en === "string").map(([kitchenId, value]) => [kitchenId, { ar: (value as { ar: string }).ar, en: (value as { en: string }).en, showDescription: typeof (value as { showDescription?: unknown }).showDescription === "boolean" ? (value as { showDescription: boolean }).showDescription : false }])) : current.kitchenDescriptions,
+252:          adminAuthenticated: parsed.adminAuthenticated === true,
+253-          toast: null,
+254-        }));
+255-      } catch {
+256-        // Ignore invalid local state and use safe defaults.
+257-      }
+258-    });
+--
+270-    const showToast = (message: string) => {
+271-      setState((current) => ({ ...current, toast: message }));
+272-      setTimeout(() => setState((current) => ({ ...current, toast: null })), 2600);
+273-    };
+274-    const canAccessRoleDashboard = (requestedRole: Role) => requestedRole === "customer" || (requestedRole === "mother" ? state.motherVerification.approvalStatus === "approved" : state.driverVerification.approvalStatus === "approved");
+275-    const isKitchenAvailable = state.kitchenOpen && !isDayClosed(state.weeklySchedule, getWeekdayFromDate());
+276:    const adminSignIn = (code: string) => {
+277-      if (code.trim() === "9988" || code.trim() === "admin123") {
+278:        setState((current) => ({ ...current, adminAuthenticated: true }));
+279-        showToast(state.language === "ar" ? "أهلاً بك في لوحة الإدارة العليا" : "Welcome to the supervisor command center");
+280-        return true;
+281-      }
+282-      showToast(state.language === "ar" ? "رمز المشرف غير صحيح (جربي 9988)" : "Incorrect supervisor code (try 9988)");
+283-      return false;
+284-    };
+285:    const adminSignOut = () => setState((current) => ({ ...current, adminAuthenticated: false }));
+286-    const updateUserStatus = (userId: string, status: UserAccountStatus) => {
+287-      setState((current) => ({
+288-        ...current,
+289-        managedUsers: current.managedUsers.map((user) => user.id === userId ? { ...user, status } : user),
+290-      }));
+291-      showToast(state.language === "ar" ? "تم تحديث حالة المستخدم بنجاح" : "User status updated successfully");
+--
+516-      }),
+517-      setVerificationApproval: (role, status) => {
+518-        setState((current) => role === "mother" ? { ...current, motherVerification: { ...current.motherVerification, approvalStatus: status } } : { ...current, driverVerification: { ...current.driverVerification, approvalStatus: status } });
+519-        showToast(status === "approved" ? (state.language === "ar" ? "تم اعتماد الملف وفتح اللوحة" : "Profile approved and dashboard unlocked") : (state.language === "ar" ? "تم طلب تعديلات على الملف" : "Changes requested on the profile"));
+520-      },
+521-      canAccessRoleDashboard,
+522:      adminSignIn,
+523:      adminSignOut,
+524-      updateUserStatus,
+525-      updateKitchenDescription,
+526-      removeMeal,
+527-      showToast,
+528-      dismissToast: () => setState((current) => ({ ...current, toast: null })),
+529-    };
