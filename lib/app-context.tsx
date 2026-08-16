@@ -122,6 +122,7 @@ type AppState = {
   motherVerification: MotherVerificationProfile;
   driverVerification: DriverVerificationProfile;
   managedUsers: ManagedUser[];
+  hiddenMealIds: string[];
   adminAuthenticated: boolean;
 };
 
@@ -166,11 +167,13 @@ type AppContextValue = AppState & {
   adminSignIn: (code: string) => boolean;
   adminSignOut: () => void;
   updateUserStatus: (userId: string, status: UserAccountStatus) => void;
+  removeMeal: (mealId: string) => void;
   showToast: (message: string) => void;
   dismissToast: () => void;
   cartTotal: number;
   cartCount: number;
   selectedKitchen: Kitchen;
+  availableMeals: Meal[];
   isKitchenAvailable: boolean;
 };
 
@@ -204,6 +207,7 @@ const initialState: AppState = {
   motherVerification: createMotherVerification("amman"),
   driverVerification: createDriverVerification("amman"),
   managedUsers: sampleManagedUsers,
+  hiddenMealIds: [],
   adminAuthenticated: false,
 };
 
@@ -234,6 +238,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           motherVerification: normalizeMotherVerification(parsed.motherVerification, current.motherVerification),
           driverVerification: normalizeDriverVerification(parsed.driverVerification, current.driverVerification),
           managedUsers: Array.isArray(parsed.managedUsers) ? parsed.managedUsers : current.managedUsers,
+          hiddenMealIds: Array.isArray(parsed.hiddenMealIds) ? parsed.hiddenMealIds.filter((mealId): mealId is string => typeof mealId === "string" && meals.some((meal) => meal.id === mealId)) : current.hiddenMealIds,
           adminAuthenticated: parsed.adminAuthenticated === true,
           toast: null,
         }));
@@ -275,9 +280,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       showToast(state.language === "ar" ? "تم تحديث حالة المستخدم بنجاح" : "User status updated successfully");
     };
+    const removeMeal = (mealId: string) => {
+      if (!meals.some((meal) => meal.id === mealId) || state.hiddenMealIds.includes(mealId)) return;
+      setState((current) => ({
+        ...current,
+        hiddenMealIds: [...current.hiddenMealIds, mealId],
+        cart: current.cart.filter((item) => item.meal.id !== mealId),
+        weeklySchedule: { ...current.weeklySchedule, mealDays: { ...current.weeklySchedule.mealDays, [mealId]: [] } },
+      }));
+      showToast(state.language === "ar" ? "تمت إزالة الطبخة من قائمة مطبخك" : "The dish was removed from your kitchen menu");
+    };
 
     return {
       ...state,
+      availableMeals: meals.filter((meal) => !state.hiddenMealIds.includes(meal.id)),
       selectedKitchen: getKitchen(state.selectedKitchenId),
       isKitchenAvailable,
       signIn: (role, guest = false, phone = "") => setState((current) => ({ ...current, isAuthenticated: true, isGuest: guest, customerPhone: phone.trim() || current.customerPhone, role })),
@@ -489,6 +505,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       adminSignIn,
       adminSignOut,
       updateUserStatus,
+      removeMeal,
       showToast,
       dismissToast: () => setState((current) => ({ ...current, toast: null })),
     };

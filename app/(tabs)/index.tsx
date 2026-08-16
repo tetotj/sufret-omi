@@ -5,6 +5,7 @@ import * as Sharing from "expo-sharing";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import {
+  Alert,
   Modal,
   Platform,
   Pressable,
@@ -42,7 +43,6 @@ import {
   getOrderPricing,
   getMultiOrderPricing,
   getKitchenDistanceKm,
-  getKitchenMeals,
   getLocalized,
   getRegion,
   kitchens,
@@ -465,14 +465,14 @@ function DiscoverMapScreen({ onBack, onOpenMeals }: { onBack: () => void; onOpen
 }
 
 function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBack: () => void; onOpenCart: () => void; onOpenKitchen: (kitchenId: string) => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
-  const { language, selectedRegion, selectedCategory, setSelectedRegion, setSelectedCategory, updateQuantity, cart } = useApp();
+  const { language, selectedRegion, selectedCategory, setSelectedRegion, setSelectedCategory, updateQuantity, cart, availableMeals } = useApp();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">(selectedRegion);
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("distance");
   const region = getRegion(selectedRegion);
   const activeRegion = regionScope === "all" ? region : getRegion(regionScope);
   const mealsTitle = selectedCategory === "all" ? (language === "ar" ? "كل الأكلات القريبة" : "All nearby meals") : getLocalized(getCategory(selectedCategory).label, language);
-  const nearbyMeals = useMemo(() => meals.filter((meal) => selectedCategory === "all" || meal.category === selectedCategory).map((meal) => {
+  const nearbyMeals = useMemo(() => availableMeals.filter((meal) => selectedCategory === "all" || meal.category === selectedCategory).map((meal) => {
     const kitchen = kitchens.find((item) => item.id === meal.kitchenId) ?? kitchens[0];
     return { meal, kitchen, distance: getKitchenDistanceKm(kitchen, activeRegion) };
   }).filter(({ kitchen }) => regionScope === "all" || kitchen.region === regionScope).sort((left, right) => {
@@ -481,7 +481,7 @@ function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBa
     if (filterSort === "high") return right.meal.price - left.meal.price;
     if (filterSort === "low") return left.meal.price - right.meal.price;
     return left.distance - right.distance;
-  }), [activeRegion, regionScope, selectedCategory, filterSort]);
+  }), [activeRegion, availableMeals, regionScope, selectedCategory, filterSort]);
 
   return (
     <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onRequestAdd(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
@@ -510,6 +510,7 @@ function CustomerHome({
     setSelectedRegion,
     setSelectedCategory,
     setSelectedKitchenId,
+    availableMeals,
     activeOrder,
     updateQuantity,
     isKitchenAvailable,
@@ -538,7 +539,7 @@ function CustomerHome({
 
   const visibleMeals = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const filtered = meals.filter((meal) => {
+    const filtered = availableMeals.filter((meal) => {
       const matchesQuery = !normalized || `${meal.name.ar} ${meal.name.en}`.toLowerCase().includes(normalized);
       const matchesCategory = selectedCategory === "all" || meal.category === selectedCategory;
       const matchesOffer = !offersOnly || offerMealIds.has(meal.id);
@@ -556,7 +557,7 @@ function CustomerHome({
       if (filterSort === "distance") return (leftKitchen ? getKitchenDistanceKm(leftKitchen, region) : Number.MAX_SAFE_INTEGER) - (rightKitchen ? getKitchenDistanceKm(rightKitchen, region) : Number.MAX_SAFE_INTEGER);
       return (rightKitchen?.rating ?? 0) - (leftKitchen?.rating ?? 0);
     });
-  }, [query, selectedCategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById]);
+  }, [availableMeals, query, selectedCategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById]);
 
   const openKitchen = (kitchenId: string) => {
     setSelectedKitchenId(kitchenId);
@@ -641,9 +642,9 @@ function CustomerHome({
 }
 
 function FavoritesScreen({ onBack, onOpenKitchen, onRequestAdd }: { onBack: () => void; onOpenKitchen: (kitchenId: string) => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
-  const { language, cart, updateQuantity } = useApp();
+  const { language, cart, updateQuantity, availableMeals } = useApp();
   const { mealIds, kitchenIds, toggle } = useFavorites();
-  const favoriteMeals = meals.filter((meal) => mealIds.has(meal.id));
+  const favoriteMeals = availableMeals.filter((meal) => mealIds.has(meal.id));
   const favoriteKitchens = kitchens.filter((kitchen) => kitchenIds.has(kitchen.id));
   return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "محفوظاتك" : "YOUR SAVED TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "المفضلة" : "Favorites"}</Text></View><View style={styles.favoriteHeaderIcon}><MaterialIcons name="favorite" size={19} color="#D76545" /></View></View>
@@ -654,9 +655,9 @@ function FavoritesScreen({ onBack, onOpenKitchen, onRequestAdd }: { onBack: () =
 }
 
 function KitchenProfile({ onBack, onCart, onRequestAdd }: { onBack: () => void; onCart: () => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
-  const { language, selectedKitchen, cart, cartCount, updateQuantity } = useApp();
+  const { language, selectedKitchen, cart, cartCount, updateQuantity, availableMeals } = useApp();
   const { mealIds: favoriteMealIds, kitchenIds: favoriteKitchenIds, toggle: toggleFavorite } = useFavorites();
-  const kitchenMeals = getKitchenMeals(selectedKitchen.id);
+  const kitchenMeals = availableMeals.filter((meal) => meal.kitchenId === selectedKitchen.id);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><Text style={styles.pageTitle}>{language === "ar" ? "مطبخ بيت" : "Home kitchen"}</Text><Pressable onPress={onCart} style={styles.iconButton}><MaterialIcons name="shopping-cart" size={20} color="#082E34" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable></View>
@@ -998,11 +999,24 @@ function ComplaintsScreen({ onBack }: { onBack: () => void }) {
 }
 
 function MotherDashboard({ onBack }: { onBack: () => void }) {
-  const { language, toggleKitchen, incomingOrder, incomingOrders, selectIncomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast, weeklySchedule, toggleClosedDay, toggleMealScheduleDay, isKitchenAvailable } = useApp();
+  const { language, toggleKitchen, incomingOrder, incomingOrders, selectIncomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast, weeklySchedule, toggleClosedDay, toggleMealScheduleDay, isKitchenAvailable, availableMeals, removeMeal } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const todayClosed = weeklySchedule.closedDays.includes(getWeekdayFromDate());
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const motherMeals = getKitchenMeals("umm-ahmad");
+  const motherMeals = availableMeals.filter((meal) => meal.kitchenId === "umm-ahmad");
+  const confirmRemoveMeal = (meal: (typeof meals)[number]) => {
+    const title = language === "ar" ? "إزالة الطبخة؟" : "Remove this dish?";
+    const message = language === "ar" ? `سيتم إخفاء «${getLocalized(meal.name, language)}» من قائمة مطبخك وإزالتها من السلة إن وُجدت.` : `“${getLocalized(meal.name, language)}” will be hidden from your menu and removed from the cart if present.`;
+    const remove = () => removeMeal(meal.id);
+    if (Platform.OS === "web") {
+      if (window.confirm(`${title}\n\n${message}`)) remove();
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: language === "ar" ? "إلغاء" : "Cancel", style: "cancel" },
+      { text: language === "ar" ? "إزالة" : "Remove", style: "destructive", onPress: remove },
+    ]);
+  };
   const downloadWeeklySchedule = async () => {
     const csv = weeklyScheduleToCsv(weeklySchedule, motherMeals);
     if (Platform.OS === "web") {
@@ -1038,8 +1052,8 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
       <SectionHeader title={language === "ar" ? "شكاوى العملاء" : "Customer complaints"} action={complaints.length ? (language === "ar" ? "تحديث" : "Update") : ""} onAction={complaints.length ? () => { const next = complaints.find((complaint) => complaint.status === "new") ?? complaints.find((complaint) => complaint.status === "in_review"); if (next) { updateComplaintStatus(next.id, next.status === "new" ? "in_review" : "resolved", next.status === "new" ? (language === "ar" ? "تم استلام شكواك ونراجعها الآن." : "We received your complaint and are reviewing it.") : (language === "ar" ? "تمت معالجة الشكوى." : "The complaint has been addressed.")); showToast(language === "ar" ? "تم تحديث حالة الشكوى" : "Complaint status updated"); } } : undefined} />
       {complaints.length ? <View style={styles.complaintInbox}>{complaints.slice(0, 3).map((complaint) => { const categoryItem = complaintCategories.find((item) => item.id === complaint.category); return <View key={complaint.id} style={styles.complaintInboxRow}><View style={styles.complaintInboxIcon}><MaterialIcons name={(categoryItem?.icon ?? "help-outline") as IconName} size={16} color="#00AFC4" /></View><View style={styles.complaintInboxCopy}><Text style={styles.complaintInboxTitle}>{complaint.subject}</Text><Text style={styles.complaintInboxMeta}>{complaint.id} · {getLocalized(complaintStatuses[complaint.status], language)}{complaint.imageUris.length ? ` · ${complaint.imageUris.length} ${language === "ar" ? "صور" : "photos"}` : ""}</Text></View><Pressable onPress={() => { const nextStatus = complaint.status === "new" ? "in_review" : complaint.status === "in_review" ? "resolved" : complaint.status; updateComplaintStatus(complaint.id, nextStatus, nextStatus === "resolved" ? (language === "ar" ? "تمت معالجة الشكوى من فريق سفرة." : "The Sufret Omi team addressed this complaint.") : undefined); showToast(language === "ar" ? "تم تحديث الشكوى" : "Complaint updated"); }} style={styles.complaintInboxAction}><Text style={styles.complaintInboxActionText}>{complaint.status === "new" ? (language === "ar" ? "مراجعة" : "Review") : complaint.status === "in_review" ? (language === "ar" ? "حل" : "Resolve") : (language === "ar" ? "تمت" : "Done")}</Text></Pressable></View>; })}</View> : <View style={styles.supportEmptyCard}><MaterialIcons name="check-circle" size={20} color="#2E9B72" /><Text style={styles.supportEmptyText}>{language === "ar" ? "لا توجد شكاوى جديدة على مطبخك" : "No new complaints for your kitchen"}</Text></View>}
       <SectionHeader title={language === "ar" ? "إدارة مطبخك" : "Manage your kitchen"} action={language === "ar" ? "عرض القائمة" : "View menu"} onAction={() => setMenuOpen((value) => !value)} />
-      <View style={styles.dashboardList}><DashboardAction icon="restaurant-menu" title={language === "ar" ? "قائمة الأكلات" : "Menu items"} detail={language === "ar" ? "٥ أكلات · ٤ متاحة" : "5 meals · 4 available"} onPress={() => setMenuOpen((value) => !value)} /><DashboardAction icon="event" title={language === "ar" ? "طلبات مسبقة" : "Advance orders"} detail={language === "ar" ? "مناسبات الجمعة" : "Friday gatherings"} onPress={() => undefined} /><DashboardAction icon="account-balance" title={language === "ar" ? "الأرباح و CliQ" : "Earnings & CliQ"} detail={lastPayout ? (language === "ar" ? "طلب التحويل قيد المعالجة" : "Payout processing") : (language === "ar" ? "٣٨٦ د.أ جاهزة للتحويل" : "JOD 386 ready to payout")} onPress={() => requestPayout(386)} /> </View>
-      {menuOpen && <View style={styles.menuManager}>{getKitchenMeals("umm-ahmad").map((meal) => <View key={meal.id} style={styles.menuManagerRow}><Image source={{ uri: meal.image }} style={styles.menuThumb} /><View style={styles.menuManagerCopy}><Text style={styles.menuManagerName}>{getLocalized(meal.name, language)}</Text><Text style={styles.menuManagerMeta}>{formatJod(meal.price, language)} · {meal.prepMinutes} min</Text></View><View style={styles.menuStatus}><View style={styles.openDot} /><Text style={styles.menuStatusText}>{language === "ar" ? "متاحة" : "Live"}</Text></View></View>)}</View>}
+      <View style={styles.dashboardList}><DashboardAction icon="restaurant-menu" title={language === "ar" ? "قائمة الأكلات" : "Menu items"} detail={language === "ar" ? `${motherMeals.length} أكلات · ${motherMeals.length} متاحة` : `${motherMeals.length} meals · ${motherMeals.length} available`} onPress={() => setMenuOpen((value) => !value)} /><DashboardAction icon="event" title={language === "ar" ? "طلبات مسبقة" : "Advance orders"} detail={language === "ar" ? "مناسبات الجمعة" : "Friday gatherings"} onPress={() => undefined} /><DashboardAction icon="account-balance" title={language === "ar" ? "الأرباح و CliQ" : "Earnings & CliQ"} detail={lastPayout ? (language === "ar" ? "طلب التحويل قيد المعالجة" : "Payout processing") : (language === "ar" ? "٣٨٦ د.أ جاهزة للتحويل" : "JOD 386 ready to payout")} onPress={() => requestPayout(386)} /> </View>
+      {menuOpen && <View style={styles.menuManager}>{motherMeals.length ? motherMeals.map((meal) => <View key={meal.id} style={styles.menuManagerRow}><Image source={{ uri: meal.image }} style={styles.menuThumb} /><View style={styles.menuManagerCopy}><Text style={styles.menuManagerName}>{getLocalized(meal.name, language)}</Text><Text style={styles.menuManagerMeta}>{formatJod(meal.price, language)} · {meal.prepMinutes} min</Text></View><View style={styles.menuStatus}><View style={styles.openDot} /><Text style={styles.menuStatusText}>{language === "ar" ? "متاحة" : "Live"}</Text></View><Pressable onPress={() => confirmRemoveMeal(meal)} style={({ pressed }) => [styles.menuRemoveButton, pressed && styles.pressed]} accessibilityLabel={language === "ar" ? `إزالة ${getLocalized(meal.name, language)}` : `Remove ${getLocalized(meal.name, language)}`}><MaterialIcons name="delete-outline" size={18} color="#C4555D" /></Pressable></View>) : <View style={styles.menuEmpty}><MaterialIcons name="restaurant-menu" size={22} color="#8ABAC0" /><Text style={styles.menuEmptyText}>{language === "ar" ? "لا توجد طبخات في القائمة حالياً" : "No dishes are currently on the menu"}</Text></View>}</View>}
       <View style={styles.cliqCard}><View style={styles.cliqBadge}><Text style={styles.cliqBadgeText}>CliQ</Text></View><View style={styles.cliqCopy}><Text style={styles.cliqTitle}>{language === "ar" ? "حوّلي أرباحك بسهولة" : "Move your earnings easily"}</Text><Text style={styles.cliqBody}>{language === "ar" ? "آخر تحويل إلى 079 ••• 6281" : "Last payout to 079 ••• 6281"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#2E9B72" /></View>
     </ScrollView>
   );
@@ -1793,6 +1807,9 @@ const styles = StyleSheet.create({
   menuManagerMeta: { color: "#4C747A", fontSize: 10, marginTop: 2 },
   menuStatus: { flexDirection: "row", alignItems: "center", gap: 4 },
   menuStatusText: { fontSize: 9, color: "#2E9B72", fontWeight: "900" },
+  menuRemoveButton: { width: 34, height: 34, borderRadius: 11, backgroundColor: "#FFF1F1", justifyContent: "center", alignItems: "center" },
+  menuEmpty: { minHeight: 56, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  menuEmptyText: { color: "#4C747A", fontSize: 10, fontWeight: "800" },
   cliqCard: { backgroundColor: "#EEF9DB", borderRadius: 18, padding: 13, flexDirection: "row", alignItems: "center", gap: 10 },
   cliqBadge: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#2E9B72", justifyContent: "center", alignItems: "center" },
   cliqBadgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
