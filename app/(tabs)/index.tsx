@@ -663,7 +663,6 @@ function KitchenProfile({ onBack, onCart, onRequestAdd }: { onBack: () => void; 
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><Text style={styles.pageTitle}>{language === "ar" ? "مطبخ بيت" : "Home kitchen"}</Text><Pressable onPress={onCart} style={styles.iconButton}><MaterialIcons name="shopping-cart" size={20} color="#082E34" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable></View>
       <View style={styles.profileHero}><Image source={{ uri: selectedKitchen.image }} style={styles.profileImage} /><View style={styles.profileOverlay} /><Pressable onPress={() => void toggleFavorite("kitchen", selectedKitchen.id)} style={styles.profileFavoriteButton}><MaterialIcons name={favoriteKitchenIds.has(selectedKitchen.id) ? "favorite" : "favorite-border"} size={22} color={favoriteKitchenIds.has(selectedKitchen.id) ? "#D76545" : "#FFFFFF"} /></Pressable><View style={styles.profileHeroText}><View style={styles.profileVerified}><MaterialIcons name="verified" size={14} color="#FFFFFF" /><Text style={styles.profileVerifiedText}>{language === "ar" ? "مطبخ موثوق" : "Verified kitchen"}</Text></View><Text style={styles.profileName}>{getLocalized(selectedKitchen.name, language)}</Text><Text style={styles.profileNeighborhood}>{getLocalized(selectedKitchen.neighborhood, language)} · {getLocalized(selectedKitchen.motherName, language)}</Text></View></View>
       <View style={styles.profileStats}><StatItem icon="star" value={`${selectedKitchen.rating}`} label={language === "ar" ? "التقييم" : "Rating"} /><StatItem icon="local-dining" value={`${selectedKitchen.reviewCount}+`} label={language === "ar" ? "تجربة" : "orders"} /><StatItem icon="schedule" value="45m" label={language === "ar" ? "التحضير" : "prep"} /></View>
-      <View style={styles.storyCard}><View style={styles.storyIcon}><MaterialIcons name="favorite" size={20} color="#00AFC4" /></View><View style={styles.storyCopy}><Text style={styles.storyTitle}>{language === "ar" ? "طبخته من وصفة أمها" : "A recipe passed down"}</Text><Text style={styles.storyBody}>{language === "ar" ? "كل طلب ينطبخ بنفس البيت وبنفس النفس الطيب." : "Every order is cooked in the same home with the same generous spirit."}</Text></View></View>
       <SectionHeader title={language === "ar" ? "قائمة اليوم" : "Today's menu"} action={language === "ar" ? "طلبات مسبقة" : "Advance order"} />
       <View style={styles.mealList}>{kitchenMeals.map((meal) => <MealRow key={meal.id} meal={meal} language={language} isFavorite={favoriteMealIds.has(meal.id)} onToggleFavorite={() => void toggleFavorite("meal", meal.id)} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onAdd={() => onRequestAdd(meal)} compact />)}</View>
     </ScrollView>
@@ -1438,11 +1437,6 @@ const styles = StyleSheet.create({
   statItem: { alignItems: "center", gap: 3 },
   statValue: { color: "#082E34", fontSize: 15, fontWeight: "900" },
   statLabel: { color: "#4C747A", fontSize: 10 },
-  storyCard: { flexDirection: "row", gap: 10, padding: 14, borderRadius: 18, backgroundColor: "#E5FCFF", borderWidth: 1, borderColor: "#F6D889" },
-  storyIcon: { width: 38, height: 38, borderRadius: 14, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" },
-  storyCopy: { flex: 1 },
-  storyTitle: { color: "#082E34", fontSize: 13, fontWeight: "900" },
-  storyBody: { color: "#4C747A", fontSize: 11, lineHeight: 16, marginTop: 3 },
   cartItems: { gap: 10 },
   cartItemRow: { flexDirection: "row", gap: 11, padding: 10, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: "#C6EDEF" },
   cartItemImage: { width: 75, height: 75, borderRadius: 15 },
