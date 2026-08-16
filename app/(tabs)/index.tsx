@@ -274,7 +274,7 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
         <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text><View style={[styles.capacityMatch, capacityFits ? styles.capacityMatchOk : styles.capacityMatchWarn]}><MaterialIcons name={capacityFits ? "check-circle" : "warning-amber"} size={16} color={capacityFits ? "#2E9B72" : "#C4555D"} /><Text style={[styles.capacityMatchText, !capacityFits && styles.capacityMatchTextWarn]}>{capacityFits ? (language === "ar" ? `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "مركبتك"} مناسبة لحمولة ${getLocalized(loadCapacityLabels[requiredCapacity], language)}` : `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "Your vehicle"} fits the ${getLocalized(loadCapacityLabels[requiredCapacity], language)} order`) : (language === "ar" ? "هذه الحمولة أكبر من سعة مركبتك" : "This order is larger than your vehicle capacity")}</Text></View>{driverOrder.specialRequests ? <View style={styles.driverSpecialRequest}><MaterialIcons name="edit-note" size={18} color="#8A6516" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "تعليمات العميل" : "Customer instructions"}</Text><Text style={styles.specialRequestBody}>{driverOrder.specialRequests}</Text></View></View> : null}</View>
-        <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} onPressMap={() => void openNavigation(driverOrder.status === "ready" ? "pickup" : "dropoff")} />
+        <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} driverCoordinates={driverOrder.driverCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} onPressMap={() => void openNavigation(driverOrder.status === "ready" ? "pickup" : "dropoff")} />
         <View style={styles.routeCard}>
           <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${pickupDistance.toFixed(1)} كم · حوالي ${pickupEtaMinutes} دقيقة للوصول` : `${pickupDistance.toFixed(1)} km · about ${pickupEtaMinutes} min to arrive`}</Text></View><MaterialIcons name="directions" size={20} color="#00AFC4" /></Pressable>
           <View style={styles.routeLine} />
@@ -591,9 +591,10 @@ function OrdersScreen({ onBack, onOpenCart }: { onBack: () => void; onOpenCart: 
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View><Text style={styles.pageTitle}>{language === "ar" ? "طلباتي" : "My orders"}</Text><Text style={styles.pageSubtitle}>{language === "ar" ? "كل لقمة إلها حكاية" : "Every bite has a story"}</Text></View><View style={styles.statusPill}><View style={styles.liveDot} /><Text style={styles.statusPillText}>{language === "ar" ? "مباشر" : "Live"}</Text></View></View>
       {activeOrders.length > 1 && <View style={styles.activeOrdersPanel}><Text style={styles.activeOrdersTitle}>{language === "ar" ? "طلباتك المنفصلة" : "Your separate orders"}</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeOrdersRow}>{activeOrders.map((order) => <Pressable key={order.id} onPress={() => selectActiveOrder(order.id)} style={[styles.activeOrderChip, activeOrder?.id === order.id && styles.activeOrderChipActive]}><Text style={[styles.activeOrderChipId, activeOrder?.id === order.id && styles.activeOrderChipTextActive]}>{order.id}</Text><Text style={[styles.activeOrderChipKitchen, activeOrder?.id === order.id && styles.activeOrderChipTextActive]} numberOfLines={1}>{getLocalized(order.kitchen.name, language)}</Text></Pressable>)}</ScrollView></View>}
-      {activeOrder ? <>
+      {activeOrders.length > 1 && <MultiOrderTrackingSection orders={activeOrders} language={language} selectedOrderId={activeOrder?.id} onSelectOrder={selectActiveOrder} onAdvanceOrder={(orderId) => advanceOrder(orderId)} onShowToast={showToast} />}
+      {activeOrders.length <= 1 && activeOrder ? <>
         <View style={styles.orderHero}><View><Text style={styles.orderHeroEyebrow}>{language === "ar" ? "رقم الطلب" : "Order number"}</Text><Text style={styles.orderHeroId}>{activeOrder.id}</Text></View><View style={styles.orderEta}><Text style={styles.orderEtaLabel}>{language === "ar" ? "الوصول المتوقع" : "Estimated arrival"}</Text><Text style={styles.orderEtaValue}>{getLocalized(activeOrder.eta, language)}</Text></View></View>
-                <MapPreview pickupCoordinates={activeOrder.pickupCoordinates} dropoffCoordinates={activeOrder.dropoffCoordinates} />
+                <MapPreview pickupCoordinates={activeOrder.pickupCoordinates} driverCoordinates={activeOrder.driverCoordinates} dropoffCoordinates={activeOrder.dropoffCoordinates} />
         {driver && <View style={styles.customerDriverCard}><View style={styles.customerDriverHeader}><View style={styles.driverAvatar}><MaterialIcons name="two-wheeler" size={22} color="#FFFFFF" /></View><View style={styles.customerDriverCopy}><Text style={styles.customerDriverEyebrow}>{language === "ar" ? "مندوبك بالطريق" : "Your driver is on the way"}</Text><Text style={styles.customerDriverName}>{getLocalized(driver.name, language)}</Text><Text style={styles.customerDriverMeta}>{getLocalized(driver.vehicle, language)} · {language === "ar" ? "لوحة" : "Plate"} {driver.plate}</Text></View><Pressable onPress={() => void callDriver()} style={({ pressed }) => [styles.callDriverButton, pressed && styles.pressed]}><MaterialIcons name="phone" size={18} color="#FFFFFF" /></Pressable></View><View style={styles.customerDriverStats}><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "الوقت المتبقي" : "Time remaining"}</Text><Text style={styles.customerDriverStatValue}>{getLocalized(activeOrder.eta, language)}</Text></View><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "من المطبخ" : "From kitchen"}</Text><Text style={styles.customerDriverStatValue}>{activeOrder.pickupCoordinates.latitude.toFixed(4)}, {activeOrder.pickupCoordinates.longitude.toFixed(4)}</Text></View><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "التوصيل إلى" : "Delivering to"}</Text><Text style={styles.customerDriverStatValue}>{activeOrder.dropoffCoordinates.latitude.toFixed(4)}, {activeOrder.dropoffCoordinates.longitude.toFixed(4)}</Text></View></View></View>}
         {activeOrder.specialRequests ? <View style={styles.specialRequestCard}><MaterialIcons name="edit-note" size={19} color="#00AFC4" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "طلباتك الخاصة" : "Your special requests"}</Text><Text style={styles.specialRequestBody}>{activeOrder.specialRequests}</Text></View></View> : null}
         <View style={styles.trackingCard}>
@@ -602,9 +603,55 @@ function OrdersScreen({ onBack, onOpenCart }: { onBack: () => void; onOpenCart: 
         {activeOrder.status === "delivered" && (activeOrder.restaurantRating ? <View style={styles.deliveredCard}><MaterialIcons name="check-circle" size={22} color="#2E9B72" /><Text style={styles.deliveredText}>{language === "ar" ? `شكراً لتقييمك المطعم ${activeOrder.restaurantRating} ★` : `Thanks for rating the restaurant ${activeOrder.restaurantRating} ★`}</Text></View> : <View style={styles.ratingCard}><View style={styles.ratingHeader}><View style={styles.ratingIcon}><MaterialIcons name="storefront" size={20} color="#00AFC4" /></View><View style={styles.ratingCopy}><Text style={styles.ratingTitle}>{language === "ar" ? "كيف كانت تجربتك مع المطعم؟" : "How was your restaurant experience?"}</Text><Text style={styles.ratingBody}>{language === "ar" ? "ساعدي أم أحمد بتقييم صادق" : "Help Umm Ahmad with an honest review"}</Text></View></View><View style={styles.ratingStarsRow}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} onPress={() => setRating(value)} style={styles.ratingStarButton}><MaterialIcons name="star" size={30} color={value <= rating ? "#C98A2E" : "#D6E2D4"} /></Pressable>)}</View><TextInput value={review} onChangeText={setReview} placeholder={language === "ar" ? "اكتبي تعليقاً اختيارياً..." : "Write an optional comment..."} placeholderTextColor="#8ABAC0" multiline maxLength={240} style={styles.ratingInput} textAlign={language === "ar" ? "right" : "left"} /><Pressable disabled={rating === 0} onPress={() => { rateOrder(rating, review); showToast(language === "ar" ? "تم حفظ تقييم المطعم" : "Restaurant rating saved"); }} style={({ pressed }) => [styles.ratingSubmit, rating === 0 && styles.ratingSubmitDisabled, pressed && styles.pressed]}><Text style={styles.ratingSubmitText}>{language === "ar" ? "حفظ التقييم" : "Save rating"}</Text><MaterialIcons name="send" size={17} color="#FFFFFF" /></Pressable></View>)}
         <Pressable onPress={onBack} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><MaterialIcons name="restaurant" size={18} color="#00AFC4" /><Text style={styles.secondaryButtonText}>{language === "ar" ? "العودة للتسوق وإضافة أصناف" : "Back to shopping and add items"}</Text></Pressable>
         <OrderHistorySection orders={orderHistory.filter((order) => !activeOrders.some((active) => active.id === order.id))} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} />
-      </> : <OrderHistorySection orders={orderHistory} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} emptyOnBack={onBack} />}
+      </> : !activeOrder ? <OrderHistorySection orders={orderHistory} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} emptyOnBack={onBack} /> : null}
+      {activeOrders.length > 1 && <OrderHistorySection orders={orderHistory.filter((order) => !activeOrders.some((active) => active.id === order.id))} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} />}
     </ScrollView>
   );
+}
+
+function MultiOrderTrackingSection({ orders, language, selectedOrderId, onSelectOrder, onAdvanceOrder, onShowToast }: { orders: Order[]; language: "ar" | "en"; selectedOrderId?: string; onSelectOrder: (orderId: string) => void; onAdvanceOrder: (orderId: string) => void; onShowToast: (message: string) => void }) {
+  return <View style={styles.multiOrderSection}><View style={styles.multiOrderSectionHeader}><View><Text style={styles.sectionTitle}>{language === "ar" ? "تتبع كل طلب" : "Track every order"}</Text><Text style={styles.multiOrderSectionHint}>{language === "ar" ? "كل مطعم له سائق ووقت وصول ومسار مستقل" : "Each kitchen has its own driver, ETA, and route"}</Text></View><View style={styles.multiOrderCount}><MaterialIcons name="layers" size={15} color="#00AFC4" /><Text style={styles.multiOrderCountText}>{orders.length}</Text></View></View>{orders.map((order) => <MultiOrderTrackingCard key={order.id} order={order} language={language} selected={order.id === selectedOrderId} onSelect={() => onSelectOrder(order.id)} onAdvance={() => onAdvanceOrder(order.id)} onShowToast={onShowToast} />)}</View>;
+}
+
+function MultiOrderTrackingCard({ order, language, selected, onSelect, onAdvance, onShowToast }: { order: Order; language: "ar" | "en"; selected: boolean; onSelect: () => void; onAdvance: () => void; onShowToast: (message: string) => void }) {
+  const statusIndex = orderStatuses.findIndex((status) => status.id === order.status);
+  const currentStatus = orderStatuses[statusIndex];
+  const driver = order.driver;
+  const pickupDistance = distanceKm(order.driverCoordinates ?? order.pickupCoordinates, order.pickupCoordinates);
+  const deliveryDistance = distanceKm(order.pickupCoordinates, order.dropoffCoordinates);
+  const pickupEtaMinutes = Math.max(1, Math.round(pickupDistance * 4));
+  const deliveryEtaMinutes = Math.max(5, Math.round(deliveryDistance * 5));
+
+  const openMaps = async (destination: "pickup" | "dropoff") => {
+    const coordinates = destination === "pickup" ? order.pickupCoordinates : order.dropoffCoordinates;
+    const address = destination === "pickup" ? order.pickupAddress : order.dropoffAddress;
+    try {
+      const origin = order.driverCoordinates ? `&origin=${order.driverCoordinates.latitude},${order.driverCoordinates.longitude}` : "";
+      await Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${coordinates.latitude},${coordinates.longitude}${origin}&travelmode=driving`);
+      onShowToast(language === "ar" ? `تم فتح مسار ${getLocalized(address, language)}` : `Opened route to ${getLocalized(address, language)}`);
+    } catch {
+      onShowToast(language === "ar" ? "تعذّر فتح الخرائط لهذا الطلب" : "Could not open maps for this order");
+    }
+  };
+
+  const callDriver = async () => {
+    if (!driver) return;
+    try {
+      await Linking.openURL(`tel:${driver.phone}`);
+    } catch {
+      onShowToast(language === "ar" ? "تعذّر الاتصال بالسائق" : "Could not call the driver");
+    }
+  };
+
+  return <View style={[styles.multiOrderCard, selected && styles.multiOrderCardSelected]}>
+    <View style={styles.multiOrderCardHeader}><View style={styles.multiOrderKitchenMark}><MaterialIcons name="storefront" size={18} color="#FFFFFF" /></View><View style={styles.multiOrderKitchenCopy}><Text style={styles.multiOrderKitchenName} numberOfLines={1}>{getLocalized(order.kitchen.name, language)}</Text><Text style={styles.multiOrderOrderId}>{order.id} · {order.items.reduce((sum, item) => sum + item.quantity, 0)} {language === "ar" ? "وجبة" : "meals"}</Text></View><View style={styles.multiOrderStatus}><View style={styles.liveDot} /><Text style={styles.multiOrderStatusText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View>
+    <View style={styles.multiOrderItemLine}><Text style={styles.multiOrderItems} numberOfLines={2}>{order.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.multiOrderEta}>{getLocalized(order.eta, language)}</Text></View>
+    <View style={styles.multiOrderProgress}>{orderStatuses.map((status, index) => { const done = index <= statusIndex; return <View key={status.id} style={styles.multiOrderProgressStep}><View style={[styles.multiOrderProgressDot, done && styles.multiOrderProgressDotDone]} />{index < orderStatuses.length - 1 && <View style={[styles.multiOrderProgressLine, done && styles.multiOrderProgressLineDone]} />}<Text style={[styles.multiOrderProgressLabel, done && styles.multiOrderProgressLabelDone]} numberOfLines={1}>{getLocalized(status.label, language)}</Text></View>; })}</View>
+    {driver ? <View style={styles.multiOrderDriverRow}><View style={styles.multiOrderDriverAvatar}><MaterialIcons name="two-wheeler" size={17} color="#FFFFFF" /></View><View style={styles.multiOrderDriverCopy}><Text style={styles.multiOrderDriverLabel}>{language === "ar" ? "السائق المعيّن" : "Assigned driver"}</Text><Text style={styles.multiOrderDriverName}>{getLocalized(driver.name, language)}</Text><Text style={styles.multiOrderDriverMeta}>{getLocalized(driver.vehicle, language)} · {language === "ar" ? "تقييم" : "Rating"} {order.driverRating?.toFixed(1) ?? "4.9"} ★</Text></View><Pressable onPress={() => void callDriver()} style={({ pressed }) => [styles.multiOrderCallButton, pressed && styles.pressed]}><MaterialIcons name="phone" size={17} color="#FFFFFF" /></Pressable></View> : <View style={styles.multiOrderNoDriver}><MaterialIcons name="person-search" size={17} color="#C98A2E" /><Text style={styles.multiOrderNoDriverText}>{language === "ar" ? "يجري تعيين سائق مناسب للحمولة" : "A suitable driver is being assigned"}</Text></View>}
+    <MapPreview pickupCoordinates={order.pickupCoordinates} driverCoordinates={order.driverCoordinates} dropoffCoordinates={order.dropoffCoordinates} onPressMap={() => void openMaps(order.status === "ready" || order.status === "on_the_way" ? "dropoff" : "pickup")} />
+    <View style={styles.multiOrderRouteSummary}><Pressable onPress={() => void openMaps("pickup")} style={({ pressed }) => [styles.multiOrderRoutePoint, pressed && styles.pressed]}><View style={[styles.multiOrderRouteDot, styles.multiOrderRouteDotPickup]} /><View style={styles.multiOrderRouteCopy}><Text style={styles.multiOrderRouteLabel}>{language === "ar" ? "المطعم" : "Kitchen"}</Text><Text style={styles.multiOrderRouteValue} numberOfLines={1}>{getLocalized(order.pickupAddress, language)}</Text><Text style={styles.multiOrderRouteMeta}>{pickupDistance.toFixed(1)} {language === "ar" ? `كم · ${pickupEtaMinutes} د للوصول` : `km · ${pickupEtaMinutes} min away`}</Text></View><MaterialIcons name="directions" size={18} color="#00AFC4" /></Pressable><View style={styles.multiOrderRouteDivider} /><Pressable onPress={() => void openMaps("dropoff")} style={({ pressed }) => [styles.multiOrderRoutePoint, pressed && styles.pressed]}><View style={[styles.multiOrderRouteDot, styles.multiOrderRouteDotDropoff]} /><View style={styles.multiOrderRouteCopy}><Text style={styles.multiOrderRouteLabel}>{language === "ar" ? "التسليم" : "Drop-off"}</Text><Text style={styles.multiOrderRouteValue} numberOfLines={1}>{getLocalized(order.dropoffAddress, language)}</Text><Text style={styles.multiOrderRouteMeta}>{deliveryDistance.toFixed(1)} {language === "ar" ? `كم · ${deliveryEtaMinutes} د للتسليم` : `km · ${deliveryEtaMinutes} min to deliver`}</Text></View><MaterialIcons name="directions" size={18} color="#2E9B72" /></Pressable></View>
+    <View style={styles.multiOrderCardActions}><Pressable onPress={onSelect} style={({ pressed }) => [styles.multiOrderFocusButton, pressed && styles.pressed]}><MaterialIcons name="center-focus-strong" size={16} color="#00AFC4" /><Text style={styles.multiOrderFocusText}>{selected ? (language === "ar" ? "محدد الآن" : "Selected") : language === "ar" ? "عرض التفاصيل" : "View details"}</Text></Pressable>{order.status !== "delivered" && <Pressable onPress={onAdvance} style={({ pressed }) => [styles.multiOrderRefreshButton, pressed && styles.pressed]}><MaterialIcons name="refresh" size={16} color="#FFFFFF" /><Text style={styles.multiOrderRefreshText}>{language === "ar" ? "تحديث التتبع" : "Refresh tracking"}</Text></Pressable>}</View>
+  </View>;
 }
 
 function OrderHistorySection({ orders, language, onReorder, emptyOnBack }: { orders: Order[]; language: "ar" | "en"; onReorder: (order: Order) => void; emptyOnBack?: () => void }) {
@@ -1263,6 +1310,55 @@ const styles = StyleSheet.create({
   activeOrderChipId: { color: "#00AFC4", fontSize: 10, fontWeight: "900" },
   activeOrderChipKitchen: { color: "#4C747A", fontSize: 10, fontWeight: "800" },
   activeOrderChipTextActive: { color: "#FFFFFF" },
+  multiOrderSection: { gap: 12 },
+  multiOrderSectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  multiOrderSectionHint: { color: "#4C747A", fontSize: 10, marginTop: 3 },
+  multiOrderCount: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#E5FCFF", borderRadius: 14, paddingHorizontal: 9, paddingVertical: 7 },
+  multiOrderCountText: { color: "#00AFC4", fontSize: 12, fontWeight: "900" },
+  multiOrderCard: { backgroundColor: "#FFFFFF", borderRadius: 22, padding: 13, borderWidth: 1, borderColor: "#C6EDEF", gap: 11 },
+  multiOrderCardSelected: { borderColor: "#00AFC4", shadowColor: "#00AFC4", shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+  multiOrderCardHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
+  multiOrderKitchenMark: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#D76545", alignItems: "center", justifyContent: "center" },
+  multiOrderKitchenCopy: { flex: 1, gap: 2 },
+  multiOrderKitchenName: { color: "#082E34", fontSize: 13, fontWeight: "900" },
+  multiOrderOrderId: { color: "#4C747A", fontSize: 10, fontWeight: "700" },
+  multiOrderStatus: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EEF9DB", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 6 },
+  multiOrderStatusText: { color: "#2E9B72", fontSize: 9, fontWeight: "900" },
+  multiOrderItemLine: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  multiOrderItems: { flex: 1, color: "#082E34", fontSize: 11, fontWeight: "800", lineHeight: 16 },
+  multiOrderProgress: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingVertical: 3 },
+  multiOrderProgressStep: { flex: 1, alignItems: "center", position: "relative" },
+  multiOrderProgressDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#D8F1F3", borderWidth: 2, borderColor: "#FFFFFF", zIndex: 2 },
+  multiOrderProgressDotDone: { backgroundColor: "#2E9B72" },
+  multiOrderProgressLine: { position: "absolute", top: 4, left: "50%", right: "-50%", height: 2, backgroundColor: "#D8F1F3" },
+  multiOrderProgressLineDone: { backgroundColor: "#F2B84B" },
+  multiOrderProgressLabel: { color: "#8ABAC0", fontSize: 7, fontWeight: "700", marginTop: 4, textAlign: "center" },
+  multiOrderProgressLabelDone: { color: "#2E9B72", fontWeight: "900" },
+  multiOrderEta: { color: "#A55A40", fontSize: 10, fontWeight: "900", textAlign: "right", maxWidth: 95 },
+  multiOrderDriverRow: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "#E5FCFF", borderRadius: 15, padding: 10 },
+  multiOrderDriverAvatar: { width: 32, height: 32, borderRadius: 11, backgroundColor: "#00AFC4", alignItems: "center", justifyContent: "center" },
+  multiOrderDriverCopy: { flex: 1, gap: 1 },
+  multiOrderDriverLabel: { color: "#4C747A", fontSize: 9, fontWeight: "800" },
+  multiOrderDriverName: { color: "#082E34", fontSize: 12, fontWeight: "900" },
+  multiOrderDriverMeta: { color: "#4C747A", fontSize: 9 },
+  multiOrderCallButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#2E9B72", alignItems: "center", justifyContent: "center" },
+  multiOrderNoDriver: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFF8E7", borderRadius: 14, padding: 10 },
+  multiOrderNoDriverText: { flex: 1, color: "#8A6516", fontSize: 10, fontWeight: "800" },
+  multiOrderRouteSummary: { backgroundColor: "#F2FEFF", borderRadius: 16, padding: 10, gap: 8 },
+  multiOrderRoutePoint: { flexDirection: "row", alignItems: "center", gap: 8 },
+  multiOrderRouteDot: { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: "#FFFFFF" },
+  multiOrderRouteDotPickup: { backgroundColor: "#D76545" },
+  multiOrderRouteDotDropoff: { backgroundColor: "#2E9B72" },
+  multiOrderRouteCopy: { flex: 1, gap: 1 },
+  multiOrderRouteLabel: { color: "#4C747A", fontSize: 9, fontWeight: "800" },
+  multiOrderRouteValue: { color: "#082E34", fontSize: 10, fontWeight: "900" },
+  multiOrderRouteMeta: { color: "#00AFC4", fontSize: 9, fontWeight: "800" },
+  multiOrderRouteDivider: { height: 1, backgroundColor: "#C6EDEF", marginLeft: 19 },
+  multiOrderCardActions: { flexDirection: "row", gap: 8 },
+  multiOrderFocusButton: { flex: 1, borderWidth: 1, borderColor: "#BCEFF4", borderRadius: 12, paddingVertical: 9, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5 },
+  multiOrderFocusText: { color: "#00AFC4", fontSize: 10, fontWeight: "900" },
+  multiOrderRefreshButton: { flex: 1, backgroundColor: "#00AFC4", borderRadius: 12, paddingVertical: 9, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5 },
+  multiOrderRefreshText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
   orderHero: { padding: 16, backgroundColor: "#082E34", borderRadius: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   orderHistoryCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 15, borderWidth: 1, borderColor: "#C6EDEF", gap: 10 },
   orderHistoryHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },

@@ -13,9 +13,10 @@ type MapPreviewProps = {
   onPressMap?: () => void;
   pickupCoordinates?: Coordinate;
   dropoffCoordinates?: Coordinate;
+  driverCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, onPressMap, pickupCoordinates, dropoffCoordinates }: MapPreviewProps) {
+export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, onPressMap, pickupCoordinates, dropoffCoordinates, driverCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
@@ -58,6 +59,7 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
         </Pressable>
       ))}
       {pickupCoordinates && <View style={[styles.driverPin, styles.driverPickupPin]}><MaterialIcons name="storefront" size={13} color="#FFFFFF" /></View>}
+      {driverCoordinates && <View style={[styles.driverPin, styles.driverCurrentPin]}><MaterialIcons name="two-wheeler" size={13} color="#FFFFFF" /></View>}
       {dropoffCoordinates && <View style={[styles.driverPin, styles.driverDropoffPin]}><MaterialIcons name="location-on" size={13} color="#FFFFFF" /></View>}
       <View style={styles.mapLegend}><View style={styles.legendDot} /><Text style={styles.legendText}>{language === "ar" ? "متاح الآن" : "Open now"}</Text></View>
       {pickupCoordinates && dropoffCoordinates && <View style={styles.coordinateBadge}><Text style={styles.coordinateBadgeTitle}>{language === "ar" ? "مسار التوصيل" : "Delivery route"}</Text><Text style={styles.coordinateBadgeText}>{dropoffCoordinates.latitude.toFixed(5)}, {dropoffCoordinates.longitude.toFixed(5)}</Text></View>}
@@ -83,6 +85,7 @@ const styles = StyleSheet.create({
   pin: { position: "absolute", height: 28, width: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#fff", shadowColor: "#132218", shadowOpacity: 0.2, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
   driverPin: { position: "absolute", height: 32, width: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#FFFFFF", shadowColor: "#132218", shadowOpacity: 0.24, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
   driverPickupPin: { left: "28%", top: "45%", backgroundColor: "#4F8F3B" },
+  driverCurrentPin: { left: "47%", top: "38%", backgroundColor: "#00AFC4" },
   driverDropoffPin: { left: "67%", top: "30%", backgroundColor: "#236B45" },
   mapLegend: { position: "absolute", bottom: 14, left: 16, flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 7 },
   legendDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#4F8F3B" },
