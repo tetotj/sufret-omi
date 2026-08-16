@@ -91,6 +91,7 @@ function normalizeDriverVerification(value: Partial<DriverVerificationProfile> |
 type AppState = {
   isAuthenticated: boolean;
   isGuest: boolean;
+  customerPhone: string;
   language: Language;
   role: Role;
   selectedRegion: RegionId;
@@ -118,7 +119,7 @@ type AppState = {
 };
 
 type AppContextValue = AppState & {
-  signIn: (role: Role, guest?: boolean) => void;
+  signIn: (role: Role, guest?: boolean, phone?: string) => void;
   signOut: () => void;
   setLanguage: (language: Language) => void;
   setRole: (role: Role) => void;
@@ -168,6 +169,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 const initialState: AppState = {
   isAuthenticated: false,
   isGuest: false,
+  customerPhone: "",
   language: "ar",
   role: "customer",
   selectedRegion: "amman",
@@ -206,6 +208,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...current,
           ...parsed,
           isGuest: parsed.isGuest === true,
+          customerPhone: typeof parsed.customerPhone === "string" ? parsed.customerPhone : current.customerPhone,
           cartSpecialRequests: typeof parsed.cartSpecialRequests === "string" ? parsed.cartSpecialRequests : current.cartSpecialRequests,
           complaints: Array.isArray(parsed.complaints) ? parsed.complaints : current.complaints,
           activeOrder: parsed.activeOrder === undefined ? current.activeOrder : normalizeOrder(parsed.activeOrder as Partial<Order> | null, current.activeOrder),
@@ -262,8 +265,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...state,
       selectedKitchen: getKitchen(state.selectedKitchenId),
       isKitchenAvailable,
-      signIn: (role, guest = false) => setState((current) => ({ ...current, isAuthenticated: true, isGuest: guest, role })),
-      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], cartSpecialRequests: "", activeOrder: null, activeOrders: [] })),
+      signIn: (role, guest = false, phone = "") => setState((current) => ({ ...current, isAuthenticated: true, isGuest: guest, customerPhone: phone.trim() || current.customerPhone, role })),
+      signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, customerPhone: "", cart: [], cartSpecialRequests: "", activeOrder: null, activeOrders: [] })),
       cartTotal: totalCart(state.cart),
       cartCount: unitCount(state.cart),
       setLanguage: (language) => setState((current) => ({ ...current, language })),

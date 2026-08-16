@@ -1,7 +1,7 @@
-import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, announcements, complaintsDb, complaintImages, offers, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, announcements, complaintsDb, complaintImages, favorites, offers, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -176,6 +176,62 @@ export type AdminUserRecord = {
   joinedDate: string;
   documents: Array<{ label: { ar: string; en: string }; uri: string }>;
 };
+
+export type FavoriteEntityType = "meal" | "kitchen";
+
+export async function listFavoriteIds(userId: number, entityType?: FavoriteEntityType): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ entityId: favorites.entityId }).from(favorites).where(entityType ? and(eq(favorites.userId, userId), eq(favorites.entityType, entityType)) : eq(favorites.userId, userId));
+  return rows.map((row) => row.entityId);
+}
+
+export async function toggleFavorite(userId: number, entityType: FavoriteEntityType, entityId: string): Promise<{ isFavorite: boolean }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db.select({ id: favorites.id }).from(favorites).where(and(eq(favorites.userId, userId), eq(favorites.entityType, entityType), eq(favorites.entityId, entityId))).limit(1);
+  if (existing[0]) {
+    await db.delete(favorites).where(eq(favorites.id, existing[0].id));
+    return { isFavorite: false };
+  }
+  await db.insert(favorites).values({ userId, entityType, entityId });
+  return { isFavorite: true };
+}
+
+export async function getFinancialAnalytics(days = 30) {
+  const db = await getDb();
+  if (!db) return { days, grossSales: 0, platformCommission: 0, kitchenPayouts: 0, orderCount: 0, deliveredOrderCount: 0, daily: [], kitchens: [] };
+  const start = new Date(Date.now() - Math.max(1, Math.min(days, 365)) * 24 * 60 * 60 * 1000);
+  const [summaryRows, dailyRows, kitchenRows] = await Promise.all([
+    db.select({
+      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+      orderCount: sql<number>`COUNT(*)`,
+      deliveredOrderCount: sql<number>`SUM(CASE WHEN ${orders.status} = 'delivered' THEN 1 ELSE 0 END)`,
+    }).from(orders).where(gte(orders.createdAt, start)),
+    db.select({
+      day: sql<string>`DATE(${orders.createdAt})`,
+      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+      orderCount: sql<number>`COUNT(*)`,
+    }).from(orders).where(gte(orders.createdAt, start)).groupBy(sql`DATE(${orders.createdAt})`).orderBy(sql`DATE(${orders.createdAt})`),
+    db.select({
+      kitchenId: orders.kitchenId,
+      grossSales: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+      orderCount: sql<number>`COUNT(*)`,
+    }).from(orders).where(gte(orders.createdAt, start)).groupBy(orders.kitchenId).orderBy(desc(sql`SUM(${orders.total})`)),
+  ]);
+  const grossSales = Number(summaryRows[0]?.grossSales ?? 0);
+  const platformCommission = grossSales * 0.05;
+  return {
+    days,
+    grossSales,
+    platformCommission,
+    kitchenPayouts: grossSales - platformCommission,
+    orderCount: Number(summaryRows[0]?.orderCount ?? 0),
+    deliveredOrderCount: Number(summaryRows[0]?.deliveredOrderCount ?? 0),
+    daily: dailyRows.map((row) => ({ day: row.day, grossSales: Number(row.grossSales ?? 0), orderCount: Number(row.orderCount ?? 0) })),
+    kitchens: kitchenRows.map((row) => ({ kitchenId: row.kitchenId, grossSales: Number(row.grossSales ?? 0), platformCommission: Number(row.grossSales ?? 0) * 0.05, orderCount: Number(row.orderCount ?? 0) })),
+  };
+}
 
 export async function listUserProfiles(): Promise<AdminUserRecord[]> {
   const db = await getDb();

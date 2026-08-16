@@ -193,6 +193,18 @@ export const offers = mysqlTable("offers", {
   mealIdx: index("offers_meal_idx").on(table.mealId),
 }));
 
+export const favorites = mysqlTable("favorites", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  entityType: mysqlEnum("entityType", ["meal", "kitchen"]).notNull(),
+  entityId: varchar("entityId", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userEntityUnique: uniqueIndex("favorites_user_entity_unique").on(table.userId, table.entityType, table.entityId),
+  userTypeIdx: index("favorites_user_type_idx").on(table.userId, table.entityType),
+  entityIdx: index("favorites_entity_idx").on(table.entityType, table.entityId),
+}));
+
 export const pushTokens = mysqlTable("pushTokens", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -221,3 +233,4 @@ export type ComplaintImageDb = typeof complaintImages.$inferSelect;
 export type AnnouncementDb = typeof announcements.$inferSelect;
 export type OfferDb = typeof offers.$inferSelect;
 export type PushTokenDb = typeof pushTokens.$inferSelect;
+export type FavoriteDb = typeof favorites.$inferSelect;

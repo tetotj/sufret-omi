@@ -43,5 +43,11 @@ AWS_SECRET_ACCESS_KEY=
 AWS_REGION=
 AWS_S3_BUCKET=
 
-# Payment, maps, push notifications, and analytics keys are not referenced by the current source code.
-# Add provider-specific variables only after integrating those services.
+# SMS order confirmations (optional; configure either a generic REST provider or Twilio-compatible credentials)
+SMS_PROVIDER_URL=https://your-sms-provider.example.com/messages
+SMS_PROVIDER_API_KEY=replace_with_sms_provider_key
+SMS_PROVIDER_ACCOUNT_SID=replace_with_twilio_account_sid
+SMS_PROVIDER_AUTH_TOKEN=replace_with_twilio_auth_token
+SMS_PROVIDER_FROM_NUMBER=+9627XXXXXXXX
+
+# Payment, maps, and analytics provider keys are not referenced by the current source code.

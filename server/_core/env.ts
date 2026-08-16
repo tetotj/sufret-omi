@@ -7,4 +7,9 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  smsProviderUrl: process.env.SMS_PROVIDER_URL ?? "",
+  smsApiKey: process.env.SMS_PROVIDER_API_KEY ?? "",
+  smsAccountSid: process.env.SMS_PROVIDER_ACCOUNT_SID ?? "",
+  smsAuthToken: process.env.SMS_PROVIDER_AUTH_TOKEN ?? "",
+  smsFromNumber: process.env.SMS_PROVIDER_FROM_NUMBER ?? "",
 };

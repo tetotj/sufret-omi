@@ -14,9 +14,9 @@ The source project is located at `/home/ubuntu/sufret-omi/`. It is a single Expo
 | `components/` | Shared screen containers, maps, icons, verification and UI components | React Native, NativeWind |
 | `constants/` | Theme and app constants | TypeScript |
 | `drizzle/` | MySQL schema and SQL migration history | Drizzle ORM, MySQL |
-| `hooks/` | Authentication, color scheme, and palette hooks | React hooks, TypeScript |
+| `hooks/` | Authentication, color scheme, palette, and favorites hooks | React hooks, TypeScript |
 | `lib/` | Domain models, AppContext, admin data, complaint data, verification logic, and tRPC client | React Context, TypeScript, tRPC |
-| `server/` | Express entry point, tRPC router, auth SDK, database access, storage adapter, and server helpers | Node.js, Express, tRPC |
+| `server/` | Express entry point, tRPC router, auth SDK, database access, storage adapter, SMS adapter, analytics, and server helpers | Node.js, Express, tRPC |
 | `shared/` | Types, constants, and shared errors | TypeScript |
 | `tests/` | Vitest tests | Vitest |
 | `assets/` | App icons, splash images, favicon, and adaptive icon assets | Expo assets |
@@ -57,11 +57,11 @@ The mobile application uses React Native 0.81.5, Expo SDK 54, Expo Router 6, Rea
 | MySQL database | User records, profiles, verification documents, complaints, attachments, and existing food/order tables | `server/db.ts`, `drizzle/schema.ts` |
 | Expo/Native platform services | Location, maps, image picker, notifications package, linking, splash, and device builds | `app.config.ts`, `package.json`, app screens |
 
-No live payment gateway, analytics provider, FCM/APNs server, or production SMS provider is referenced by the current source code.
+The source now includes a production-ready SMS adapter (`server/sms.ts`) with optional generic REST and Twilio-compatible modes; delivery remains disabled until real provider credentials are configured. Financial analytics are computed from MySQL `orders` through the protected admin tRPC route. Favorites are stored in MySQL and accessed through protected tRPC routes.
 
 ## Environment Variables
 
-The complete placeholder list is in `ENVIRONMENT_VARIABLES.example`. The current server reads `DATABASE_URL`, `DB_POOL_SIZE`, `JWT_SECRET`, `OAUTH_SERVER_URL`, `VITE_APP_ID`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`, and `BUILT_IN_FORGE_API_KEY`. It also recognizes `OWNER_NAME`, `NODE_ENV`, `PORT`, `EXPO_PORT`, and the optional `EXPO_PUBLIC_EAS_PROJECT_ID` used by native push registration. `DB_POOL_SIZE` controls the shared MySQL connection pool per instance, while marketing reads use a short server-side cache and indexed date/status queries. `scripts/load-env.js` maps selected server variables to `EXPO_PUBLIC_*` aliases for the Expo runtime. No real credentials are included in this export.
+The complete placeholder list is in `ENVIRONMENT_VARIABLES.example`. The current server reads `DATABASE_URL`, `DB_POOL_SIZE`, `JWT_SECRET`, `OAUTH_SERVER_URL`, `VITE_APP_ID`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`, and `BUILT_IN_FORGE_API_KEY`. It also recognizes `OWNER_NAME`, `NODE_ENV`, `PORT`, `EXPO_PORT`, the optional `EXPO_PUBLIC_EAS_PROJECT_ID` used by native push registration, and optional SMS variables `SMS_PROVIDER_URL`, `SMS_PROVIDER_API_KEY`, `SMS_PROVIDER_ACCOUNT_SID`, `SMS_PROVIDER_AUTH_TOKEN`, and `SMS_PROVIDER_FROM_NUMBER`. `DB_POOL_SIZE` controls the shared MySQL connection pool per instance, while marketing reads use a short server-side cache and indexed date/status queries. `scripts/load-env.js` maps selected server variables to `EXPO_PUBLIC_*` aliases for the Expo runtime. No real credentials are included in this export.
 
 ## Commands
 
@@ -138,7 +138,7 @@ pnpm drizzle-kit generate
 pnpm drizzle-kit migrate
 ```
 
-Set `DATABASE_URL` first and review generated SQL before applying it. The current database schema includes the existing food/order tables plus `users`, `userProfiles`, `userDocuments`, `complaintsDb`, and `complaintImages`.
+Set `DATABASE_URL` first and review generated SQL before applying it. The current database schema includes the existing food/order tables plus `users`, `userProfiles`, `userDocuments`, `complaintsDb`, `complaintImages`, and `favorites`.
 
 ### Quality checks
 

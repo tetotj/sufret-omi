@@ -1,10 +1,11 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listUserProfiles, registerPushToken, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, getFinancialAnalytics, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listUserProfiles, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
+import { sendOrderConfirmationSms } from "./sms";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { isExpoPushToken } from "./marketing-notifications";
 
@@ -13,6 +14,8 @@ const complaintStatusSchema = z.enum(["new", "in_review", "resolved", "closed"])
 const complaintImageSchema = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/, "Complaint images must be data URLs");
 const marketingImageSchema = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/, "Marketing images must be data URLs");
 const pushTokenSchema = z.object({ token: z.string().min(20).max(512), platform: z.enum(["ios", "android", "web"]) });
+const favoriteSchema = z.object({ entityType: z.enum(["meal", "kitchen"]), entityId: z.string().min(1).max(64) });
+const orderSmsSchema = z.object({ phone: z.string().min(8).max(32), orderCount: z.number().int().min(1).max(50), total: z.number().finite().nonnegative(), language: z.enum(["ar", "en"]) });
 const marketingDateSchema = z.string().nullable().optional();
 const announcementInput = z.object({
   id: z.string().min(1).max(64),
@@ -76,6 +79,9 @@ export const appRouter = router({
     updateUserStatus: adminProcedure
       .input(z.object({ userId: z.string().min(1), status: userStatusSchema }))
       .mutation(({ input }) => updateUserProfileStatus(input.userId, input.status)),
+    financialAnalytics: adminProcedure
+      .input(z.object({ days: z.number().int().min(1).max(365).optional() }).optional())
+      .query(({ input }) => getFinancialAnalytics(input?.days ?? 30)),
     listComplaints: adminProcedure.query(() => listComplaintRecords()),
     updateComplaint: adminProcedure
       .input(z.object({ complaintId: z.string().min(1), status: complaintStatusSchema, response: z.string().max(2000).optional() }))
@@ -101,8 +107,13 @@ export const appRouter = router({
     announcements: publicProcedure.query(() => listActiveAnnouncements()),
     offers: publicProcedure.query(() => listActiveOffers()),
   }),
+  favorites: router({
+    mine: protectedProcedure.query(async ({ ctx }) => ({ mealIds: await listFavoriteIds(ctx.user.id, "meal"), kitchenIds: await listFavoriteIds(ctx.user.id, "kitchen") })),
+    toggle: protectedProcedure.input(favoriteSchema).mutation(({ ctx, input }) => toggleFavorite(ctx.user.id, input.entityType, input.entityId)),
+  }),
   notifications: router({
     registerPushToken: protectedProcedure.input(pushTokenSchema).mutation(({ ctx, input }) => { if (input.platform !== "web" && !isExpoPushToken(input.token)) throw new Error("Invalid Expo push token"); return registerPushToken(ctx.user.id, input.token, input.platform); }),
+    sendOrderConfirmationSms: protectedProcedure.input(orderSmsSchema).mutation(({ input }) => sendOrderConfirmationSms(input)),
   }),
   complaints: router({
     mine: protectedProcedure.query(({ ctx }) => listComplaintRecords(ctx.user.id)),
