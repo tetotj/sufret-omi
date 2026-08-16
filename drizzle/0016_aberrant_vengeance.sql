@@ -1,0 +1,1 @@
+ALTER TABLE `meals` MODIFY COLUMN `category` enum('mansaf','maqluba','mahshi','bakery','moona','desserts','dairy','cheese') NOT NULL;

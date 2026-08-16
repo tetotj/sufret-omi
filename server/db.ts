@@ -183,24 +183,25 @@ export type KitchenDescriptionRecord = {
   kitchenId: string;
   descriptionAr: string;
   descriptionEn: string;
+  showDescription: boolean;
 };
 
 export async function getKitchenDescription(kitchenId: string): Promise<KitchenDescriptionRecord | null> {
   const db = await getDb();
   if (!db) return null;
-  const rows = await db.select({ kitchenId: kitchens.id, descriptionAr: kitchens.descriptionAr, descriptionEn: kitchens.descriptionEn }).from(kitchens).where(eq(kitchens.id, kitchenId)).limit(1);
+  const rows = await db.select({ kitchenId: kitchens.id, descriptionAr: kitchens.descriptionAr, descriptionEn: kitchens.descriptionEn, showDescription: kitchens.showDescription }).from(kitchens).where(eq(kitchens.id, kitchenId)).limit(1);
   return rows[0] ?? null;
 }
 
-export async function updateKitchenDescription(userId: number, kitchenId: string, input: { descriptionAr: string; descriptionEn: string }): Promise<KitchenDescriptionRecord> {
+export async function updateKitchenDescription(userId: number, kitchenId: string, input: { descriptionAr: string; descriptionEn: string; showDescription: boolean }): Promise<KitchenDescriptionRecord> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const owner = await db.select({ userId: kitchens.userId }).from(kitchens).where(eq(kitchens.id, kitchenId)).limit(1);
   if (!owner[0] || owner[0].userId !== userId) throw new Error("Kitchen description access denied");
   const descriptionAr = input.descriptionAr.trim();
   const descriptionEn = input.descriptionEn.trim();
-  await db.update(kitchens).set({ descriptionAr, descriptionEn }).where(and(eq(kitchens.id, kitchenId), eq(kitchens.userId, userId)));
-  return { kitchenId, descriptionAr, descriptionEn };
+  await db.update(kitchens).set({ descriptionAr, descriptionEn, showDescription: input.showDescription }).where(and(eq(kitchens.id, kitchenId), eq(kitchens.userId, userId)));
+  return { kitchenId, descriptionAr, descriptionEn, showDescription: input.showDescription };
 }
 
 async function getOrderParticipant(orderId: string, userId: number) {

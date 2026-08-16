@@ -95,6 +95,8 @@ function normalizeDriverVerification(value: Partial<DriverVerificationProfile> |
   return { ...fallback, ...value, documents: Array.isArray(value?.documents) && value.documents.length ? value.documents : fallback.documents };
 }
 
+type KitchenDescriptionState = { ar: string; en: string; showDescription: boolean };
+
 type AppState = {
   isAuthenticated: boolean;
   isGuest: boolean;
@@ -124,7 +126,7 @@ type AppState = {
   driverVerification: DriverVerificationProfile;
   managedUsers: ManagedUser[];
   hiddenMealIds: string[];
-  kitchenDescriptions: Record<string, { ar: string; en: string }>;
+  kitchenDescriptions: Record<string, KitchenDescriptionState>;
   adminAuthenticated: boolean;
 };
 
@@ -169,7 +171,7 @@ type AppContextValue = AppState & {
   adminSignIn: (code: string) => boolean;
   adminSignOut: () => void;
   updateUserStatus: (userId: string, status: UserAccountStatus) => void;
-  updateKitchenDescription: (kitchenId: string, description: { ar: string; en: string }) => void;
+  updateKitchenDescription: (kitchenId: string, description: { ar: string; en: string; showDescription: boolean }) => void;
   removeMeal: (mealId: string) => void;
   showToast: (message: string) => void;
   dismissToast: () => void;
@@ -211,7 +213,7 @@ const initialState: AppState = {
   driverVerification: createDriverVerification("amman"),
   managedUsers: sampleManagedUsers,
   hiddenMealIds: [],
-  kitchenDescriptions: Object.fromEntries(kitchens.filter((kitchen) => kitchen.description).map((kitchen) => [kitchen.id, kitchen.description!])),
+  kitchenDescriptions: Object.fromEntries(kitchens.filter((kitchen) => kitchen.description).map((kitchen) => [kitchen.id, { ...kitchen.description!, showDescription: false }])),
   adminAuthenticated: false,
 };
 
@@ -243,7 +245,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           driverVerification: normalizeDriverVerification(parsed.driverVerification, current.driverVerification),
           managedUsers: Array.isArray(parsed.managedUsers) ? parsed.managedUsers : current.managedUsers,
           hiddenMealIds: Array.isArray(parsed.hiddenMealIds) ? parsed.hiddenMealIds.filter((mealId): mealId is string => typeof mealId === "string" && meals.some((meal) => meal.id === mealId)) : current.hiddenMealIds,
-          kitchenDescriptions: parsed.kitchenDescriptions && typeof parsed.kitchenDescriptions === "object" ? Object.fromEntries(Object.entries(parsed.kitchenDescriptions).filter(([kitchenId, value]) => kitchens.some((kitchen) => kitchen.id === kitchenId) && value && typeof value === "object" && typeof (value as { ar?: unknown }).ar === "string" && typeof (value as { en?: unknown }).en === "string").map(([kitchenId, value]) => [kitchenId, { ar: (value as { ar: string }).ar, en: (value as { en: string }).en }])) : current.kitchenDescriptions,
+          kitchenDescriptions: parsed.kitchenDescriptions && typeof parsed.kitchenDescriptions === "object" ? Object.fromEntries(Object.entries(parsed.kitchenDescriptions).filter(([kitchenId, value]) => kitchens.some((kitchen) => kitchen.id === kitchenId) && value && typeof value === "object" && typeof (value as { ar?: unknown }).ar === "string" && typeof (value as { en?: unknown }).en === "string").map(([kitchenId, value]) => [kitchenId, { ar: (value as { ar: string }).ar, en: (value as { en: string }).en, showDescription: typeof (value as { showDescription?: unknown }).showDescription === "boolean" ? (value as { showDescription: boolean }).showDescription : false }])) : current.kitchenDescriptions,
           adminAuthenticated: parsed.adminAuthenticated === true,
           toast: null,
         }));
@@ -285,8 +287,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       showToast(state.language === "ar" ? "تم تحديث حالة المستخدم بنجاح" : "User status updated successfully");
     };
-    const updateKitchenDescription = (kitchenId: string, description: { ar: string; en: string }) => {
-      setState((current) => ({ ...current, kitchenDescriptions: { ...current.kitchenDescriptions, [kitchenId]: { ar: description.ar.trim(), en: description.en.trim() } } }));
+    const updateKitchenDescription = (kitchenId: string, description: { ar: string; en: string; showDescription: boolean }) => {
+      setState((current) => ({ ...current, kitchenDescriptions: { ...current.kitchenDescriptions, [kitchenId]: { ar: description.ar.trim(), en: description.en.trim(), showDescription: description.showDescription } } }));
     };
     const removeMeal = (mealId: string) => {
       if (!meals.some((meal) => meal.id === mealId) || state.hiddenMealIds.includes(mealId)) return;

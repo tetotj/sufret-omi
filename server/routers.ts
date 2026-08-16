@@ -22,6 +22,7 @@ const kitchenIdSchema = z.object({ kitchenId: z.string().trim().min(1).max(64) }
 const kitchenDescriptionInput = kitchenIdSchema.extend({
   descriptionAr: z.string().trim().max(500),
   descriptionEn: z.string().trim().max(500),
+  showDescription: z.boolean(),
 });
 const announcementInput = z.object({
   id: z.string().min(1).max(64),
@@ -117,7 +118,7 @@ export const appRouter = router({
   }),
   kitchens: router({
     profile: publicProcedure.input(kitchenIdSchema).query(({ input }) => getKitchenDescription(input.kitchenId)),
-    updateDescription: protectedProcedure.input(kitchenDescriptionInput).mutation(({ ctx, input }) => updateKitchenDescription(ctx.user.id, input.kitchenId, { descriptionAr: input.descriptionAr, descriptionEn: input.descriptionEn })),
+    updateDescription: protectedProcedure.input(kitchenDescriptionInput).mutation(({ ctx, input }) => updateKitchenDescription(ctx.user.id, input.kitchenId, { descriptionAr: input.descriptionAr, descriptionEn: input.descriptionEn, showDescription: input.showDescription })),
   }),
   favorites: router({
     mine: protectedProcedure.query(async ({ ctx }) => ({ mealIds: await listFavoriteIds(ctx.user.id, "meal"), kitchenIds: await listFavoriteIds(ctx.user.id, "kitchen") })),

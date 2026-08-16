@@ -5,7 +5,7 @@ export type LoadCapacity = "small" | "medium" | "large";
 export type DriverVehicleType = "motorcycle" | "car" | "van";
 export type Localized = { ar: string; en: string };
 export type Coordinate = { latitude: number; longitude: number };
-export type CategoryId = "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona";
+export type CategoryId = "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona" | "desserts" | "dairy" | "cheese";
 export type RegionId = "amman" | "irbid" | "zarqa" | "balqa" | "salt" | "madaba" | "jerash" | "ajloun" | "mafraq" | "karak" | "tafila" | "maan" | "aqaba";
 
 export type Category = {
@@ -115,6 +115,9 @@ export const categories: Category[] = [
   { id: "mahshi", label: { ar: "محاشي", en: "Mahshi" }, icon: "eco", color: "#4F8F3B" },
   { id: "bakery", label: { ar: "مخبوزات", en: "Bakery" }, icon: "bakery-dining", color: "#1B5E3A" },
   { id: "moona", label: { ar: "مونة", en: "Moona" }, icon: "inventory-2", color: "#6B7280" },
+  { id: "desserts", label: { ar: "حلويات", en: "Desserts" }, icon: "cake", color: "#D76545" },
+  { id: "dairy", label: { ar: "ألبان", en: "Dairy" }, icon: "local-drink", color: "#6D9FB0" },
+  { id: "cheese", label: { ar: "أجبان", en: "Cheese" }, icon: "lunch-dining", color: "#D6A33A" },
 ];
 
 export const regions: Region[] = [
@@ -260,6 +263,9 @@ export const meals: Meal[] = [
   { id: "tafila-mahshi", kitchenId: "kitchen-tafila", name: { ar: "دوالي الطفيلة", en: "Tafilah Grape Leaves" }, description: { ar: "دوالي صغيرة بطعم زيت الزيتون الجبلي", en: "Tender grape leaves with highland olive oil" }, category: "mahshi", price: 5.5, prepMinutes: 50, dailyLimit: 16, available: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84", portionSize: "medium" },
   { id: "maan-maqluba", kitchenId: "kitchen-maan", name: { ar: "مقلوبة معان باللحم", en: "Ma'an Meat Maqluba" }, description: { ar: "مقلوبة جنوبية بلحم طري وباذنجان", en: "Southern maqluba with tender meat and eggplant" }, category: "maqluba", price: 8.75, prepMinutes: 65, dailyLimit: 12, available: true, image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=900&q=84", portionSize: "large" },
   { id: "aqaba-bakery", kitchenId: "kitchen-aqaba", name: { ar: "خبز العقبة بالسمسم", en: "Aqaba Sesame Bread" }, description: { ar: "خبز طازج بالسمسم يقدم مع لبنة وزيت", en: "Fresh sesame bread with labneh and olive oil" }, category: "bakery", price: 2.75, prepMinutes: 20, dailyLimit: 30, available: true, image: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?auto=format&fit=crop&w=900&q=84", portionSize: "small" },
+  { id: "umm-ahmad-baklava", kitchenId: "umm-ahmad", name: { ar: "بقلاوة البيت", en: "Homemade Baklava" }, description: { ar: "رقائق محشوة بالفستق ومشربة بالقطر الخفيف", en: "Crisp layers filled with pistachio and light syrup" }, category: "desserts", price: 4.5, prepMinutes: 25, dailyLimit: 20, available: true, image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=900&q=84", portionSize: "small" },
+  { id: "ward-labneh", kitchenId: "kitchen-ward", name: { ar: "لبنة بلدية بزيت الزيتون", en: "Village Labneh with Olive Oil" }, description: { ar: "لبنة كريمية مصفاة في البيت مع زيت زيتون بلدي", en: "Creamy homemade labneh with local olive oil" }, category: "dairy", price: 3.75, prepMinutes: 15, dailyLimit: 24, available: true, image: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=900&q=84", portionSize: "medium" },
+  { id: "ajloun-white-cheese", kitchenId: "kitchen-ajloun", name: { ar: "جبنة بيضاء عجلونية", en: "Ajloun White Cheese" }, description: { ar: "جبنة بيضاء منزلية بملوحة متوازنة وقوام طري", en: "Homemade white cheese with a balanced saltiness" }, category: "cheese", price: 5.25, prepMinutes: 20, dailyLimit: 18, available: true, image: "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=900&q=84", portionSize: "medium" },
 ];
 
 export const orderStatuses: { id: OrderStatus; label: Localized; caption: Localized; icon: string }[] = [

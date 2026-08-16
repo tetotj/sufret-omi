@@ -1,0 +1,1 @@
+ALTER TABLE `kitchens` ADD `showDescription` boolean DEFAULT true NOT NULL;
