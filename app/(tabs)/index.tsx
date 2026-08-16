@@ -655,20 +655,14 @@ function FavoritesScreen({ onBack, onOpenKitchen, onRequestAdd }: { onBack: () =
 }
 
 function KitchenProfile({ onBack, onCart, onRequestAdd }: { onBack: () => void; onCart: () => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
-  const { language, selectedKitchen, cart, cartCount, updateQuantity, availableMeals, kitchenDescriptions } = useApp();
+  const { language, selectedKitchen, cart, cartCount, updateQuantity, availableMeals } = useApp();
   const { mealIds: favoriteMealIds, kitchenIds: favoriteKitchenIds, toggle: toggleFavorite } = useFavorites();
-  const kitchenDescriptionQuery = trpc.kitchens.profile.useQuery({ kitchenId: selectedKitchen.id }, { staleTime: 30_000, gcTime: 5 * 60_000, retry: false });
-  const fallbackDescription = kitchenDescriptions[selectedKitchen.id] ?? selectedKitchen.description ?? { ar: "أكلات بيتية طازجة نحضرها يومياً بحب.", en: "Fresh home-cooked dishes prepared daily with care." };
-  const remoteDescription = kitchenDescriptionQuery.data;
-  const hasRemoteDescription = Boolean(remoteDescription && (remoteDescription.descriptionAr.trim() || remoteDescription.descriptionEn.trim()));
-  const kitchenDescription = hasRemoteDescription ? { ar: remoteDescription?.descriptionAr || fallbackDescription.ar, en: remoteDescription?.descriptionEn || fallbackDescription.en } : fallbackDescription;
   const kitchenMeals = availableMeals.filter((meal) => meal.kitchenId === selectedKitchen.id);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><Text style={styles.pageTitle}>{language === "ar" ? "مطبخ بيت" : "Home kitchen"}</Text><Pressable onPress={onCart} style={styles.iconButton}><MaterialIcons name="shopping-cart" size={20} color="#082E34" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable></View>
       <View style={styles.profileHero}><Image source={{ uri: selectedKitchen.image }} style={styles.profileImage} /><View style={styles.profileOverlay} /><Pressable onPress={() => void toggleFavorite("kitchen", selectedKitchen.id)} style={styles.profileFavoriteButton}><MaterialIcons name={favoriteKitchenIds.has(selectedKitchen.id) ? "favorite" : "favorite-border"} size={22} color={favoriteKitchenIds.has(selectedKitchen.id) ? "#D76545" : "#FFFFFF"} /></Pressable><View style={styles.profileHeroText}><View style={styles.profileVerified}><MaterialIcons name="verified" size={14} color="#FFFFFF" /><Text style={styles.profileVerifiedText}>{language === "ar" ? "مطبخ موثوق" : "Verified kitchen"}</Text></View><Text style={styles.profileName}>{getLocalized(selectedKitchen.name, language)}</Text><Text style={styles.profileNeighborhood}>{getLocalized(selectedKitchen.neighborhood, language)} · {getLocalized(selectedKitchen.motherName, language)}</Text></View></View>
       <View style={styles.profileStats}><StatItem icon="star" value={`${selectedKitchen.rating}`} label={language === "ar" ? "التقييم" : "Rating"} /><StatItem icon="local-dining" value={`${selectedKitchen.reviewCount}+`} label={language === "ar" ? "تجربة" : "orders"} /><StatItem icon="schedule" value="45m" label={language === "ar" ? "التحضير" : "prep"} /></View>
-      <View style={styles.kitchenDescriptionCard}><View style={styles.kitchenDescriptionIcon}><MaterialIcons name="short-text" size={22} color="#00AFC4" /></View><Text style={styles.kitchenDescriptionText}>{getLocalized(kitchenDescription, language)}</Text></View>
       <SectionHeader title={language === "ar" ? "قائمة اليوم" : "Today's menu"} action={language === "ar" ? "طلبات مسبقة" : "Advance order"} />
       <View style={styles.mealList}>{kitchenMeals.map((meal) => <MealRow key={meal.id} meal={meal} language={language} isFavorite={favoriteMealIds.has(meal.id)} onToggleFavorite={() => void toggleFavorite("meal", meal.id)} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onAdd={() => onRequestAdd(meal)} compact />)}</View>
     </ScrollView>
