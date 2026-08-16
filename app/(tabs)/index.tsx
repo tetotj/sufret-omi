@@ -407,18 +407,10 @@ function CustomerHome({
       </View>
       {!isKitchenAvailable && <View style={styles.scheduleClosedBanner}><MaterialIcons name="event-busy" size={19} color="#A55A40" /><View style={styles.scheduleClosedCopy}><Text style={styles.scheduleClosedTitle}>{language === "ar" ? "المطبخ مغلق اليوم" : "Kitchen closed today"}</Text><Text style={styles.scheduleClosedBody}>{language === "ar" ? "يمكنك التصفح الآن والطلب في يوم متاح." : "You can browse now and order on an available day."}</Text></View></View>}
 
-      <Pressable onPress={() => onNavigate("kitchen")} style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.heroOverline}>{language === "ar" ? "من بيتنا لبيتك" : "From our homes to yours"}</Text>
-          <Text style={styles.heroTitle}>{language === "ar" ? "أكل يلمّ العيلة" : "Food that brings family together"}</Text>
-          <Text style={styles.heroBody}>{language === "ar" ? "اطلبي طبخة بيتية من أمهات الأردن" : "Order a home-cooked meal from Jordanian mothers"}</Text>
-          <View style={styles.heroCta}><Text style={styles.heroCtaText}>{language === "ar" ? "تصفّحي اليوم" : "Browse today"}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></View>
-        </View>
-        <View style={styles.heroArt}>
-          <View style={styles.heroPlate}><MaterialIcons name="restaurant" size={34} color="#00AFC4" /></View>
-          <View style={styles.heroLeafOne} /><View style={styles.heroLeafTwo} />
-        </View>
-      </Pressable>
+      <View style={styles.announcementBoard}>
+        <View style={styles.announcementHeader}><View style={styles.announcementHeaderIcon}><MaterialIcons name="campaign" size={21} color="#FFFFFF" /></View><View style={styles.announcementHeaderCopy}><Text style={styles.announcementHeaderTitle}>{language === "ar" ? "لوحة الإعلانات" : "Announcements"}</Text><Text style={styles.announcementHeaderBody}>{language === "ar" ? "آخر أخبار سفرة أمي وعروضها" : "The latest from Sufret Omi"}</Text></View><View style={styles.announcementBadge}><Text style={styles.announcementBadgeText}>3</Text></View></View>
+        {([{ icon: "restaurant-menu", arTitle: "جديد: اطلبي من أكثر من مطعم", enTitle: "New: order from multiple kitchens", arBody: "قسّمنا السلة تلقائياً لكل مطبخ", enBody: "Your cart is split for each kitchen", target: "meals" }, { icon: "local-offer", arTitle: "عروض أمهات الأردن", enTitle: "Jordanian mothers' offers", arBody: "اكتشفي أكلات بيتية مميزة اليوم", enBody: "Discover special home-cooked meals today", target: "meals" }, { icon: "two-wheeler", arTitle: "تابعي طلبك بسهولة", enTitle: "Track your order easily", arBody: "اعرفي حالة كل طلب وسائقه خطوة بخطوة", enBody: "Follow every order and driver step by step", target: "orders" }] as const).map((item, index, items) => <Pressable key={item.arTitle} onPress={() => onNavigate(item.target)} style={({ pressed }) => [styles.announcementRow, index === items.length - 1 && styles.announcementRowLast, pressed && styles.pressed]}><View style={styles.announcementIcon}><MaterialIcons name={item.icon} size={19} color="#00AFC4" /></View><View style={styles.announcementCopy}><View style={styles.announcementTitleRow}><Text style={styles.announcementTitle}>{language === "ar" ? item.arTitle : item.enTitle}</Text>{index === 0 && <View style={styles.announcementNewPill}><Text style={styles.announcementNewText}>{language === "ar" ? "جديد" : "NEW"}</Text></View>}</View><Text style={styles.announcementBody}>{language === "ar" ? item.arBody : item.enBody}</Text></View><MaterialIcons name="chevron-right" size={20} color="#8ABAC0" /></Pressable>)}
+      </View>
 
       {filtersOpen && (
         <View style={styles.filterPanel}>
@@ -968,6 +960,23 @@ const styles = StyleSheet.create({
   iconButton: { width: 39, height: 39, borderRadius: 14, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#C6EDEF" },
   cartBadge: { position: "absolute", right: -3, top: -4, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: "#00AFC4", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#F2FEFF" },
   cartBadgeText: { fontSize: 9, color: "#FFFFFF", fontWeight: "900" },
+  announcementBoard: { backgroundColor: "#FFFFFF", borderRadius: 22, borderWidth: 1, borderColor: "#BCEFF4", padding: 14, gap: 4, shadowColor: "#00AFC4", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  announcementHeader: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 10, marginBottom: 2 },
+  announcementHeaderIcon: { width: 42, height: 42, borderRadius: 15, backgroundColor: "#00AFC4", justifyContent: "center", alignItems: "center" },
+  announcementHeaderCopy: { flex: 1, gap: 2 },
+  announcementHeaderTitle: { color: "#082E34", fontSize: 15, fontWeight: "900" },
+  announcementHeaderBody: { color: "#4C747A", fontSize: 10 },
+  announcementBadge: { minWidth: 26, height: 26, borderRadius: 13, backgroundColor: "#E5FCFF", justifyContent: "center", alignItems: "center" },
+  announcementBadgeText: { color: "#00AFC4", fontSize: 11, fontWeight: "900" },
+  announcementRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 11, borderTopWidth: 1, borderTopColor: "#EDF9FA" },
+  announcementRowLast: { borderBottomWidth: 0 },
+  announcementIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#F0FCFD", justifyContent: "center", alignItems: "center" },
+  announcementCopy: { flex: 1, gap: 3 },
+  announcementTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  announcementTitle: { color: "#082E34", fontSize: 11, fontWeight: "900", flexShrink: 1 },
+  announcementBody: { color: "#4C747A", fontSize: 10, lineHeight: 15 },
+  announcementNewPill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 7, backgroundColor: "#D9F99D" },
+  announcementNewText: { color: "#496616", fontSize: 8, fontWeight: "900" },
   heroCard: { backgroundColor: "#00AFC4", minHeight: 190, borderRadius: 28, padding: 20, flexDirection: "row", overflow: "hidden", position: "relative" },
   heroCopy: { flex: 1, zIndex: 2 },
   heroOverline: { color: "#D9F99D", fontSize: 12, fontWeight: "800", marginBottom: 9 },
