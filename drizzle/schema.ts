@@ -1,4 +1,4 @@
-import { mysqlTable, int, varchar, text, timestamp, mysqlEnum, decimal, boolean } from "drizzle-orm/mysql-core";
+import { mysqlTable, int, varchar, text, timestamp, mysqlEnum, decimal, boolean, index, uniqueIndex } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -12,7 +12,10 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
+}, (table) => ({
+  accountStatusIdx: index("users_account_status_idx").on(table.accountStatus),
+  lastSignedInIdx: index("users_last_signed_in_idx").on(table.lastSignedIn),
+}));
 
 export const kitchens = mysqlTable("kitchens", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -29,7 +32,10 @@ export const kitchens = mysqlTable("kitchens", {
   isOpen: boolean("isOpen").default(true).notNull(),
   image: text("image").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdx: index("kitchens_user_idx").on(table.userId),
+  regionOpenIdx: index("kitchens_region_open_idx").on(table.region, table.isOpen),
+}));
 
 export const meals = mysqlTable("meals", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -44,7 +50,10 @@ export const meals = mysqlTable("meals", {
   dailyLimit: int("dailyLimit").notNull(),
   available: boolean("available").default(true).notNull(),
   image: text("image").notNull(),
-});
+}, (table) => ({
+  kitchenAvailableIdx: index("meals_kitchen_available_idx").on(table.kitchenId, table.available),
+  categoryPriceIdx: index("meals_category_price_idx").on(table.category, table.price),
+}));
 
 export const orders = mysqlTable("orders", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -55,7 +64,11 @@ export const orders = mysqlTable("orders", {
   schedule: mysqlEnum("schedule", ["now", "scheduled"]).notNull(),
   status: mysqlEnum("status", ["received", "preparing", "ready", "on_the_way", "delivered"]).default("received").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  customerStatusIdx: index("orders_customer_status_idx").on(table.customerId, table.status),
+  kitchenStatusIdx: index("orders_kitchen_status_idx").on(table.kitchenId, table.status),
+  createdAtIdx: index("orders_created_at_idx").on(table.createdAt),
+}));
 
 export const reviews = mysqlTable("reviews", {
   id: int("id").autoincrement().primaryKey(),
@@ -65,7 +78,10 @@ export const reviews = mysqlTable("reviews", {
   rating: int("rating").notNull(),
   comment: text("comment"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  orderIdx: index("reviews_order_idx").on(table.orderId),
+  kitchenCreatedIdx: index("reviews_kitchen_created_idx").on(table.kitchenId, table.createdAt),
+}));
 
 export const transactions = mysqlTable("transactions", {
   id: int("id").autoincrement().primaryKey(),
@@ -74,7 +90,10 @@ export const transactions = mysqlTable("transactions", {
   method: varchar("method", { length: 32 }).default("CliQ").notNull(),
   status: mysqlEnum("status", ["pending", "completed", "failed"]).default("completed").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  kitchenStatusIdx: index("transactions_kitchen_status_idx").on(table.kitchenId, table.status),
+  createdAtIdx: index("transactions_created_at_idx").on(table.createdAt),
+}));
 
 export const userProfiles = mysqlTable("userProfiles", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -89,7 +108,10 @@ export const userProfiles = mysqlTable("userProfiles", {
   ordersCount: int("ordersCount").default(0).notNull(),
   joinedDate: varchar("joinedDate", { length: 32 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userRoleIdx: index("profiles_user_role_idx").on(table.userId, table.role),
+  statusRegionIdx: index("profiles_status_region_idx").on(table.status, table.region),
+}));
 
 export const userDocuments = mysqlTable("userDocuments", {
   id: int("id").autoincrement().primaryKey(),
@@ -98,7 +120,9 @@ export const userDocuments = mysqlTable("userDocuments", {
   labelEn: text("labelEn").notNull(),
   uri: text("uri").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  profileIdx: index("documents_profile_idx").on(table.userProfileId),
+}));
 
 export const complaintsDb = mysqlTable("complaintsDb", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -110,13 +134,19 @@ export const complaintsDb = mysqlTable("complaintsDb", {
   status: mysqlEnum("status", ["new", "in_review", "resolved", "closed"]).default("new").notNull(),
   response: text("response"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  customerStatusIdx: index("complaints_customer_status_idx").on(table.customerId, table.status),
+  orderIdx: index("complaints_order_idx").on(table.orderId),
+  createdAtIdx: index("complaints_created_at_idx").on(table.createdAt),
+}));
 
 export const complaintImages = mysqlTable("complaintImages", {
   id: int("id").autoincrement().primaryKey(),
   complaintId: varchar("complaintId", { length: 64 }).notNull(),
   uri: text("uri").notNull(),
-});
+}, (table) => ({
+  complaintIdx: index("complaint_images_complaint_idx").on(table.complaintId),
+}));
 
 export const announcements = mysqlTable("announcements", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -134,9 +164,14 @@ export const announcements = mysqlTable("announcements", {
   isActive: boolean("isActive").default(true).notNull(),
   startsAt: timestamp("startsAt"),
   endsAt: timestamp("endsAt"),
+  imageUrl: text("imageUrl"),
+  notificationSentAt: timestamp("notificationSentAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  activeOrderIdx: index("announcements_active_order_idx").on(table.isActive, table.sortOrder),
+  scheduleIdx: index("announcements_schedule_idx").on(table.startsAt, table.endsAt),
+}));
 
 export const offers = mysqlTable("offers", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -148,9 +183,29 @@ export const offers = mysqlTable("offers", {
   isActive: boolean("isActive").default(true).notNull(),
   startsAt: timestamp("startsAt"),
   endsAt: timestamp("endsAt"),
+  imageUrl: text("imageUrl"),
+  notificationSentAt: timestamp("notificationSentAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  activeOrderIdx: index("offers_active_order_idx").on(table.isActive, table.sortOrder),
+  scheduleIdx: index("offers_schedule_idx").on(table.startsAt, table.endsAt),
+  mealIdx: index("offers_meal_idx").on(table.mealId),
+}));
+
+export const pushTokens = mysqlTable("pushTokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  token: varchar("token", { length: 512 }).notNull(),
+  platform: mysqlEnum("platform", ["ios", "android", "web"]).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  lastSeenAt: timestamp("lastSeenAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  tokenUnique: uniqueIndex("push_tokens_token_unique").on(table.token),
+  userActiveIdx: index("push_tokens_user_active_idx").on(table.userId, table.isActive),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -165,3 +220,4 @@ export type ComplaintDb = typeof complaintsDb.$inferSelect;
 export type ComplaintImageDb = typeof complaintImages.$inferSelect;
 export type AnnouncementDb = typeof announcements.$inferSelect;
 export type OfferDb = typeof offers.$inferSelect;
+export type PushTokenDb = typeof pushTokens.$inferSelect;

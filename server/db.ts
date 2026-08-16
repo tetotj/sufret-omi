@@ -1,19 +1,24 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, announcements, complaintsDb, complaintImages, offers, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { createPool, type Pool } from "mysql2/promise";
+import { InsertUser, announcements, complaintsDb, complaintImages, offers, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: Pool | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+// Lazily create one shared pool so every request reuses connections instead of opening a new connection.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const connectionLimit = Math.max(2, Math.min(Number(process.env.DB_POOL_SIZE ?? 10), 100));
+      _pool = createPool({ uri: process.env.DATABASE_URL, connectionLimit, waitForConnections: true, queueLimit: 0, enableKeepAlive: true });
+      _db = drizzle(_pool as never) as ReturnType<typeof drizzle>;
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
+      _pool = null;
       _db = null;
     }
   }
@@ -312,6 +317,7 @@ export type AnnouncementRecord = {
   isActive: boolean;
   startsAt?: string;
   endsAt?: string;
+  imageUrl?: string | null;
 };
 
 export type OfferRecord = {
@@ -324,11 +330,20 @@ export type OfferRecord = {
   isActive: boolean;
   startsAt?: string;
   endsAt?: string;
-};
+  imageUrl?: string | null;
+}
 
 function isPublished(row: { isActive: boolean; startsAt: Date | null; endsAt: Date | null }) {
   const now = Date.now();
   return row.isActive && (!row.startsAt || row.startsAt.getTime() <= now) && (!row.endsAt || row.endsAt.getTime() >= now);
+}
+
+const MARKETING_CACHE_TTL_MS = 15_000;
+let activeAnnouncementsCache: { expiresAt: number; value: AnnouncementRecord[] } | null = null;
+let activeOffersCache: { expiresAt: number; value: OfferRecord[] } | null = null;
+function clearMarketingCache() {
+  activeAnnouncementsCache = null;
+  activeOffersCache = null;
 }
 
 function toAnnouncementRecord(row: typeof announcements.$inferSelect): AnnouncementRecord {
@@ -348,6 +363,7 @@ function toAnnouncementRecord(row: typeof announcements.$inferSelect): Announcem
     isActive: row.isActive,
     startsAt: row.startsAt?.toISOString(),
     endsAt: row.endsAt?.toISOString(),
+    imageUrl: row.imageUrl ?? undefined,
   };
 }
 
@@ -362,14 +378,19 @@ function toOfferRecord(row: typeof offers.$inferSelect): OfferRecord {
     isActive: row.isActive,
     startsAt: row.startsAt?.toISOString(),
     endsAt: row.endsAt?.toISOString(),
+    imageUrl: row.imageUrl ?? undefined,
   };
 }
 
 export async function listActiveAnnouncements(): Promise<AnnouncementRecord[]> {
+  if (activeAnnouncementsCache && activeAnnouncementsCache.expiresAt > Date.now()) return activeAnnouncementsCache.value;
   const db = await getDb();
   if (!db) return [];
-  const rows = await db.select().from(announcements).orderBy(announcements.sortOrder);
-  return rows.filter(isPublished).map(toAnnouncementRecord);
+  const now = new Date();
+  const rows = await db.select().from(announcements).where(and(eq(announcements.isActive, true), or(isNull(announcements.startsAt), lte(announcements.startsAt, now)), or(isNull(announcements.endsAt), gte(announcements.endsAt, now)))).orderBy(announcements.sortOrder);
+  const value = rows.filter(isPublished).map(toAnnouncementRecord);
+  activeAnnouncementsCache = { expiresAt: Date.now() + MARKETING_CACHE_TTL_MS, value };
+  return value;
 }
 
 export async function listAllAnnouncements(): Promise<AnnouncementRecord[]> {
@@ -382,6 +403,7 @@ export async function listAllAnnouncements(): Promise<AnnouncementRecord[]> {
 export async function createAnnouncementRecord(input: Omit<AnnouncementRecord, "startsAt" | "endsAt"> & { startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  clearMarketingCache();
   await db.insert(announcements).values({
     id: input.id,
     eyebrowAr: input.eyebrowAr,
@@ -398,26 +420,33 @@ export async function createAnnouncementRecord(input: Omit<AnnouncementRecord, "
     isActive: input.isActive,
     startsAt: input.startsAt ?? null,
     endsAt: input.endsAt ?? null,
+    imageUrl: input.imageUrl ?? null,
   });
 }
 
 export async function updateAnnouncementRecord(id: string, patch: Partial<Omit<AnnouncementRecord, "id" | "startsAt" | "endsAt">> & { startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  clearMarketingCache();
   await db.update(announcements).set(patch).where(eq(announcements.id, id));
 }
 
 export async function deleteAnnouncementRecord(id: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  clearMarketingCache();
   await db.delete(announcements).where(eq(announcements.id, id));
 }
 
 export async function listActiveOffers(): Promise<OfferRecord[]> {
+  if (activeOffersCache && activeOffersCache.expiresAt > Date.now()) return activeOffersCache.value;
   const db = await getDb();
   if (!db) return [];
-  const rows = await db.select().from(offers).orderBy(offers.sortOrder);
-  return rows.filter(isPublished).map(toOfferRecord);
+  const now = new Date();
+  const rows = await db.select().from(offers).where(and(eq(offers.isActive, true), or(isNull(offers.startsAt), lte(offers.startsAt, now)), or(isNull(offers.endsAt), gte(offers.endsAt, now)))).orderBy(offers.sortOrder);
+  const value = rows.filter(isPublished).map(toOfferRecord);
+  activeOffersCache = { expiresAt: Date.now() + MARKETING_CACHE_TTL_MS, value };
+  return value;
 }
 
 export async function listAllOffers(): Promise<OfferRecord[]> {
@@ -430,6 +459,7 @@ export async function listAllOffers(): Promise<OfferRecord[]> {
 export async function createOfferRecord(input: Omit<OfferRecord, "startsAt" | "endsAt" | "discountPercent"> & { discountPercent?: number | null; startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  clearMarketingCache();
   await db.insert(offers).values({
     id: input.id,
     mealId: input.mealId,
@@ -440,6 +470,7 @@ export async function createOfferRecord(input: Omit<OfferRecord, "startsAt" | "e
     isActive: input.isActive,
     startsAt: input.startsAt ?? null,
     endsAt: input.endsAt ?? null,
+    imageUrl: input.imageUrl ?? null,
   });
 }
 
@@ -448,11 +479,52 @@ export async function updateOfferRecord(id: string, patch: Partial<Omit<OfferRec
   if (!db) throw new Error("Database is not available");
   const { discountPercent, ...rest } = patch;
   const dbPatch = { ...rest, ...(discountPercent !== undefined ? { discountPercent: discountPercent === null ? null : String(discountPercent) } : {}) };
+  clearMarketingCache();
   await db.update(offers).set(dbPatch).where(eq(offers.id, id));
 }
 
 export async function deleteOfferRecord(id: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  clearMarketingCache();
   await db.delete(offers).where(eq(offers.id, id));
+}
+
+export async function registerPushToken(userId: number, token: string, platform: "ios" | "android" | "web"): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(pushTokens).values({ userId, token, platform, isActive: true, lastSeenAt: new Date() }).onDuplicateKeyUpdate({ set: { userId, platform, isActive: true, lastSeenAt: new Date() } });
+}
+
+export async function listActivePushTokens(): Promise<Array<{ token: string }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.isActive, true));
+  return rows as Array<{ token: string }>;
+}
+
+export async function deactivatePushToken(token: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(pushTokens).set({ isActive: false }).where(eq(pushTokens.token, token));
+}
+
+export type DueMarketingNotification = { kind: "announcement" | "offer"; id: string; titleAr: string; titleEn: string; bodyAr: string; bodyEn: string };
+
+export async function claimDueMarketingNotifications(): Promise<DueMarketingNotification[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  const dueAnnouncements = await db.select().from(announcements).where(and(eq(announcements.isActive, true), isNull(announcements.notificationSentAt), or(isNull(announcements.startsAt), lte(announcements.startsAt, now)), or(isNull(announcements.endsAt), gte(announcements.endsAt, now))));
+  const dueOffers = await db.select().from(offers).where(and(eq(offers.isActive, true), isNull(offers.notificationSentAt), or(isNull(offers.startsAt), lte(offers.startsAt, now)), or(isNull(offers.endsAt), gte(offers.endsAt, now))));
+  const claimed: DueMarketingNotification[] = [];
+  for (const item of dueAnnouncements) {
+    const updateResult = await db.update(announcements).set({ notificationSentAt: now }).where(and(eq(announcements.id, item.id), isNull(announcements.notificationSentAt)));
+    if ((updateResult as { affectedRows?: number }).affectedRows !== 0) claimed.push({ kind: "announcement", id: item.id, titleAr: item.titleAr, titleEn: item.titleEn, bodyAr: item.bodyAr, bodyEn: item.bodyEn });
+  }
+  for (const item of dueOffers) {
+    const updateResult = await db.update(offers).set({ notificationSentAt: now }).where(and(eq(offers.id, item.id), isNull(offers.notificationSentAt)));
+    if ((updateResult as { affectedRows?: number }).affectedRows !== 0) claimed.push({ kind: "offer", id: item.id, titleAr: item.badgeAr, titleEn: item.badgeEn, bodyAr: "عرض جديد من سفرة أمي متاح الآن", bodyEn: "A new Sufret Omi offer is available now" });
+  }
+  return claimed;
 }

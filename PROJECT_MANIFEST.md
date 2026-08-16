@@ -61,7 +61,7 @@ No live payment gateway, analytics provider, FCM/APNs server, or production SMS 
 
 ## Environment Variables
 
-The complete placeholder list is in `ENVIRONMENT_VARIABLES.example`. The current server reads `DATABASE_URL`, `JWT_SECRET`, `OAUTH_SERVER_URL`, `VITE_APP_ID`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`, and `BUILT_IN_FORGE_API_KEY`. It also recognizes `OWNER_NAME`, `NODE_ENV`, `PORT`, and `EXPO_PORT`. `scripts/load-env.js` maps selected server variables to `EXPO_PUBLIC_*` aliases for the Expo runtime. No real credentials are included in this export.
+The complete placeholder list is in `ENVIRONMENT_VARIABLES.example`. The current server reads `DATABASE_URL`, `DB_POOL_SIZE`, `JWT_SECRET`, `OAUTH_SERVER_URL`, `VITE_APP_ID`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`, and `BUILT_IN_FORGE_API_KEY`. It also recognizes `OWNER_NAME`, `NODE_ENV`, `PORT`, `EXPO_PORT`, and the optional `EXPO_PUBLIC_EAS_PROJECT_ID` used by native push registration. `DB_POOL_SIZE` controls the shared MySQL connection pool per instance, while marketing reads use a short server-side cache and indexed date/status queries. `scripts/load-env.js` maps selected server variables to `EXPO_PUBLIC_*` aliases for the Expo runtime. No real credentials are included in this export.
 
 ## Commands
 

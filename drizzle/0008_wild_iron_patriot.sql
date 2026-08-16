@@ -1,0 +1,20 @@
+CREATE INDEX `complaint_images_complaint_idx` ON `complaintImages` (`complaintId`);--> statement-breakpoint
+CREATE INDEX `complaints_customer_status_idx` ON `complaintsDb` (`customerId`,`status`);--> statement-breakpoint
+CREATE INDEX `complaints_order_idx` ON `complaintsDb` (`orderId`);--> statement-breakpoint
+CREATE INDEX `complaints_created_at_idx` ON `complaintsDb` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `kitchens_user_idx` ON `kitchens` (`userId`);--> statement-breakpoint
+CREATE INDEX `kitchens_region_open_idx` ON `kitchens` (`region`,`isOpen`);--> statement-breakpoint
+CREATE INDEX `meals_kitchen_available_idx` ON `meals` (`kitchenId`,`available`);--> statement-breakpoint
+CREATE INDEX `meals_category_price_idx` ON `meals` (`category`,`price`);--> statement-breakpoint
+CREATE INDEX `orders_customer_status_idx` ON `orders` (`customerId`,`status`);--> statement-breakpoint
+CREATE INDEX `orders_kitchen_status_idx` ON `orders` (`kitchenId`,`status`);--> statement-breakpoint
+CREATE INDEX `orders_created_at_idx` ON `orders` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `reviews_order_idx` ON `reviews` (`orderId`);--> statement-breakpoint
+CREATE INDEX `reviews_kitchen_created_idx` ON `reviews` (`kitchenId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transactions_kitchen_status_idx` ON `transactions` (`kitchenId`,`status`);--> statement-breakpoint
+CREATE INDEX `transactions_created_at_idx` ON `transactions` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `documents_profile_idx` ON `userDocuments` (`userProfileId`);--> statement-breakpoint
+CREATE INDEX `profiles_user_role_idx` ON `userProfiles` (`userId`,`role`);--> statement-breakpoint
+CREATE INDEX `profiles_status_region_idx` ON `userProfiles` (`status`,`region`);--> statement-breakpoint
+CREATE INDEX `users_account_status_idx` ON `users` (`accountStatus`);--> statement-breakpoint
+CREATE INDEX `users_last_signed_in_idx` ON `users` (`lastSignedIn`);

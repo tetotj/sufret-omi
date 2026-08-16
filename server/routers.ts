@@ -1,15 +1,18 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listUserProfiles, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listUserProfiles, registerPushToken, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { isExpoPushToken } from "./marketing-notifications";
 
 const userStatusSchema = z.enum(["active", "pending_approval", "suspended", "rejected"]);
 const complaintStatusSchema = z.enum(["new", "in_review", "resolved", "closed"]);
 const complaintImageSchema = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/, "Complaint images must be data URLs");
+const marketingImageSchema = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/, "Marketing images must be data URLs");
+const pushTokenSchema = z.object({ token: z.string().min(20).max(512), platform: z.enum(["ios", "android", "web"]) });
 const marketingDateSchema = z.string().nullable().optional();
 const announcementInput = z.object({
   id: z.string().min(1).max(64),
@@ -27,6 +30,7 @@ const announcementInput = z.object({
   isActive: z.boolean(),
   startsAt: marketingDateSchema,
   endsAt: marketingDateSchema,
+  imageUrl: z.string().url().nullable().optional(),
 });
 const offerInput = z.object({
   id: z.string().min(1).max(64),
@@ -38,6 +42,7 @@ const offerInput = z.object({
   isActive: z.boolean(),
   startsAt: marketingDateSchema,
   endsAt: marketingDateSchema,
+  imageUrl: z.string().url().nullable().optional(),
 });
 
 function parseMarketingDate(value?: string | null) {
@@ -82,6 +87,7 @@ export const appRouter = router({
       return updateAnnouncementRecord(id, { ...patch, ...(startsAt !== undefined ? { startsAt: parseMarketingDate(startsAt) } : {}), ...(endsAt !== undefined ? { endsAt: parseMarketingDate(endsAt) } : {}) });
     }),
     deleteAnnouncement: adminProcedure.input(z.object({ id: z.string().min(1).max(64) })).mutation(({ input }) => deleteAnnouncementRecord(input.id)),
+    uploadAnnouncementImage: adminProcedure.input(z.object({ id: z.string().min(1).max(64), image: marketingImageSchema })).mutation(async ({ input }) => { const decoded = decodeImageDataUrl(input.image); const uploaded = await storagePut(`marketing/announcements/${input.id}`, decoded.data, decoded.contentType); await updateAnnouncementRecord(input.id, { imageUrl: uploaded.url }); return { url: uploaded.url }; }),
     listOffers: adminProcedure.query(() => listAllOffers()),
     createOffer: adminProcedure.input(offerInput).mutation(({ input }) => createOfferRecord({ ...input, startsAt: parseMarketingDate(input.startsAt), endsAt: parseMarketingDate(input.endsAt) })),
     updateOffer: adminProcedure.input(offerInput.partial().extend({ id: z.string().min(1).max(64) })).mutation(({ input }) => {
@@ -89,10 +95,14 @@ export const appRouter = router({
       return updateOfferRecord(id, { ...patch, ...(startsAt !== undefined ? { startsAt: parseMarketingDate(startsAt) } : {}), ...(endsAt !== undefined ? { endsAt: parseMarketingDate(endsAt) } : {}) });
     }),
     deleteOffer: adminProcedure.input(z.object({ id: z.string().min(1).max(64) })).mutation(({ input }) => deleteOfferRecord(input.id)),
+    uploadOfferImage: adminProcedure.input(z.object({ id: z.string().min(1).max(64), image: marketingImageSchema })).mutation(async ({ input }) => { const decoded = decodeImageDataUrl(input.image); const uploaded = await storagePut(`marketing/offers/${input.id}`, decoded.data, decoded.contentType); await updateOfferRecord(input.id, { imageUrl: uploaded.url }); return { url: uploaded.url }; }),
   }),
   marketing: router({
     announcements: publicProcedure.query(() => listActiveAnnouncements()),
     offers: publicProcedure.query(() => listActiveOffers()),
+  }),
+  notifications: router({
+    registerPushToken: protectedProcedure.input(pushTokenSchema).mutation(({ ctx, input }) => { if (input.platform !== "web" && !isExpoPushToken(input.token)) throw new Error("Invalid Expo push token"); return registerPushToken(ctx.user.id, input.token, input.platform); }),
   }),
   complaints: router({
     mine: protectedProcedure.query(({ ctx }) => listComplaintRecords(ctx.user.id)),

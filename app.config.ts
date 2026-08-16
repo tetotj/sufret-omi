@@ -86,6 +86,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-notifications",
     [
       "expo-location",
       {
@@ -141,6 +142,11 @@ const config: ExpoConfig = {
       },
     ],
   ],
+  extra: {
+    eas: {
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "",
+    },
+  },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,

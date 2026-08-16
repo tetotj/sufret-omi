@@ -43,6 +43,27 @@
       "when": 1786884635362,
       "tag": "0005_keen_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786885600705,
+      "tag": "0006_brainy_ma_gnuci",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1786885656506,
+      "tag": "0007_unusual_klaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1786886072406,
+      "tag": "0008_wild_iron_patriot",
+      "breakpoints": true
     }
   ]
 }
