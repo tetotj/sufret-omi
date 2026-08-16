@@ -75,6 +75,8 @@ const removeIngredientOptions: IngredientOption[] = [
   { id: "pickles", label: { ar: "مخللات", en: "Pickles" }, icon: "spa" },
 ];
 
+const OFFER_MEAL_IDS = new Set(["mansaf-family", "maqluba-chicken", "zaatar-bakery"]);
+
 export default function HomeScreen() {
   const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart, isKitchenAvailable, showToast } = useApp();
   const cartPreviewTotal = getOrderPricing(cartTotal, cartCount > 0 ? 1.25 : 0).grandTotal;
@@ -365,11 +367,11 @@ function CustomerHome({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">("all");
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("recommended");
+  const [offersOnly, setOffersOnly] = useState(false);
   const [announcementIndex, setAnnouncementIndex] = useState(0);
   const region = getRegion(selectedRegion);
   const announcements = [{ icon: "restaurant-menu", arEyebrow: "تحديث جديد من سفرة أمي", enEyebrow: "A new Sufret Omi update", arTitle: "اطلبي من أكثر من مطعم", enTitle: "Order from multiple kitchens", arBody: "قسّمنا السلة تلقائياً لكل مطبخ حتى توصلك طلباتك بسهولة.", enBody: "Your cart is split for each kitchen for an easier delivery.", arCta: "اكتشفي الأكلات", enCta: "Discover meals", target: "meals" }, { icon: "local-offer", arEyebrow: "عروض أمهات الأردن", enEyebrow: "Jordanian mothers' offers", arTitle: "نكهة بيتية بانتظارك", enTitle: "A home-cooked offer awaits", arBody: "اكتشفي أكلات مميزة محضّرة بحب من مطابخ قريبة منك.", enBody: "Discover special meals prepared with care by kitchens near you.", arCta: "شاهدي العروض", enCta: "See offers", target: "meals" }, { icon: "two-wheeler", arEyebrow: "تتبّع أسهل لطلباتك", enEyebrow: "Easier order tracking", arTitle: "كل طلب في مكانه", enTitle: "Every order in one place", arBody: "تابعي حالة كل مطبخ وسائق خطوة بخطوة من شاشة طلباتي.", enBody: "Follow every kitchen and driver step by step from My Orders.", arCta: "تتبعي طلباتك", enCta: "Track orders", target: "orders" }] as const;
   const announcement = announcements[announcementIndex];
-  const offers = [{ mealId: "mansaf-family", arLabel: "عرض اللمة", enLabel: "Family table offer", arBadge: "الأكثر طلباً", enBadge: "Most loved" }, { mealId: "maqluba-chicken", arLabel: "عرض اليوم", enLabel: "Today's offer", arBadge: "طبخة بيتية", enBadge: "Home-cooked" }, { mealId: "zaatar-bakery", arLabel: "عرض الفطور", enLabel: "Breakfast offer", arBadge: "طازج اليوم", enBadge: "Fresh today" }] as const;
   useEffect(() => { const timer = setInterval(() => setAnnouncementIndex((current) => (current + 1) % announcements.length), 5000); return () => clearInterval(timer); }, [announcements.length]);
 
   const visibleKitchens = useMemo(() => regionScope === "all" ? kitchens : kitchens.filter((kitchen) => kitchen.region === regionScope), [regionScope]);
@@ -379,9 +381,10 @@ function CustomerHome({
     const filtered = meals.filter((meal) => {
       const matchesQuery = !normalized || `${meal.name.ar} ${meal.name.en}`.toLowerCase().includes(normalized);
       const matchesCategory = selectedCategory === "all" || meal.category === selectedCategory;
+      const matchesOffer = !offersOnly || OFFER_MEAL_IDS.has(meal.id);
       const kitchen = kitchens.find((item) => item.id === meal.kitchenId);
       const matchesRegion = regionScope === "all" || kitchen?.region === regionScope;
-      return matchesQuery && matchesCategory && matchesRegion;
+      return matchesQuery && matchesCategory && matchesOffer && matchesRegion;
     });
     return [...filtered].sort((left, right) => {
       const leftKitchen = kitchens.find((item) => item.id === left.kitchenId);
@@ -393,7 +396,7 @@ function CustomerHome({
       if (filterSort === "distance") return (leftKitchen ? getKitchenDistanceKm(leftKitchen, region) : Number.MAX_SAFE_INTEGER) - (rightKitchen ? getKitchenDistanceKm(rightKitchen, region) : Number.MAX_SAFE_INTEGER);
       return (rightKitchen?.rating ?? 0) - (leftKitchen?.rating ?? 0);
     });
-  }, [query, selectedCategory, regionScope, filterSort, region]);
+  }, [query, selectedCategory, regionScope, filterSort, region, offersOnly]);
 
   const openKitchen = (kitchenId: string) => {
     setSelectedKitchenId(kitchenId);
@@ -427,20 +430,19 @@ function CustomerHome({
         <View style={styles.announcementFooter}><View style={styles.announcementDots}>{announcements.map((item, index) => <Pressable key={item.arTitle} onPress={() => setAnnouncementIndex(index)} style={[styles.announcementDot, index === announcementIndex && styles.announcementDotActive]} />)}</View><View style={styles.announcementNav}><Pressable onPress={() => setAnnouncementIndex((current) => (current - 1 + announcements.length) % announcements.length)} style={styles.announcementNavButton}><MaterialIcons name="chevron-left" size={18} color="#00AFC4" /></Pressable><Text style={styles.announcementCounter}>{announcementIndex + 1}/{announcements.length}</Text><Pressable onPress={() => setAnnouncementIndex((current) => (current + 1) % announcements.length)} style={styles.announcementNavButton}><MaterialIcons name="chevron-right" size={18} color="#00AFC4" /></Pressable></View></View>
       </View>
 
-      <SectionHeader title={language === "ar" ? "العروض" : "Offers"} action={language === "ar" ? "شاهدي الكل" : "See all"} onAction={() => onNavigate("meals")} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersRow}>{offers.map((offer) => { const meal = meals.find((item) => item.id === offer.mealId); const kitchen = meal ? kitchens.find((item) => item.id === meal.kitchenId) : undefined; if (!meal || !kitchen) return null; return <Pressable key={offer.mealId} onPress={() => onRequestAdd(meal)} style={({ pressed }) => [styles.offerCard, pressed && styles.pressed]}><Image source={{ uri: meal.image }} style={styles.offerImage} /><View style={styles.offerShade} /><View style={styles.offerBadge}><Text style={styles.offerBadgeText}>{language === "ar" ? offer.arBadge : offer.enBadge}</Text></View><View style={styles.offerCardCopy}><Text style={styles.offerLabel}>{language === "ar" ? offer.arLabel : offer.enLabel}</Text><Text style={styles.offerName} numberOfLines={1}>{getLocalized(meal.name, language)}</Text><Text style={styles.offerKitchen} numberOfLines={1}>{getLocalized(kitchen.name, language)}</Text><View style={styles.offerCta}><Text style={styles.offerCtaText}>{language === "ar" ? "أضيفي للسلة" : "Add to cart"}</Text><MaterialIcons name="add" size={14} color="#FFFFFF" /></View></View></Pressable>; })}</ScrollView>
 
       {filtersOpen && (
         <View style={styles.filterPanel}>
-          <UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} />
+          <UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={(next) => { setOffersOnly(false); setSelectedCategory(next); }} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} />
         </View>
       )}
 
       <SectionHeader title={language === "ar" ? "شو نفسِك اليوم؟" : "What are you craving?"} action={language === "ar" ? "الكل" : "See all"} onAction={() => onNavigate("meals")} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-        <CategoryPill label={language === "ar" ? "الكل" : "All"} icon="apps" color="#00AFC4" selected={selectedCategory === "all"} onPress={() => { setSelectedCategory("all"); onNavigate("meals"); }} />
+        <CategoryPill label={language === "ar" ? "الكل" : "All"} icon="apps" color="#00AFC4" selected={!offersOnly && selectedCategory === "all"} onPress={() => { setOffersOnly(false); setSelectedCategory("all"); }} />
+        <CategoryPill label={language === "ar" ? "العروض" : "Offers"} icon="local-offer" color="#D76545" selected={offersOnly} onPress={() => { setOffersOnly(true); setSelectedCategory("all"); }} />
         {categories.map((category) => (
-          <CategoryPill key={category.id} label={getLocalized(category.label, language)} icon={category.icon as IconName} color={category.color} selected={selectedCategory === category.id} onPress={() => { setSelectedCategory(category.id); onNavigate("meals"); }} />
+          <CategoryPill key={category.id} label={getLocalized(category.label, language)} icon={category.icon as IconName} color={category.color} selected={!offersOnly && selectedCategory === category.id} onPress={() => { setOffersOnly(false); setSelectedCategory(category.id); }} />
         ))}
       </ScrollView>
 
@@ -464,7 +466,7 @@ function CustomerHome({
         ))}
       </ScrollView>
 
-      <SectionHeader title={language === "ar" ? "أكثر الأكلات طلباً" : "Most ordered today"} action={language === "ar" ? "أضيفي للسفرة" : "Add to table"} />
+      <SectionHeader title={offersOnly ? (language === "ar" ? "عروض اليوم" : "Today's offers") : language === "ar" ? "أكثر الأكلات طلباً" : "Most ordered today"} action={language === "ar" ? "أضيفي للسفرة" : "Add to table"} />
       <View style={styles.mealList}>
         {visibleMeals.map((meal) => (
           <MealRow key={meal.id} meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => openKitchen(meal.kitchenId)} onAdd={() => onRequestAdd(meal)} />
