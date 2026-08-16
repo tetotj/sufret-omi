@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, complaintsDb, complaintImages, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, announcements, complaintsDb, complaintImages, offers, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -294,4 +294,165 @@ export async function updateComplaintRecord(id: string, status: ComplaintStatus,
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(complaintsDb).set({ status, response: response?.trim() || null }).where(eq(complaintsDb.id, id));
+}
+
+export type AnnouncementRecord = {
+  id: string;
+  eyebrowAr: string;
+  eyebrowEn: string;
+  titleAr: string;
+  titleEn: string;
+  bodyAr: string;
+  bodyEn: string;
+  ctaAr: string;
+  ctaEn: string;
+  icon: string;
+  target: "meals" | "orders";
+  sortOrder: number;
+  isActive: boolean;
+  startsAt?: string;
+  endsAt?: string;
+};
+
+export type OfferRecord = {
+  id: string;
+  mealId: string;
+  badgeAr: string;
+  badgeEn: string;
+  discountPercent?: number;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt?: string;
+  endsAt?: string;
+};
+
+function isPublished(row: { isActive: boolean; startsAt: Date | null; endsAt: Date | null }) {
+  const now = Date.now();
+  return row.isActive && (!row.startsAt || row.startsAt.getTime() <= now) && (!row.endsAt || row.endsAt.getTime() >= now);
+}
+
+function toAnnouncementRecord(row: typeof announcements.$inferSelect): AnnouncementRecord {
+  return {
+    id: row.id,
+    eyebrowAr: row.eyebrowAr,
+    eyebrowEn: row.eyebrowEn,
+    titleAr: row.titleAr,
+    titleEn: row.titleEn,
+    bodyAr: row.bodyAr,
+    bodyEn: row.bodyEn,
+    ctaAr: row.ctaAr,
+    ctaEn: row.ctaEn,
+    icon: row.icon,
+    target: row.target,
+    sortOrder: row.sortOrder,
+    isActive: row.isActive,
+    startsAt: row.startsAt?.toISOString(),
+    endsAt: row.endsAt?.toISOString(),
+  };
+}
+
+function toOfferRecord(row: typeof offers.$inferSelect): OfferRecord {
+  return {
+    id: row.id,
+    mealId: row.mealId,
+    badgeAr: row.badgeAr,
+    badgeEn: row.badgeEn,
+    discountPercent: row.discountPercent === null ? undefined : Number(row.discountPercent),
+    sortOrder: row.sortOrder,
+    isActive: row.isActive,
+    startsAt: row.startsAt?.toISOString(),
+    endsAt: row.endsAt?.toISOString(),
+  };
+}
+
+export async function listActiveAnnouncements(): Promise<AnnouncementRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(announcements).orderBy(announcements.sortOrder);
+  return rows.filter(isPublished).map(toAnnouncementRecord);
+}
+
+export async function listAllAnnouncements(): Promise<AnnouncementRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(announcements).orderBy(announcements.sortOrder);
+  return rows.map(toAnnouncementRecord);
+}
+
+export async function createAnnouncementRecord(input: Omit<AnnouncementRecord, "startsAt" | "endsAt"> & { startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(announcements).values({
+    id: input.id,
+    eyebrowAr: input.eyebrowAr,
+    eyebrowEn: input.eyebrowEn,
+    titleAr: input.titleAr,
+    titleEn: input.titleEn,
+    bodyAr: input.bodyAr,
+    bodyEn: input.bodyEn,
+    ctaAr: input.ctaAr,
+    ctaEn: input.ctaEn,
+    icon: input.icon,
+    target: input.target,
+    sortOrder: input.sortOrder,
+    isActive: input.isActive,
+    startsAt: input.startsAt ?? null,
+    endsAt: input.endsAt ?? null,
+  });
+}
+
+export async function updateAnnouncementRecord(id: string, patch: Partial<Omit<AnnouncementRecord, "id" | "startsAt" | "endsAt">> & { startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(announcements).set(patch).where(eq(announcements.id, id));
+}
+
+export async function deleteAnnouncementRecord(id: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(announcements).where(eq(announcements.id, id));
+}
+
+export async function listActiveOffers(): Promise<OfferRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(offers).orderBy(offers.sortOrder);
+  return rows.filter(isPublished).map(toOfferRecord);
+}
+
+export async function listAllOffers(): Promise<OfferRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(offers).orderBy(offers.sortOrder);
+  return rows.map(toOfferRecord);
+}
+
+export async function createOfferRecord(input: Omit<OfferRecord, "startsAt" | "endsAt" | "discountPercent"> & { discountPercent?: number | null; startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(offers).values({
+    id: input.id,
+    mealId: input.mealId,
+    badgeAr: input.badgeAr,
+    badgeEn: input.badgeEn,
+    discountPercent: input.discountPercent === undefined || input.discountPercent === null ? null : String(input.discountPercent),
+    sortOrder: input.sortOrder,
+    isActive: input.isActive,
+    startsAt: input.startsAt ?? null,
+    endsAt: input.endsAt ?? null,
+  });
+}
+
+export async function updateOfferRecord(id: string, patch: Partial<Omit<OfferRecord, "id" | "startsAt" | "endsAt" | "discountPercent">> & { discountPercent?: number | null; startsAt?: Date | null; endsAt?: Date | null }): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const { discountPercent, ...rest } = patch;
+  const dbPatch = { ...rest, ...(discountPercent !== undefined ? { discountPercent: discountPercent === null ? null : String(discountPercent) } : {}) };
+  await db.update(offers).set(dbPatch).where(eq(offers.id, id));
+}
+
+export async function deleteOfferRecord(id: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(offers).where(eq(offers.id, id));
 }

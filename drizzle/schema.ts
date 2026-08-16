@@ -118,6 +118,40 @@ export const complaintImages = mysqlTable("complaintImages", {
   uri: text("uri").notNull(),
 });
 
+export const announcements = mysqlTable("announcements", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  eyebrowAr: text("eyebrowAr").notNull(),
+  eyebrowEn: text("eyebrowEn").notNull(),
+  titleAr: text("titleAr").notNull(),
+  titleEn: text("titleEn").notNull(),
+  bodyAr: text("bodyAr").notNull(),
+  bodyEn: text("bodyEn").notNull(),
+  ctaAr: text("ctaAr").notNull(),
+  ctaEn: text("ctaEn").notNull(),
+  icon: varchar("icon", { length: 64 }).default("campaign").notNull(),
+  target: mysqlEnum("target", ["meals", "orders"]).default("meals").notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  startsAt: timestamp("startsAt"),
+  endsAt: timestamp("endsAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const offers = mysqlTable("offers", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  mealId: varchar("mealId", { length: 64 }).notNull(),
+  badgeAr: text("badgeAr").notNull(),
+  badgeEn: text("badgeEn").notNull(),
+  discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  startsAt: timestamp("startsAt"),
+  endsAt: timestamp("endsAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Kitchen = typeof kitchens.$inferSelect;
@@ -129,3 +163,5 @@ export type UserProfileDb = typeof userProfiles.$inferSelect;
 export type UserDocumentDb = typeof userDocuments.$inferSelect;
 export type ComplaintDb = typeof complaintsDb.$inferSelect;
 export type ComplaintImageDb = typeof complaintImages.$inferSelect;
+export type AnnouncementDb = typeof announcements.$inferSelect;
+export type OfferDb = typeof offers.$inferSelect;

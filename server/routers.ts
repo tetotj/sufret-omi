@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createComplaintRecord, listComplaintRecords, listUserProfiles, updateComplaintRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listUserProfiles, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -10,6 +10,39 @@ import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_
 const userStatusSchema = z.enum(["active", "pending_approval", "suspended", "rejected"]);
 const complaintStatusSchema = z.enum(["new", "in_review", "resolved", "closed"]);
 const complaintImageSchema = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/, "Complaint images must be data URLs");
+const marketingDateSchema = z.string().nullable().optional();
+const announcementInput = z.object({
+  id: z.string().min(1).max(64),
+  eyebrowAr: z.string().min(1).max(240),
+  eyebrowEn: z.string().min(1).max(240),
+  titleAr: z.string().min(1).max(240),
+  titleEn: z.string().min(1).max(240),
+  bodyAr: z.string().min(1).max(1000),
+  bodyEn: z.string().min(1).max(1000),
+  ctaAr: z.string().min(1).max(120),
+  ctaEn: z.string().min(1).max(120),
+  icon: z.string().min(1).max(64),
+  target: z.enum(["meals", "orders"]),
+  sortOrder: z.number().int().min(0).max(9999),
+  isActive: z.boolean(),
+  startsAt: marketingDateSchema,
+  endsAt: marketingDateSchema,
+});
+const offerInput = z.object({
+  id: z.string().min(1).max(64),
+  mealId: z.string().min(1).max(64),
+  badgeAr: z.string().min(1).max(240),
+  badgeEn: z.string().min(1).max(240),
+  discountPercent: z.number().min(0).max(100).nullable().optional(),
+  sortOrder: z.number().int().min(0).max(9999),
+  isActive: z.boolean(),
+  startsAt: marketingDateSchema,
+  endsAt: marketingDateSchema,
+});
+
+function parseMarketingDate(value?: string | null) {
+  return value ? new Date(value) : null;
+}
 
 function decodeImageDataUrl(value: string): { data: Buffer; contentType: string } {
   const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/);
@@ -42,6 +75,24 @@ export const appRouter = router({
     updateComplaint: adminProcedure
       .input(z.object({ complaintId: z.string().min(1), status: complaintStatusSchema, response: z.string().max(2000).optional() }))
       .mutation(({ input }) => updateComplaintRecord(input.complaintId, input.status, input.response)),
+    listAnnouncements: adminProcedure.query(() => listAllAnnouncements()),
+    createAnnouncement: adminProcedure.input(announcementInput).mutation(({ input }) => createAnnouncementRecord({ ...input, startsAt: parseMarketingDate(input.startsAt), endsAt: parseMarketingDate(input.endsAt) })),
+    updateAnnouncement: adminProcedure.input(announcementInput.partial().extend({ id: z.string().min(1).max(64) })).mutation(({ input }) => {
+      const { id, startsAt, endsAt, ...patch } = input;
+      return updateAnnouncementRecord(id, { ...patch, ...(startsAt !== undefined ? { startsAt: parseMarketingDate(startsAt) } : {}), ...(endsAt !== undefined ? { endsAt: parseMarketingDate(endsAt) } : {}) });
+    }),
+    deleteAnnouncement: adminProcedure.input(z.object({ id: z.string().min(1).max(64) })).mutation(({ input }) => deleteAnnouncementRecord(input.id)),
+    listOffers: adminProcedure.query(() => listAllOffers()),
+    createOffer: adminProcedure.input(offerInput).mutation(({ input }) => createOfferRecord({ ...input, startsAt: parseMarketingDate(input.startsAt), endsAt: parseMarketingDate(input.endsAt) })),
+    updateOffer: adminProcedure.input(offerInput.partial().extend({ id: z.string().min(1).max(64) })).mutation(({ input }) => {
+      const { id, startsAt, endsAt, ...patch } = input;
+      return updateOfferRecord(id, { ...patch, ...(startsAt !== undefined ? { startsAt: parseMarketingDate(startsAt) } : {}), ...(endsAt !== undefined ? { endsAt: parseMarketingDate(endsAt) } : {}) });
+    }),
+    deleteOffer: adminProcedure.input(z.object({ id: z.string().min(1).max(64) })).mutation(({ input }) => deleteOfferRecord(input.id)),
+  }),
+  marketing: router({
+    announcements: publicProcedure.query(() => listActiveAnnouncements()),
+    offers: publicProcedure.query(() => listActiveOffers()),
   }),
   complaints: router({
     mine: protectedProcedure.query(({ ctx }) => listComplaintRecords(ctx.user.id)),
