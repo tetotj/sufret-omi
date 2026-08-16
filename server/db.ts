@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, announcements, complaintsDb, complaintImages, favorites, offers, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, announcements, complaintsDb, complaintImages, favorites, kitchens, offers, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -597,4 +597,11 @@ export async function generateWeeklyKitchenReports() {
     deliveredOrderCount: analytics.deliveredOrderCount,
     kitchens: analytics.kitchens,
   };
+}
+
+export async function listWeeklyReportRecipients() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ kitchenId: kitchens.id, kitchenName: kitchens.nameAr, email: users.email }).from(kitchens).leftJoin(users, eq(kitchens.userId, users.id));
+  return rows.filter((row): row is { kitchenId: string; kitchenName: string; email: string } => Boolean(row.email));
 }

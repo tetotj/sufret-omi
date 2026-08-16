@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
+import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 
 import { MapPreview } from "@/components/map-preview";
 import { UnifiedFilters, type UnifiedFilterSort } from "@/components/unified-filters";
@@ -304,9 +305,44 @@ function useDriverLocationTracking(enabled: boolean, onLocation: (coordinates: {
   return { status, lastUpdatedAt };
 }
 
+function useDriverOrderAlert(orderSignature: string, enabled: boolean) {
+  const player = useAudioPlayer(require("@/assets/audio/driver-order-alert.wav"));
+  const previousSignature = useRef(orderSignature);
+  const [audioReady, setAudioReady] = useState(false);
+
+  useEffect(() => {
+    void setAudioModeAsync({ playsInSilentMode: true }).then(() => setAudioReady(true)).catch(() => setAudioReady(false));
+  }, []);
+
+  useEffect(() => {
+    if (enabled && orderSignature && orderSignature !== previousSignature.current) {
+      try {
+        player.seekTo(0);
+        player.play();
+      } catch {
+        // Audio is an enhancement; the visible order card remains the source of truth.
+      }
+    }
+    previousSignature.current = orderSignature;
+  }, [enabled, orderSignature, player]);
+
+  const playTestAlert = () => {
+    try {
+      player.seekTo(0);
+      player.play();
+    } catch {
+      // Ignore playback errors on browsers that require a prior user gesture.
+    }
+  };
+
+  return { audioReady, playTestAlert };
+}
+
 function DriverDashboard({ onBack }: { onBack: () => void }) {
   const { language, driverAvailable, setDriverAvailable, driverOrder, driverOrders, selectDriverOrder, driverVerification, advanceDriverOrder, updateDriverLocation, showToast, signOut } = useApp();
   const locationTracking = useDriverLocationTracking(driverAvailable && Boolean(driverOrder) && driverOrder?.status !== "delivered", updateDriverLocation);
+  const newOrderSignature = driverOrders.filter((order) => order.status === "received").map((order) => order.id).join("|");
+  const orderAlert = useDriverOrderAlert(newOrderSignature, driverAvailable);
   const currentStatus = driverOrder ? orderStatuses.find((status) => status.id === driverOrder.status) : null;
   const actionLabel = driverOrder?.status === "ready" ? (language === "ar" ? "استلمت الطلب من المطبخ" : "Picked up from kitchen") : driverOrder?.status === "on_the_way" ? (language === "ar" ? "تم التوصيل للعميلة" : "Delivered to customer") : language === "ar" ? "تحديث الحالة" : "Update status";
   const pickupDistance = driverOrder ? distanceKm(driverOrder.driverCoordinates ?? driverOrder.pickupCoordinates, driverOrder.pickupCoordinates) : 0;
@@ -346,6 +382,7 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "لوحة التوصيل" : "DELIVERY HUB"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "أهلاً يا محمد" : "Good morning, Mohammad"}</Text></View><Pressable onPress={signOut} style={styles.logoutButton}><MaterialIcons name="logout" size={17} color="#00AFC4" /><Text style={styles.logoutText}>{language === "ar" ? "خروج" : "Log out"}</Text></Pressable></View>
       <View style={styles.driverHero}><View><Text style={styles.driverOverline}>{language === "ar" ? "حالة المندوب" : "Driver status"}</Text><Text style={styles.driverTitle}>{driverAvailable ? (language === "ar" ? "متاح للتوصيل" : "Available for deliveries") : (language === "ar" ? "غير متاح الآن" : "Unavailable now")}</Text><Text style={styles.driverBody}>{driverAvailable ? (language === "ar" ? "رح توصلك الطلبات القريبة" : "Nearby orders will appear here") : (language === "ar" ? "شغّل التوفر لاستقبال طلبات" : "Turn on availability to receive orders")}</Text></View><Switch value={driverAvailable} onValueChange={setDriverAvailable} trackColor={{ false: "#D6E2D4", true: "#F2B84B" }} thumbColor={driverAvailable ? "#2E9B72" : "#4C747A"} /></View>
+      <View style={styles.driverAlertRow}><MaterialIcons name="notifications-active" size={17} color={orderAlert.audioReady ? "#D76545" : "#8A6516"} /><Text style={styles.driverAlertText}>{orderAlert.audioReady ? (language === "ar" ? "التنبيه الصوتي جاهز للطلبات الجديدة" : "Sound alert is ready for new orders") : (language === "ar" ? "شغّلي الصوت من الجهاز لتنبيه الطلبات" : "Enable device audio for order alerts")}</Text><Pressable onPress={orderAlert.playTestAlert} style={({ pressed }) => [styles.driverAlertButton, pressed && styles.pressed]}><MaterialIcons name="volume-up" size={15} color="#D76545" /><Text style={styles.driverAlertButtonText}>{language === "ar" ? "اختبار" : "Test"}</Text></Pressable></View>
       {driverOrders.length > 1 && <View style={styles.driverOrdersQueue}><Text style={styles.driverOrdersQueueTitle}>{language === "ar" ? `${driverOrders.length} توصيلات مستقلة` : `${driverOrders.length} separate deliveries`}</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.driverOrdersQueueRow}>{driverOrders.map((order) => <Pressable key={order.id} onPress={() => selectDriverOrder(order.id)} style={[styles.driverOrderChip, driverOrder?.id === order.id && styles.driverOrderChipActive]}><Text style={[styles.driverOrderChipId, driverOrder?.id === order.id && styles.driverOrderChipTextActive]}>{order.id}</Text><Text style={[styles.driverOrderChipKitchen, driverOrder?.id === order.id && styles.driverOrderChipTextActive]} numberOfLines={1}>{getLocalized(order.kitchen.name, language)}</Text></Pressable>)}</ScrollView></View>}
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
@@ -988,6 +1025,10 @@ const styles = StyleSheet.create({
   driverLocationMeta: { color: "#6F9BA0", fontSize: 9, marginTop: 3 },
   driverLocationDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#F6D889" },
   driverLocationDotActive: { backgroundColor: "#2E9B72" },
+  driverAlertRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF8EC", borderRadius: 14, borderWidth: 1, borderColor: "#F6D889", padding: 10 },
+  driverAlertText: { flex: 1, color: "#8A6516", fontSize: 10, fontWeight: "800" },
+  driverAlertButton: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E8B7A8", paddingHorizontal: 8, paddingVertical: 6 },
+  driverAlertButtonText: { color: "#D76545", fontSize: 10, fontWeight: "900" },
   driverOrderCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 15, borderWidth: 1, borderColor: "#F6D889", gap: 9 },
   driverOrderHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   driverOrderTag: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EEF9DB", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 6 },

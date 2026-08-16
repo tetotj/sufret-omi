@@ -1,7 +1,8 @@
 import * as Location from "expo-location";
-import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, View, type DimensionValue } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Svg, { Polyline } from "react-native-svg";
 
 import { useApp } from "@/lib/app-context";
 import { getLocalized, jordanMapPoints, regions, type Coordinate } from "@/lib/food-data";
@@ -19,7 +20,74 @@ type MapPreviewProps = {
 export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, onPressMap, pickupCoordinates, dropoffCoordinates, driverCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
   const [locating, setLocating] = useState(false);
+  const [routeGeometry, setRouteGeometry] = useState<[number, number][]>([]);
+  const [routeStatus, setRouteStatus] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
+  const routeCoordinates = useMemo(() => driverCoordinates && pickupCoordinates && dropoffCoordinates ? [driverCoordinates, pickupCoordinates, dropoffCoordinates] : null, [driverCoordinates, pickupCoordinates, dropoffCoordinates]);
+
+  useEffect(() => {
+    if (!routeCoordinates) {
+      setRouteGeometry([]);
+      setRouteStatus("idle");
+      return;
+    }
+    let cancelled = false;
+    const waypoints = routeCoordinates;
+    const coordinateParam = waypoints.map((point) => `${point.longitude},${point.latitude}`).join(";");
+    const routingBase = (process.env.EXPO_PUBLIC_ROUTING_API_URL ?? "https://router.project-osrm.org").replace(/\/$/, "");
+    setRouteStatus("loading");
+    void fetch(`${routingBase}/route/v1/driving/${coordinateParam}?overview=full&geometries=geojson&steps=false`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Routing request failed: ${response.status}`);
+        return (await response.json()) as { routes?: { geometry?: { coordinates?: [number, number][] } }[] };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        const coordinates = payload.routes?.[0]?.geometry?.coordinates ?? [];
+        if (coordinates.length > 1) {
+          setRouteGeometry(coordinates);
+          setRouteStatus("ready");
+        } else {
+          setRouteGeometry(waypoints.map((point) => [point.longitude, point.latitude]));
+          setRouteStatus("fallback");
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRouteGeometry(waypoints.map((point) => [point.longitude, point.latitude]));
+        setRouteStatus("fallback");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeCoordinates]);
+
+  const routeProjection = useMemo(() => {
+    if (routeGeometry.length < 2) return null;
+    const longitudes = routeGeometry.map(([longitude]) => longitude);
+    const latitudes = routeGeometry.map(([, latitude]) => latitude);
+    const minLongitude = Math.min(...longitudes);
+    const maxLongitude = Math.max(...longitudes);
+    const minLatitude = Math.min(...latitudes);
+    const maxLatitude = Math.max(...latitudes);
+    const longitudePadding = Math.max((maxLongitude - minLongitude) * 0.14, 0.001);
+    const latitudePadding = Math.max((maxLatitude - minLatitude) * 0.14, 0.001);
+    const width = Math.max(maxLongitude - minLongitude + longitudePadding * 2, 0.002);
+    const height = Math.max(maxLatitude - minLatitude + latitudePadding * 2, 0.002);
+    const project = (coordinate: Coordinate) => ({
+      left: ((coordinate.longitude - minLongitude + longitudePadding) / width) * 100,
+      top: 100 - ((coordinate.latitude - minLatitude + latitudePadding) / height) * 100,
+    });
+    return {
+      points: routeGeometry.map(([longitude, latitude]) => `${project({ latitude, longitude }).left},${project({ latitude, longitude }).top}`).join(" "),
+      project,
+    };
+  }, [routeGeometry]);
+  const projectedRoute = routeProjection?.points ?? "";
+  const pinPosition = (coordinate: Coordinate, fallback: { left: DimensionValue; top: DimensionValue }) => {
+    const projected = routeProjection?.project(coordinate);
+    return projected ? { left: `${projected.left}%` as DimensionValue, top: `${projected.top}%` as DimensionValue } : fallback;
+  };
 
   const locateMe = async () => {
     setLocating(true);
@@ -49,6 +117,7 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
       <View style={[styles.road, styles.roadOne]} />
       <View style={[styles.road, styles.roadTwo]} />
       <View style={[styles.road, styles.roadThree]} />
+      {projectedRoute && <Svg pointerEvents="none" viewBox="0 0 100 100" preserveAspectRatio="none" style={styles.routeLayer}><Polyline points={projectedRoute} fill="none" stroke="#D76545" strokeWidth="1.8" strokeOpacity="0.92" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
       <View style={styles.mapLabelTop}>
         <Text style={styles.mapMicro}>{language === "ar" ? "مطابخ بيتية حولك" : "Home kitchens around you"}</Text>
         <Text style={styles.mapTitle}>{getLocalized(selected.label, language)}</Text>
@@ -58,11 +127,11 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
           <MaterialIcons name="restaurant" size={14} color="#fff" />
         </Pressable>
       ))}
-      {pickupCoordinates && <View style={[styles.driverPin, styles.driverPickupPin]}><MaterialIcons name="storefront" size={13} color="#FFFFFF" /></View>}
-      {driverCoordinates && <View style={[styles.driverPin, styles.driverCurrentPin]}><MaterialIcons name="two-wheeler" size={13} color="#FFFFFF" /></View>}
-      {dropoffCoordinates && <View style={[styles.driverPin, styles.driverDropoffPin]}><MaterialIcons name="location-on" size={13} color="#FFFFFF" /></View>}
+      {pickupCoordinates && <View style={[styles.driverPin, styles.driverPickupPin, pinPosition(pickupCoordinates, { left: "28%", top: "45%" })]}><MaterialIcons name="storefront" size={13} color="#FFFFFF" /></View>}
+      {driverCoordinates && <View style={[styles.driverPin, styles.driverCurrentPin, pinPosition(driverCoordinates, { left: "47%", top: "38%" })]}><MaterialIcons name="two-wheeler" size={13} color="#FFFFFF" /></View>}
+      {dropoffCoordinates && <View style={[styles.driverPin, styles.driverDropoffPin, pinPosition(dropoffCoordinates, { left: "67%", top: "30%" })]}><MaterialIcons name="location-on" size={13} color="#FFFFFF" /></View>}
       <View style={styles.mapLegend}><View style={styles.legendDot} /><Text style={styles.legendText}>{language === "ar" ? "متاح الآن" : "Open now"}</Text></View>
-      {pickupCoordinates && dropoffCoordinates && <View style={styles.coordinateBadge}><Text style={styles.coordinateBadgeTitle}>{language === "ar" ? "مسار التوصيل" : "Delivery route"}</Text><Text style={styles.coordinateBadgeText}>{dropoffCoordinates.latitude.toFixed(5)}, {dropoffCoordinates.longitude.toFixed(5)}</Text></View>}
+      {pickupCoordinates && dropoffCoordinates && <View style={styles.coordinateBadge}><Text style={styles.coordinateBadgeTitle}>{routeStatus === "loading" ? (language === "ar" ? "جارٍ حساب مسار القيادة" : "Calculating driving route") : routeStatus === "ready" ? (language === "ar" ? "مسار قيادة فعلي" : "Live driving route") : (language === "ar" ? "مسار التوصيل" : "Delivery route")}</Text><Text style={styles.coordinateBadgeText}>{dropoffCoordinates.latitude.toFixed(5)}, {dropoffCoordinates.longitude.toFixed(5)}</Text></View>}
       {!compact && !dropoffCoordinates && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#236B45" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
       {onPressMap && <Pressable onPress={onPressMap} style={({ pressed }) => [styles.openMapButton, pressed && styles.pressed]}><MaterialIcons name="open-in-new" size={14} color="#FFFFFF" /><Text style={styles.openMapButtonText}>{language === "ar" ? "فتح الخريطة" : "Open map"}</Text></Pressable>}
       <Pressable onPress={locateMe} style={({ pressed }) => [styles.locateButton, pressed && styles.pressed]}><MaterialIcons name={locating ? "hourglass-top" : "my-location"} size={16} color="#132218" /><Text style={styles.locateText}>{language === "ar" ? "موقعي" : "My location"}</Text></Pressable>
@@ -87,6 +156,7 @@ const styles = StyleSheet.create({
   driverPickupPin: { left: "28%", top: "45%", backgroundColor: "#4F8F3B" },
   driverCurrentPin: { left: "47%", top: "38%", backgroundColor: "#00AFC4" },
   driverDropoffPin: { left: "67%", top: "30%", backgroundColor: "#236B45" },
+  routeLayer: { ...StyleSheet.absoluteFillObject, zIndex: 2 },
   mapLegend: { position: "absolute", bottom: 14, left: 16, flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 7 },
   legendDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#4F8F3B" },
   legendText: { fontSize: 11, color: "#304A38", fontWeight: "700" },

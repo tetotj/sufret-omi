@@ -51,3 +51,11 @@ SMS_PROVIDER_AUTH_TOKEN=replace_with_twilio_auth_token
 SMS_PROVIDER_FROM_NUMBER=+9627XXXXXXXX
 
 # Payment, maps, and analytics provider keys are not referenced by the current source code.
+
+# Weekly report email delivery (disabled unless explicitly set to true)
+WEEKLY_REPORT_EMAILS_ENABLED=false
+RESEND_API_KEY=
+SENDER_EMAIL=reports@your-domain.example
+
+# Optional driving route provider override; defaults to the public OSRM routing endpoint
+EXPO_PUBLIC_ROUTING_API_URL=https://router.project-osrm.org
