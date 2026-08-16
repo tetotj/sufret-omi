@@ -365,7 +365,11 @@ function CustomerHome({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">("all");
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("recommended");
+  const [announcementIndex, setAnnouncementIndex] = useState(0);
   const region = getRegion(selectedRegion);
+  const announcements = [{ icon: "restaurant-menu", arEyebrow: "تحديث جديد من سفرة أمي", enEyebrow: "A new Sufret Omi update", arTitle: "اطلبي من أكثر من مطعم", enTitle: "Order from multiple kitchens", arBody: "قسّمنا السلة تلقائياً لكل مطبخ حتى توصلك طلباتك بسهولة.", enBody: "Your cart is split for each kitchen for an easier delivery.", arCta: "اكتشفي الأكلات", enCta: "Discover meals", target: "meals" }, { icon: "local-offer", arEyebrow: "عروض أمهات الأردن", enEyebrow: "Jordanian mothers' offers", arTitle: "نكهة بيتية بانتظارك", enTitle: "A home-cooked offer awaits", arBody: "اكتشفي أكلات مميزة محضّرة بحب من مطابخ قريبة منك.", enBody: "Discover special meals prepared with care by kitchens near you.", arCta: "شاهدي العروض", enCta: "See offers", target: "meals" }, { icon: "two-wheeler", arEyebrow: "تتبّع أسهل لطلباتك", enEyebrow: "Easier order tracking", arTitle: "كل طلب في مكانه", enTitle: "Every order in one place", arBody: "تابعي حالة كل مطبخ وسائق خطوة بخطوة من شاشة طلباتي.", enBody: "Follow every kitchen and driver step by step from My Orders.", arCta: "تتبعي طلباتك", enCta: "Track orders", target: "orders" }] as const;
+  const announcement = announcements[announcementIndex];
+  useEffect(() => { const timer = setInterval(() => setAnnouncementIndex((current) => (current + 1) % announcements.length), 5000); return () => clearInterval(timer); }, [announcements.length]);
 
   const visibleKitchens = useMemo(() => regionScope === "all" ? kitchens : kitchens.filter((kitchen) => kitchen.region === regionScope), [regionScope]);
 
@@ -418,8 +422,8 @@ function CustomerHome({
       {!isKitchenAvailable && <View style={styles.scheduleClosedBanner}><MaterialIcons name="event-busy" size={19} color="#A55A40" /><View style={styles.scheduleClosedCopy}><Text style={styles.scheduleClosedTitle}>{language === "ar" ? "المطبخ مغلق اليوم" : "Kitchen closed today"}</Text><Text style={styles.scheduleClosedBody}>{language === "ar" ? "يمكنك التصفح الآن والطلب في يوم متاح." : "You can browse now and order on an available day."}</Text></View></View>}
 
       <View style={styles.announcementBoard}>
-        <View style={styles.announcementHeader}><View style={styles.announcementHeaderIcon}><MaterialIcons name="campaign" size={21} color="#FFFFFF" /></View><View style={styles.announcementHeaderCopy}><Text style={styles.announcementHeaderTitle}>{language === "ar" ? "لوحة الإعلانات" : "Announcements"}</Text><Text style={styles.announcementHeaderBody}>{language === "ar" ? "آخر أخبار سفرة أمي وعروضها" : "The latest from Sufret Omi"}</Text></View><View style={styles.announcementBadge}><Text style={styles.announcementBadgeText}>3</Text></View></View>
-        {([{ icon: "restaurant-menu", arTitle: "جديد: اطلبي من أكثر من مطعم", enTitle: "New: order from multiple kitchens", arBody: "قسّمنا السلة تلقائياً لكل مطبخ", enBody: "Your cart is split for each kitchen", target: "meals" }, { icon: "local-offer", arTitle: "عروض أمهات الأردن", enTitle: "Jordanian mothers' offers", arBody: "اكتشفي أكلات بيتية مميزة اليوم", enBody: "Discover special home-cooked meals today", target: "meals" }, { icon: "two-wheeler", arTitle: "تابعي طلبك بسهولة", enTitle: "Track your order easily", arBody: "اعرفي حالة كل طلب وسائقه خطوة بخطوة", enBody: "Follow every order and driver step by step", target: "orders" }] as const).map((item, index, items) => <Pressable key={item.arTitle} onPress={() => onNavigate(item.target)} style={({ pressed }) => [styles.announcementRow, index === items.length - 1 && styles.announcementRowLast, pressed && styles.pressed]}><View style={styles.announcementIcon}><MaterialIcons name={item.icon} size={19} color="#00AFC4" /></View><View style={styles.announcementCopy}><View style={styles.announcementTitleRow}><Text style={styles.announcementTitle}>{language === "ar" ? item.arTitle : item.enTitle}</Text>{index === 0 && <View style={styles.announcementNewPill}><Text style={styles.announcementNewText}>{language === "ar" ? "جديد" : "NEW"}</Text></View>}</View><Text style={styles.announcementBody}>{language === "ar" ? item.arBody : item.enBody}</Text></View><MaterialIcons name="chevron-right" size={20} color="#8ABAC0" /></Pressable>)}
+        <View style={styles.announcementSlide}><View style={styles.announcementSlideCopy}><View style={styles.announcementSlideHeader}><View style={styles.announcementHeaderIcon}><MaterialIcons name="campaign" size={21} color="#FFFFFF" /></View><Text style={styles.announcementSlideEyebrow}>{language === "ar" ? announcement.arEyebrow : announcement.enEyebrow}</Text></View><Text style={styles.announcementSlideTitle}>{language === "ar" ? announcement.arTitle : announcement.enTitle}</Text><Text style={styles.announcementSlideBody}>{language === "ar" ? announcement.arBody : announcement.enBody}</Text><Pressable onPress={() => onNavigate(announcement.target)} style={({ pressed }) => [styles.announcementCta, pressed && styles.pressed]}><Text style={styles.announcementCtaText}>{language === "ar" ? announcement.arCta : announcement.enCta}</Text><MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" /></Pressable></View><View style={styles.announcementVisual}><View style={styles.announcementVisualCircle}><MaterialIcons name={announcement.icon} size={42} color="#00AFC4" /></View><View style={styles.announcementVisualSparkOne} /><View style={styles.announcementVisualSparkTwo} /></View></View>
+        <View style={styles.announcementFooter}><View style={styles.announcementDots}>{announcements.map((item, index) => <Pressable key={item.arTitle} onPress={() => setAnnouncementIndex(index)} style={[styles.announcementDot, index === announcementIndex && styles.announcementDotActive]} />)}</View><View style={styles.announcementNav}><Pressable onPress={() => setAnnouncementIndex((current) => (current - 1 + announcements.length) % announcements.length)} style={styles.announcementNavButton}><MaterialIcons name="chevron-left" size={18} color="#00AFC4" /></Pressable><Text style={styles.announcementCounter}>{announcementIndex + 1}/{announcements.length}</Text><Pressable onPress={() => setAnnouncementIndex((current) => (current + 1) % announcements.length)} style={styles.announcementNavButton}><MaterialIcons name="chevron-right" size={18} color="#00AFC4" /></Pressable></View></View>
       </View>
 
       {filtersOpen && (
@@ -960,23 +964,27 @@ const styles = StyleSheet.create({
   iconButton: { width: 39, height: 39, borderRadius: 14, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#C6EDEF" },
   cartBadge: { position: "absolute", right: -3, top: -4, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: "#00AFC4", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#F2FEFF" },
   cartBadgeText: { fontSize: 9, color: "#FFFFFF", fontWeight: "900" },
-  announcementBoard: { backgroundColor: "#FFFFFF", borderRadius: 22, borderWidth: 1, borderColor: "#BCEFF4", padding: 14, gap: 4, shadowColor: "#00AFC4", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
-  announcementHeader: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 10, marginBottom: 2 },
-  announcementHeaderIcon: { width: 42, height: 42, borderRadius: 15, backgroundColor: "#00AFC4", justifyContent: "center", alignItems: "center" },
-  announcementHeaderCopy: { flex: 1, gap: 2 },
-  announcementHeaderTitle: { color: "#082E34", fontSize: 15, fontWeight: "900" },
-  announcementHeaderBody: { color: "#4C747A", fontSize: 10 },
-  announcementBadge: { minWidth: 26, height: 26, borderRadius: 13, backgroundColor: "#E5FCFF", justifyContent: "center", alignItems: "center" },
-  announcementBadgeText: { color: "#00AFC4", fontSize: 11, fontWeight: "900" },
-  announcementRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 11, borderTopWidth: 1, borderTopColor: "#EDF9FA" },
-  announcementRowLast: { borderBottomWidth: 0 },
-  announcementIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#F0FCFD", justifyContent: "center", alignItems: "center" },
-  announcementCopy: { flex: 1, gap: 3 },
-  announcementTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  announcementTitle: { color: "#082E34", fontSize: 11, fontWeight: "900", flexShrink: 1 },
-  announcementBody: { color: "#4C747A", fontSize: 10, lineHeight: 15 },
-  announcementNewPill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 7, backgroundColor: "#D9F99D" },
-  announcementNewText: { color: "#496616", fontSize: 8, fontWeight: "900" },
+  announcementBoard: { backgroundColor: "#FFFFFF", minHeight: 190, borderRadius: 28, borderWidth: 1, borderColor: "#BCEFF4", padding: 18, overflow: "hidden", shadowColor: "#00AFC4", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  announcementSlide: { minHeight: 145, flexDirection: "row", alignItems: "center", gap: 10 },
+  announcementSlideCopy: { flex: 1, zIndex: 2 },
+  announcementSlideHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  announcementHeaderIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#00AFC4", justifyContent: "center", alignItems: "center" },
+  announcementSlideEyebrow: { color: "#00AFC4", fontSize: 10, fontWeight: "900", flexShrink: 1 },
+  announcementSlideTitle: { color: "#082E34", fontSize: 22, lineHeight: 27, fontWeight: "900", maxWidth: 220 },
+  announcementSlideBody: { color: "#4C747A", fontSize: 11, lineHeight: 17, marginTop: 7, maxWidth: 230 },
+  announcementCta: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#00AFC4", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, marginTop: 12 },
+  announcementCtaText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
+  announcementVisual: { width: 105, height: 145, justifyContent: "center", alignItems: "center", position: "relative" },
+  announcementVisualCircle: { width: 88, height: 88, borderRadius: 44, backgroundColor: "#E5FCFF", borderWidth: 8, borderColor: "#C6EDEF", justifyContent: "center", alignItems: "center", transform: [{ rotate: "-8deg" }] },
+  announcementVisualSparkOne: { width: 28, height: 13, borderRadius: 20, backgroundColor: "#D9F99D", position: "absolute", right: 0, top: 30, transform: [{ rotate: "28deg" }] },
+  announcementVisualSparkTwo: { width: 23, height: 11, borderRadius: 20, backgroundColor: "#18B889", position: "absolute", left: 3, bottom: 32, transform: [{ rotate: "-35deg" }] },
+  announcementFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+  announcementDots: { flexDirection: "row", alignItems: "center", gap: 5 },
+  announcementDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#C6EDEF" },
+  announcementDotActive: { width: 20, backgroundColor: "#00AFC4" },
+  announcementNav: { flexDirection: "row", alignItems: "center", gap: 4 },
+  announcementNavButton: { width: 27, height: 27, borderRadius: 10, backgroundColor: "#F0FCFD", justifyContent: "center", alignItems: "center" },
+  announcementCounter: { color: "#4C747A", fontSize: 10, fontWeight: "800", minWidth: 25, textAlign: "center" },
   heroCard: { backgroundColor: "#00AFC4", minHeight: 190, borderRadius: 28, padding: 20, flexDirection: "row", overflow: "hidden", position: "relative" },
   heroCopy: { flex: 1, zIndex: 2 },
   heroOverline: { color: "#D9F99D", fontSize: 12, fontWeight: "800", marginBottom: 9 },
