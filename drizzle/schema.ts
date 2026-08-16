@@ -24,6 +24,8 @@ export const kitchens = mysqlTable("kitchens", {
   nameEn: text("nameEn").notNull(),
   motherNameAr: text("motherNameAr").notNull(),
   motherNameEn: text("motherNameEn").notNull(),
+  descriptionAr: varchar("descriptionAr", { length: 500 }).notNull().default(""),
+  descriptionEn: varchar("descriptionEn", { length: 500 }).notNull().default(""),
   region: mysqlEnum("region", ["amman", "irbid", "zarqa", "salt", "madaba"]).notNull(),
   neighborhoodAr: text("neighborhoodAr").notNull(),
   neighborhoodEn: text("neighborhoodEn").notNull(),

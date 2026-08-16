@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -18,6 +18,11 @@ const pushTokenSchema = z.object({ token: z.string().min(20).max(512), platform:
 const favoriteSchema = z.object({ entityType: z.enum(["meal", "kitchen"]), entityId: z.string().min(1).max(64) });
 const orderSmsSchema = z.object({ phone: z.string().min(8).max(32), orderCount: z.number().int().min(1).max(50), total: z.number().finite().nonnegative(), language: z.enum(["ar", "en"]) });
 const marketingDateSchema = z.string().nullable().optional();
+const kitchenIdSchema = z.object({ kitchenId: z.string().trim().min(1).max(64) });
+const kitchenDescriptionInput = kitchenIdSchema.extend({
+  descriptionAr: z.string().trim().max(500),
+  descriptionEn: z.string().trim().max(500),
+});
 const announcementInput = z.object({
   id: z.string().min(1).max(64),
   eyebrowAr: z.string().min(1).max(240),
@@ -109,6 +114,10 @@ export const appRouter = router({
   marketing: router({
     announcements: publicProcedure.query(() => listActiveAnnouncements()),
     offers: publicProcedure.query(() => listActiveOffers()),
+  }),
+  kitchens: router({
+    profile: publicProcedure.input(kitchenIdSchema).query(({ input }) => getKitchenDescription(input.kitchenId)),
+    updateDescription: protectedProcedure.input(kitchenDescriptionInput).mutation(({ ctx, input }) => updateKitchenDescription(ctx.user.id, input.kitchenId, { descriptionAr: input.descriptionAr, descriptionEn: input.descriptionEn })),
   }),
   favorites: router({
     mine: protectedProcedure.query(async ({ ctx }) => ({ mealIds: await listFavoriteIds(ctx.user.id, "meal"), kitchenIds: await listFavoriteIds(ctx.user.id, "kitchen") })),

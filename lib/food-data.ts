@@ -50,6 +50,7 @@ export type Kitchen = {
   specialty: CategoryId;
   image: string;
   accent: string;
+  description?: Localized;
 };
 
 export type CartItem = {
@@ -146,6 +147,7 @@ export const kitchens: Kitchen[] = [
     specialty: "mansaf",
     image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=84",
     accent: "#236B45",
+    description: { ar: "أكلات بيتية طازجة بطابع أردني أصيل، نحضرها يومياً بحب لأهل الحي.", en: "Fresh home-cooked Jordanian dishes prepared daily with care for the neighborhood." },
   },
   {
     id: "teta-sawsan",
