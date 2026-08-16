@@ -1125,6 +1125,10 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
         <TextInput value={newMealDescAr} onChangeText={setNewMealDescAr} placeholder="اكتبي وصفاً للطبخة..." placeholderTextColor="#8ABAC0" multiline textAlign="right" style={styles.descriptionTextInput} />
         <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "الوصف بالإنجليزية" : "English description"}</Text>
         <TextInput value={newMealDescEn} onChangeText={setNewMealDescEn} placeholder="Write a description..." placeholderTextColor="#8ABAC0" multiline textAlign="left" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "فئة الطبخة" : "Dish category"}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{categories.map((category) => <Chip key={category.id} label={getLocalized(category.label, language)} selected={newMealCategory === category.id} onPress={() => setNewMealCategory(category.id as typeof newMealCategory)} />)}</ScrollView>
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "رابط صورة الطبخة" : "Dish image URL"}</Text>
+        <TextInput value={newMealImage} onChangeText={setNewMealImage} placeholder="https://..." placeholderTextColor="#8ABAC0" keyboardType="url" autoCapitalize="none" style={styles.descriptionTextInput} />
         <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "السعر (د.أ)" : "Price (JOD)"}</Text>
         <TextInput value={newMealPrice} onChangeText={setNewMealPrice} placeholder="5.50" placeholderTextColor="#8ABAC0" keyboardType="numeric" style={styles.descriptionTextInput} />
         <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "وقت التحضير (دقيقة)" : "Prep minutes"}</Text>
