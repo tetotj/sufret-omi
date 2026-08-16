@@ -151,8 +151,8 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
       </ScrollView>
       <Modal visible={Platform.OS !== "web" && cameraDocumentType !== null} animationType="slide" onRequestClose={closeCamera} presentationStyle="fullScreen">
         <View style={styles.cameraModal}>
-          {cameraPermission?.granted ? <CameraView ref={cameraRef} style={styles.cameraPreview} facing="back" /> : <View style={styles.cameraPermissionCard}><MaterialIcons name="no-photography" size={48} color="#D76545" /><Text style={styles.cameraPermissionTitle}>{language === "ar" ? "نحتاج إلى الكاميرا" : "Camera access required"}</Text><Text style={styles.cameraPermissionText}>{language === "ar" ? "اسمحي بالكاميرا لتصوير الوثيقة مباشرة." : "Allow camera access to photograph this document directly."}</Text><Pressable onPress={() => void requestCameraPermission()} style={styles.cameraPermissionButton}><Text style={styles.cameraPermissionButtonText}>{language === "ar" ? "السماح بالكاميرا" : "Allow camera"}</Text></Pressable></View>}
-          <View style={styles.cameraControls}><Pressable onPress={closeCamera} style={styles.cameraCloseButton}><MaterialIcons name="close" size={24} color="#FFFFFF" /></Pressable>{cameraPermission?.granted && <Pressable accessibilityLabel={language === "ar" ? "التقاط صورة" : "Take photo"} onPress={() => void takePhotoFromCamera()} style={styles.cameraCaptureButton}><MaterialIcons name="photo-camera" size={28} color="#38231C" /></Pressable>}<View style={styles.cameraControlSpacer} /></View>
+          {cameraPermission?.granted ? <CameraView ref={cameraRef} style={styles.cameraPreview} facing="back" /> : <View style={styles.cameraPermissionCard}><MaterialIcons name="no-photography" size={48} color="#00AFC4" /><Text style={styles.cameraPermissionTitle}>{language === "ar" ? "نحتاج إلى الكاميرا" : "Camera access required"}</Text><Text style={styles.cameraPermissionText}>{language === "ar" ? "اسمحي بالكاميرا لتصوير الوثيقة مباشرة." : "Allow camera access to photograph this document directly."}</Text><Pressable onPress={() => void requestCameraPermission()} style={styles.cameraPermissionButton}><Text style={styles.cameraPermissionButtonText}>{language === "ar" ? "السماح بالكاميرا" : "Allow camera"}</Text></Pressable></View>}
+          <View style={styles.cameraControls}><Pressable onPress={closeCamera} style={styles.cameraCloseButton}><MaterialIcons name="close" size={24} color="#FFFFFF" /></Pressable>{cameraPermission?.granted && <Pressable accessibilityLabel={language === "ar" ? "التقاط صورة" : "Take photo"} onPress={() => void takePhotoFromCamera()} style={styles.cameraCaptureButton}><MaterialIcons name="photo-camera" size={28} color="#082E34" /></Pressable>}<View style={styles.cameraControlSpacer} /></View>
         </View>
       </Modal>
     </ScreenContainer>
@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
   cameraPreview: { flex: 1 },
   cameraPermissionCard: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 12 },
   cameraPermissionTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "900", textAlign: "center" },
-  cameraPermissionText: { color: "#F1D8C8", fontSize: 13, lineHeight: 20, textAlign: "center" },
+  cameraPermissionText: { color: "#C6EDEF", fontSize: 13, lineHeight: 20, textAlign: "center" },
   cameraPermissionButton: { backgroundColor: "#F2B84B", borderRadius: 16, paddingHorizontal: 22, paddingVertical: 13, marginTop: 8 },
-  cameraPermissionButtonText: { color: "#38231C", fontSize: 13, fontWeight: "900" },
+  cameraPermissionButtonText: { color: "#082E34", fontSize: 13, fontWeight: "900" },
   cameraControls: { minHeight: 110, paddingHorizontal: 24, paddingBottom: 28, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cameraCloseButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
   cameraCaptureButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: "#FFFFFF", borderWidth: 5, borderColor: "#F2B84B", alignItems: "center", justifyContent: "center" },

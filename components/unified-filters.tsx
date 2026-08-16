@@ -35,7 +35,7 @@ export function UnifiedFilters({ visible, language, regionScope, category, sort,
     <View style={styles.panel}>
       <View style={styles.header}>
         <View style={styles.headerCopy}><Text style={styles.title}>{isArabic ? "الفلاتر" : "Filters"}</Text><Text style={styles.subtitle}>{isArabic ? "اختاري بنفس الطريقة في كل الصفحات" : "Use the same filters across every page"}</Text></View>
-        <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={19} color="#38231C" /></Pressable>
+        <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={19} color="#082E34" /></Pressable>
       </View>
       <Text style={styles.sectionTitle}>{isArabic ? "المنطقة" : "Region"}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
@@ -48,8 +48,8 @@ export function UnifiedFilters({ visible, language, regionScope, category, sort,
         {categories.map((item) => <FilterChip key={item.id} label={item.label[language]} selected={category === item.id} onPress={() => onCategoryChange(item.id)} />)}
       </ScrollView>
       <Text style={styles.sectionTitle}>{isArabic ? "ترتيب النتائج" : "Sort results"}</Text>
-      <View style={styles.sortGrid}>{sortOptions.map((option) => <Pressable key={option.id} onPress={() => onSortChange(option.id)} style={[styles.sortOption, sort === option.id && styles.sortOptionActive]}><MaterialIcons name={option.icon} size={15} color={sort === option.id ? "#FFFFFF" : "#D76545"} /><Text style={[styles.sortOptionText, sort === option.id && styles.sortOptionTextActive]}>{isArabic ? option.ar : option.en}</Text></Pressable>)}</View>
-      <Pressable onPress={() => { onRegionChange("all"); onCategoryChange("all"); onSortChange("recommended"); }} style={styles.clearButton}><MaterialIcons name="restart-alt" size={16} color="#D76545" /><Text style={styles.clearText}>{isArabic ? "مسح الفلاتر" : "Clear filters"}</Text></Pressable>
+      <View style={styles.sortGrid}>{sortOptions.map((option) => <Pressable key={option.id} onPress={() => onSortChange(option.id)} style={[styles.sortOption, sort === option.id && styles.sortOptionActive]}><MaterialIcons name={option.icon} size={15} color={sort === option.id ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.sortOptionText, sort === option.id && styles.sortOptionTextActive]}>{isArabic ? option.ar : option.en}</Text></Pressable>)}</View>
+      <Pressable onPress={() => { onRegionChange("all"); onCategoryChange("all"); onSortChange("recommended"); }} style={styles.clearButton}><MaterialIcons name="restart-alt" size={16} color="#00AFC4" /><Text style={styles.clearText}>{isArabic ? "مسح الفلاتر" : "Clear filters"}</Text></Pressable>
     </View>
   );
 }
@@ -59,25 +59,25 @@ function FilterChip({ label, selected, onPress }: { label: string; selected: boo
 }
 
 const styles = StyleSheet.create({
-  panel: { backgroundColor: "#FFFFFF", borderRadius: 20, borderWidth: 1, borderColor: "#F4DCCB", padding: 13, gap: 8, shadowColor: "#D76545", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  panel: { backgroundColor: "#FFFFFF", borderRadius: 20, borderWidth: 1, borderColor: "#BCEFF4", padding: 13, gap: 8, shadowColor: "#00AFC4", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
   header: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerCopy: { flex: 1, gap: 2 },
-  title: { color: "#38231C", fontSize: 16, fontWeight: "900" },
-  subtitle: { color: "#7E665A", fontSize: 10 },
-  closeButton: { width: 32, height: 32, borderRadius: 11, backgroundColor: "#FFF4EB", justifyContent: "center", alignItems: "center" },
-  sectionTitle: { color: "#38231C", fontSize: 11, fontWeight: "900", marginTop: 4 },
+  title: { color: "#082E34", fontSize: 16, fontWeight: "900" },
+  subtitle: { color: "#4C747A", fontSize: 10 },
+  closeButton: { width: 32, height: 32, borderRadius: 11, backgroundColor: "#F0FCFD", justifyContent: "center", alignItems: "center" },
+  sectionTitle: { color: "#082E34", fontSize: 11, fontWeight: "900", marginTop: 4 },
   chipRow: { gap: 7, paddingVertical: 1 },
   chip: { borderWidth: 1, borderColor: "#D2EFF2", backgroundColor: "#F7FCFD", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },
-  chipActive: { backgroundColor: "#D76545", borderColor: "#D76545" },
-  chipText: { color: "#7E665A", fontSize: 10, fontWeight: "800" },
+  chipActive: { backgroundColor: "#00AFC4", borderColor: "#00AFC4" },
+  chipText: { color: "#4C747A", fontSize: 10, fontWeight: "800" },
   chipTextActive: { color: "#FFFFFF" },
   sortGrid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   sortOption: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderColor: "#D2EFF2", backgroundColor: "#F7FCFD", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 8 },
-  sortOptionActive: { backgroundColor: "#D76545", borderColor: "#D76545" },
-  sortOptionText: { color: "#7E665A", fontSize: 10, fontWeight: "800" },
+  sortOptionActive: { backgroundColor: "#00AFC4", borderColor: "#00AFC4" },
+  sortOptionText: { color: "#4C747A", fontSize: 10, fontWeight: "800" },
   sortOptionTextActive: { color: "#FFFFFF" },
   clearButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, paddingTop: 2 },
-  clearText: { color: "#D76545", fontSize: 10, fontWeight: "900" },
+  clearText: { color: "#00AFC4", fontSize: 10, fontWeight: "900" },
 });
 
 export default UnifiedFilters;
