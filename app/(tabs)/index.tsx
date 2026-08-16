@@ -1049,6 +1049,17 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
     showToast(language === "ar" ? "تم حفظ الوصف على هذا الجهاز. سجلي الدخول لمزامنته عبر الأجهزة." : "Saved on this device. Sign in to sync it across devices.");
   };
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addMealOpen, setAddMealOpen] = useState(false);
+  const [newMealNameAr, setNewMealNameAr] = useState("");
+  const [newMealNameEn, setNewMealNameEn] = useState("");
+  const [newMealDescAr, setNewMealDescAr] = useState("");
+  const [newMealDescEn, setNewMealDescEn] = useState("");
+  const [newMealCategory, setNewMealCategory] = useState<"mansaf" | "maqluba" | "mahshi" | "bakery" | "moona" | "desserts" | "dairy" | "cheese">("mansaf");
+  const [newMealPrice, setNewMealPrice] = useState("5.50");
+  const [newMealPrep, setNewMealPrep] = useState("45");
+  const [newMealLimit, setNewMealLimit] = useState("15");
+  const [newMealImage, setNewMealImage] = useState("https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84");
+  const createMealMutation = trpc.kitchens.createMeal.useMutation();
   const todayClosed = weeklySchedule.closedDays.includes(getWeekdayFromDate());
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const motherMeals = availableMeals.filter((meal) => meal.kitchenId === "umm-ahmad");
@@ -1102,6 +1113,53 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
       {complaints.length ? <View style={styles.complaintInbox}>{complaints.slice(0, 3).map((complaint) => { const categoryItem = complaintCategories.find((item) => item.id === complaint.category); return <View key={complaint.id} style={styles.complaintInboxRow}><View style={styles.complaintInboxIcon}><MaterialIcons name={(categoryItem?.icon ?? "help-outline") as IconName} size={16} color="#00AFC4" /></View><View style={styles.complaintInboxCopy}><Text style={styles.complaintInboxTitle}>{complaint.subject}</Text><Text style={styles.complaintInboxMeta}>{complaint.id} · {getLocalized(complaintStatuses[complaint.status], language)}{complaint.imageUris.length ? ` · ${complaint.imageUris.length} ${language === "ar" ? "صور" : "photos"}` : ""}</Text></View><Pressable onPress={() => { const nextStatus = complaint.status === "new" ? "in_review" : complaint.status === "in_review" ? "resolved" : complaint.status; updateComplaintStatus(complaint.id, nextStatus, nextStatus === "resolved" ? (language === "ar" ? "تمت معالجة الشكوى من فريق سفرة." : "The Sufret Omi team addressed this complaint.") : undefined); showToast(language === "ar" ? "تم تحديث الشكوى" : "Complaint updated"); }} style={styles.complaintInboxAction}><Text style={styles.complaintInboxActionText}>{complaint.status === "new" ? (language === "ar" ? "مراجعة" : "Review") : complaint.status === "in_review" ? (language === "ar" ? "حل" : "Resolve") : (language === "ar" ? "تمت" : "Done")}</Text></Pressable></View>; })}</View> : <View style={styles.supportEmptyCard}><MaterialIcons name="check-circle" size={20} color="#2E9B72" /><Text style={styles.supportEmptyText}>{language === "ar" ? "لا توجد شكاوى جديدة على مطبخك" : "No new complaints for your kitchen"}</Text></View>}
       <SectionHeader title={language === "ar" ? "إدارة مطبخك" : "Manage your kitchen"} action={language === "ar" ? "عرض القائمة" : "View menu"} onAction={() => setMenuOpen((value) => !value)} />
       <View style={styles.dashboardList}><DashboardAction icon="restaurant-menu" title={language === "ar" ? "قائمة الأكلات" : "Menu items"} detail={language === "ar" ? `${motherMeals.length} أكلات · ${motherMeals.length} متاحة` : `${motherMeals.length} meals · ${motherMeals.length} available`} onPress={() => setMenuOpen((value) => !value)} /><DashboardAction icon="event" title={language === "ar" ? "طلبات مسبقة" : "Advance orders"} detail={language === "ar" ? "مناسبات الجمعة" : "Friday gatherings"} onPress={() => undefined} /><DashboardAction icon="account-balance" title={language === "ar" ? "الأرباح و CliQ" : "Earnings & CliQ"} detail={lastPayout ? (language === "ar" ? "طلب التحويل قيد المعالجة" : "Payout processing") : (language === "ar" ? "٣٨٦ د.أ جاهزة للتحويل" : "JOD 386 ready to payout")} onPress={() => requestPayout(386)} /> </View>
+      <View style={styles.menuActionRow}>
+        <Pressable onPress={() => setAddMealOpen((value) => !value)} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><MaterialIcons name="add" size={18} color="#FFFFFF" /><Text style={styles.primaryButtonText}>{language === "ar" ? "إضافة طبخة جديدة للاعتماد" : "Add new dish for approval"}</Text></Pressable>
+      </View>
+      {addMealOpen && <View style={styles.kitchenDescriptionEditor}>
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "اسم الطبخة بالعربي" : "Arabic dish name"}</Text>
+        <TextInput value={newMealNameAr} onChangeText={setNewMealNameAr} placeholder="مثال: منسف لحم بلدي" placeholderTextColor="#8ABAC0" textAlign="right" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "اسم الطبخة بالإنجليزية" : "English dish name"}</Text>
+        <TextInput value={newMealNameEn} onChangeText={setNewMealNameEn} placeholder="Example: Local Lamb Mansaf" placeholderTextColor="#8ABAC0" textAlign="left" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "الوصف بالعربي" : "Arabic description"}</Text>
+        <TextInput value={newMealDescAr} onChangeText={setNewMealDescAr} placeholder="اكتبي وصفاً للطبخة..." placeholderTextColor="#8ABAC0" multiline textAlign="right" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "الوصف بالإنجليزية" : "English description"}</Text>
+        <TextInput value={newMealDescEn} onChangeText={setNewMealDescEn} placeholder="Write a description..." placeholderTextColor="#8ABAC0" multiline textAlign="left" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "السعر (د.أ)" : "Price (JOD)"}</Text>
+        <TextInput value={newMealPrice} onChangeText={setNewMealPrice} placeholder="5.50" placeholderTextColor="#8ABAC0" keyboardType="numeric" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "وقت التحضير (دقيقة)" : "Prep minutes"}</Text>
+        <TextInput value={newMealPrep} onChangeText={setNewMealPrep} placeholder="45" placeholderTextColor="#8ABAC0" keyboardType="numeric" style={styles.descriptionTextInput} />
+        <Text style={styles.descriptionFieldLabel}>{language === "ar" ? "الحد اليومي للوجبات" : "Daily order limit"}</Text>
+        <TextInput value={newMealLimit} onChangeText={setNewMealLimit} placeholder="15" placeholderTextColor="#8ABAC0" keyboardType="numeric" style={styles.descriptionTextInput} />
+        <View style={styles.descriptionActions}>
+          <Pressable onPress={() => setAddMealOpen(false)} style={({ pressed }) => [styles.descriptionCancelButton, pressed && styles.pressed]}><Text style={styles.descriptionCancelText}>{language === "ar" ? "إلغاء" : "Cancel"}</Text></Pressable>
+          <Pressable disabled={createMealMutation.isPending} onPress={() => {
+            if (!newMealNameAr.trim()) { showToast(language === "ar" ? "يرجى كتابة اسم الطبخة" : "Please enter dish name"); return; }
+            createMealMutation.mutate({
+              kitchenId: "umm-ahmad",
+              nameAr: newMealNameAr.trim(),
+              nameEn: newMealNameEn.trim() || newMealNameAr.trim(),
+              descriptionAr: newMealDescAr.trim(),
+              descriptionEn: newMealDescEn.trim() || newMealDescAr.trim(),
+              category: newMealCategory,
+              price: newMealPrice.trim() || "5.00",
+              prepMinutes: Number(newMealPrep) || 45,
+              dailyLimit: Number(newMealLimit) || 15,
+              image: newMealImage,
+            }, {
+              onSuccess: () => {
+                showToast(language === "ar" ? "تم إرسال الطبخة إلى المشرف للاعتماد والنشر" : "Dish submitted to supervisor for approval");
+                setAddMealOpen(false);
+                setNewMealNameAr("");
+                setNewMealNameEn("");
+                setNewMealDescAr("");
+                setNewMealDescEn("");
+              },
+              onError: () => showToast(language === "ar" ? "تعذر إرسال الطبخة" : "Could not submit dish"),
+            });
+          }} style={({ pressed }) => [styles.descriptionSaveButton, createMealMutation.isPending && styles.disabledButton, pressed && styles.pressed]}><Text style={styles.descriptionSaveText}>{createMealMutation.isPending ? (language === "ar" ? "جاري الإرسال..." : "Submitting...") : (language === "ar" ? "إرسال للمشرف" : "Submit to supervisor")}</Text></Pressable>
+        </View>
+      </View>}
       {menuOpen && <View style={styles.menuManager}>{motherMeals.length ? motherMeals.map((meal) => <View key={meal.id} style={styles.menuManagerRow}><Image source={{ uri: meal.image }} style={styles.menuThumb} /><View style={styles.menuManagerCopy}><Text style={styles.menuManagerName}>{getLocalized(meal.name, language)}</Text><Text style={styles.menuManagerMeta}>{formatJod(meal.price, language)} · {meal.prepMinutes} min</Text></View><View style={styles.menuStatus}><View style={styles.openDot} /><Text style={styles.menuStatusText}>{language === "ar" ? "متاحة" : "Live"}</Text></View><Pressable onPress={() => confirmRemoveMeal(meal)} style={({ pressed }) => [styles.menuRemoveButton, pressed && styles.pressed]} accessibilityLabel={language === "ar" ? `إزالة ${getLocalized(meal.name, language)}` : `Remove ${getLocalized(meal.name, language)}`}><MaterialIcons name="delete-outline" size={18} color="#C4555D" /></Pressable></View>) : <View style={styles.menuEmpty}><MaterialIcons name="restaurant-menu" size={22} color="#8ABAC0" /><Text style={styles.menuEmptyText}>{language === "ar" ? "لا توجد طبخات في القائمة حالياً" : "No dishes are currently on the menu"}</Text></View>}</View>}
       <View style={styles.cliqCard}><View style={styles.cliqBadge}><Text style={styles.cliqBadgeText}>CliQ</Text></View><View style={styles.cliqCopy}><Text style={styles.cliqTitle}>{language === "ar" ? "حوّلي أرباحك بسهولة" : "Move your earnings easily"}</Text><Text style={styles.cliqBody}>{language === "ar" ? "آخر تحويل إلى 079 ••• 6281" : "Last payout to 079 ••• 6281"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#2E9B72" /></View>
     </ScrollView>
@@ -1825,6 +1883,7 @@ const styles = StyleSheet.create({
   dashboardTitle: { color: "#FFFFFF", fontSize: 22, fontWeight: "900", marginTop: 5 },
   dashboardBody: { color: "#E9F8BF", fontSize: 11, marginTop: 4 },
   driverOrdersQueue: { backgroundColor: "#FFFFFF", borderRadius: 18, padding: 12, borderWidth: 1, borderColor: "#C6EDEF", gap: 8 },
+  menuActionRow: { paddingHorizontal: 16, marginVertical: 8 },
   driverOrdersQueueTitle: { color: "#082E34", fontSize: 12, fontWeight: "900" },
   driverOrdersQueueRow: { gap: 8, paddingRight: 2 },
   driverOrderChip: { minWidth: 118, maxWidth: 155, backgroundColor: "#F2FEFF", borderRadius: 13, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: "#D8F1F3", gap: 3 },

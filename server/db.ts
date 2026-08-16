@@ -5,6 +5,7 @@ import { InsertUser, announcements, complaintsDb, complaintImages, driverLocatio
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
+import { sendPushNotificationToUser } from "./marketing-notifications";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: Pool | null = null;
@@ -249,12 +250,60 @@ export async function listPendingMealApprovals(): Promise<PendingMealApproval[]>
   return db.select({ mealId: meals.id, kitchenId: meals.kitchenId, nameAr: meals.nameAr, nameEn: meals.nameEn, category: meals.category, price: meals.price, approvalStatus: meals.approvalStatus }).from(meals).where(eq(meals.approvalStatus, "pending"));
 }
 
+export type CreateMealInput = {
+  kitchenId: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  category: "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona" | "desserts" | "dairy" | "cheese";
+  price: string;
+  prepMinutes: number;
+  dailyLimit: number;
+  image: string;
+};
+
+export async function createMealRecord(userId: number, input: CreateMealInput) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const owner = await db.select({ id: kitchens.id, userId: kitchens.userId }).from(kitchens).where(eq(kitchens.id, input.kitchenId)).limit(1);
+  if (!owner[0] || owner[0].userId !== userId) throw new Error("Kitchen access denied");
+  const mealId = `meal-${Date.now()}`;
+  await db.insert(meals).values({
+    id: mealId,
+    kitchenId: input.kitchenId,
+    nameAr: input.nameAr,
+    nameEn: input.nameEn,
+    descriptionAr: input.descriptionAr,
+    descriptionEn: input.descriptionEn,
+    category: input.category,
+    price: input.price,
+    prepMinutes: input.prepMinutes,
+    dailyLimit: input.dailyLimit,
+    available: false,
+    approvalStatus: "pending",
+    image: input.image,
+  });
+  return { mealId, status: "pending" as const };
+}
+
 export async function decideMealApproval(mealId: string, status: MealApprovalStatus): Promise<PendingMealApproval | null> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(meals).set({ approvalStatus: status, available: status === "approved" }).where(eq(meals.id, mealId));
   const updated = await db.select({ mealId: meals.id, kitchenId: meals.kitchenId, nameAr: meals.nameAr, nameEn: meals.nameEn, category: meals.category, price: meals.price, approvalStatus: meals.approvalStatus }).from(meals).where(eq(meals.id, mealId)).limit(1);
-  return updated[0] ?? null;
+  const row = updated[0];
+  if (row) {
+    const kitchenOwner = await db.select({ userId: kitchens.userId, nameAr: kitchens.nameAr, nameEn: kitchens.nameEn }).from(kitchens).leftJoin(users, eq(kitchens.userId, users.id)).where(eq(kitchens.id, row.kitchenId)).limit(1);
+    if (kitchenOwner[0]?.userId) {
+      await sendPushNotificationToUser(kitchenOwner[0].userId, {
+        title: status === "approved" ? "تم اعتماد طبختك ونشرها!" : "تحديث بخصوص طبختك",
+        body: status === "approved" ? `تم اعتماد ونشر ${row.nameAr} في سفرة أمي` : `نأسف، لم يتم اعتماد ${row.nameAr}. يجدر مراجعة الشروط.`,
+        data: { type: "meal_approval", mealId, status },
+      }).catch(() => undefined);
+    }
+  }
+  return row ?? null;
 }
 
 async function getOrderParticipant(orderId: string, userId: number) {

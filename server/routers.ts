@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -26,6 +26,18 @@ const kitchenDescriptionInput = kitchenIdSchema.extend({
 });
 const kitchenDescriptionDecisionInput = kitchenIdSchema.extend({ status: z.enum(["pending", "approved", "rejected"]) });
 const mealApprovalDecisionInput = z.object({ mealId: z.string().trim().min(1).max(64), status: z.enum(["pending", "approved", "rejected"]) });
+const createMealInput = z.object({
+  kitchenId: z.string().trim().min(1).max(64),
+  nameAr: z.string().trim().min(1).max(120),
+  nameEn: z.string().trim().min(1).max(120),
+  descriptionAr: z.string().trim().max(500),
+  descriptionEn: z.string().trim().max(500),
+  category: z.enum(["mansaf", "maqluba", "mahshi", "bakery", "moona", "desserts", "dairy", "cheese"]),
+  price: z.string().trim().min(1).max(16),
+  prepMinutes: z.number().int().min(1).max(300),
+  dailyLimit: z.number().int().min(1).max(200),
+  image: z.string().min(1),
+});
 const announcementInput = z.object({
   id: z.string().min(1).max(64),
   eyebrowAr: z.string().min(1).max(240),
@@ -92,6 +104,7 @@ export const appRouter = router({
     decideKitchenDescription: adminProcedure.input(kitchenDescriptionDecisionInput).mutation(({ input }) => decideKitchenDescription(input.kitchenId, input.status)),
     listPendingMealApprovals: adminProcedure.query(() => listPendingMealApprovals()),
     decideMealApproval: adminProcedure.input(mealApprovalDecisionInput).mutation(({ input }) => decideMealApproval(input.mealId, input.status)),
+
     financialAnalytics: adminProcedure
       .input(z.object({ days: z.number().int().min(1).max(365).optional() }).optional())
       .query(({ input }) => getFinancialAnalytics(input?.days ?? 30)),
@@ -125,6 +138,15 @@ export const appRouter = router({
   kitchens: router({
     profile: publicProcedure.input(kitchenIdSchema).query(({ input }) => getKitchenDescription(input.kitchenId)),
     updateDescription: protectedProcedure.input(kitchenDescriptionInput).mutation(({ ctx, input }) => updateKitchenDescription(ctx.user.id, input.kitchenId, { descriptionAr: input.descriptionAr, descriptionEn: input.descriptionEn, showDescription: input.showDescription })),
+    createMeal: protectedProcedure.input(createMealInput).mutation(async ({ ctx, input }) => {
+      let imageUrl = input.image;
+      if (input.image.startsWith("data:")) {
+        const decoded = decodeImageDataUrl(input.image);
+        const uploaded = await storagePut(`meals/${ctx.user.id}-${Date.now()}`, decoded.data, decoded.contentType);
+        imageUrl = uploaded.url;
+      }
+      return createMealRecord(ctx.user.id, { ...input, image: imageUrl });
+    }),
   }),
   favorites: router({
     mine: protectedProcedure.query(async ({ ctx }) => ({ mealIds: await listFavoriteIds(ctx.user.id, "meal"), kitchenIds: await listFavoriteIds(ctx.user.id, "kitchen") })),
