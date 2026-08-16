@@ -2,7 +2,32 @@ import type { Request, Response } from "express";
 
 import { generateWeeklyKitchenReports, listWeeklyReportRecipients } from "./db";
 import { sendWeeklyEmailReport } from "./email";
+import { createHeartbeatJob, listHeartbeatJobs, updateHeartbeatJob } from "./_core/heartbeat";
 import { sdk } from "./_core/sdk";
+
+const WEEKLY_REPORT_JOB_NAME = "sufret-omi-weekly-report-email";
+
+export async function ensureWeeklyReportHeartbeatJob() {
+  try {
+    const current = await listHeartbeatJobs("");
+    const existing = current?.jobs?.find((job) => job.name === WEEKLY_REPORT_JOB_NAME);
+    if (existing) {
+      if (!existing.isEnable) await updateHeartbeatJob(existing.taskUid, { enable: true }, "");
+      return existing.taskUid;
+    }
+    const created = await createHeartbeatJob({
+      name: WEEKLY_REPORT_JOB_NAME,
+      cron: "0 0 7 * * 1",
+      path: "/api/scheduled/weeklyReport",
+      method: "POST",
+      description: "Generate Sufret Omi weekly kitchen reports and email them only when email settings are enabled.",
+    }, "");
+    return created.taskUid;
+  } catch (error) {
+    console.warn("[Heartbeat] Weekly report job could not be ensured:", error);
+    return null;
+  }
+}
 
 export async function handleWeeklyReportScheduled(req: Request, res: Response) {
   const startedAt = Date.now();

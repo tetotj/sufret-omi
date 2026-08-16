@@ -15,6 +15,7 @@ import {
   Kitchen,
   meals,
   Order,
+  OrderCustomerAction,
   OrderMessage,
   RegionId,
   Role,
@@ -78,6 +79,9 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
     dropoffAddress: value.dropoffAddress ?? fallback?.dropoffAddress ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
     driverRating: typeof value.driverRating === "number" ? value.driverRating : fallback?.driverRating ?? 4.9,
     requiredCapacity: value.requiredCapacity ?? fallback?.requiredCapacity ?? getRequiredLoadCapacity(Array.isArray(value.items) ? value.items : fallback?.items ?? []),
+    customerAction: value.customerAction ?? fallback?.customerAction ?? "none",
+    customerActionNote: typeof value.customerActionNote === "string" ? value.customerActionNote : fallback?.customerActionNote ?? "",
+    customerActionAt: value.customerActionAt ?? fallback?.customerActionAt,
     driver: value.driver ?? fallback?.driver,
   };
 }
@@ -139,6 +143,7 @@ type AppContextValue = AppState & {
   reorder: (order: Order) => void;
   selectActiveOrder: (orderId: string) => void;
   rateOrder: (rating: number, review?: string) => void;
+  requestOrderAction: (orderId: string, action: Exclude<OrderCustomerAction, "none">, note?: string) => void;
   advanceOrder: (orderId?: string) => void;
   toggleKitchen: () => void;
   toggleClosedDay: (day: WeekdayId) => void;
@@ -375,6 +380,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const updatedOrder = { ...current.activeOrder, restaurantRating: Math.max(1, Math.min(5, Math.round(rating))), restaurantReview: review.trim() };
         return { ...current, activeOrder: updatedOrder, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
       }),
+      requestOrderAction: (orderId, action, note = "") => {
+        setState((current) => {
+          const target = current.activeOrders.find((order) => order.id === orderId) ?? current.activeOrder;
+          if (!target) return current;
+          const updatedOrder = { ...target, customerAction: action, customerActionNote: note.trim(), customerActionAt: new Date().toISOString() };
+          const message = action === "cancellation_requested" ? (current.language === "ar" ? "تم إرسال طلب إلغاء الطلب لفريق المتابعة." : "The cancellation request was sent to the support team.") : (current.language === "ar" ? "تم إرسال طلب الاستبدال لفريق المتابعة." : "The replacement request was sent to the support team.");
+          showToast(message);
+          return { ...current, activeOrder: current.activeOrder?.id === updatedOrder.id ? updatedOrder : current.activeOrder, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
+        });
+      },
       advanceOrder: (orderId) => {
         const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
         setState((current) => {

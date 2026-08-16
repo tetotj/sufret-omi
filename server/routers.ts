@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderMessage, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderMessages, listUserProfiles, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
 import { sendOrderConfirmationSms } from "./sms";
+import { ensureWeeklyReportHeartbeatJob } from "./reports-scheduled";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { isExpoPushToken, sendPushNotificationToUser } from "./marketing-notifications";
 
@@ -83,6 +84,7 @@ export const appRouter = router({
       .input(z.object({ days: z.number().int().min(1).max(365).optional() }).optional())
       .query(({ input }) => getFinancialAnalytics(input?.days ?? 30)),
     weeklyReport: adminProcedure.query(() => generateWeeklyKitchenReports()),
+    ensureWeeklyReportSchedule: adminProcedure.mutation(() => ensureWeeklyReportHeartbeatJob()),
     listComplaints: adminProcedure.query(() => listComplaintRecords()),
     updateComplaint: adminProcedure
       .input(z.object({ complaintId: z.string().min(1), status: complaintStatusSchema, response: z.string().max(2000).optional() }))
@@ -120,6 +122,14 @@ export const appRouter = router({
   chat: router({
     list: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => listOrderMessages(input.orderId, ctx.user.id)),
     send: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), senderRole: z.enum(["customer", "mother", "driver"]), senderName: z.string().min(1).max(160), body: z.string().trim().min(1).max(500) })).mutation(({ ctx, input }) => createOrderMessage({ ...input, senderId: ctx.user.id })),
+  }),
+  driverLocation: router({
+    update: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180), accuracy: z.number().min(0).max(10000).optional() })).mutation(({ ctx, input }) => recordDriverLocation({ ...input, driverId: ctx.user.id })),
+    latest: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => getLatestDriverLocation(input.orderId, ctx.user.id)),
+  }),
+  orderActions: router({
+    list: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64) })).query(({ ctx, input }) => listOrderActionRequests(input.orderId, ctx.user.id)),
+    create: protectedProcedure.input(z.object({ orderId: z.string().min(1).max(64), action: z.enum(["cancellation_requested", "replacement_requested"]), note: z.string().trim().max(240).optional() })).mutation(({ ctx, input }) => createOrderActionRequest({ ...input, customerId: ctx.user.id })),
   }),
   complaints: router({
     mine: protectedProcedure.query(({ ctx }) => listComplaintRecords(ctx.user.id)),

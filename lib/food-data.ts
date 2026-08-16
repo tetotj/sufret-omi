@@ -59,6 +59,7 @@ export type CartItem = {
 };
 
 export type OrderStatus = "received" | "preparing" | "ready" | "on_the_way" | "delivered";
+export type OrderCustomerAction = "none" | "cancellation_requested" | "replacement_requested";
 export const PLATFORM_COMMISSION_RATE = 0.05;
 
 export type DriverDetails = {
@@ -92,6 +93,9 @@ export type Order = {
   paymentMethod: "cod" | "cliq" | "wallet";
   schedule: "now" | "scheduled";
   status: OrderStatus;
+  customerAction?: OrderCustomerAction;
+  customerActionNote?: string;
+  customerActionAt?: string;
   eta: Localized;
   pickupCoordinates: Coordinate;
   dropoffCoordinates: Coordinate;

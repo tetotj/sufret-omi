@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, announcements, complaintsDb, complaintImages, favorites, kitchens, offers, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, announcements, complaintsDb, complaintImages, driverLocations, favorites, kitchens, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -192,6 +192,62 @@ export async function listOrderMessages(orderId: string, userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(orderMessages).where(eq(orderMessages.orderId, orderId)).orderBy(orderMessages.createdAt);
+}
+
+export async function recordDriverLocation(input: { orderId: string; driverId: number; latitude: number; longitude: number; accuracy?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const assigned = await db.select({ driverId: orders.driverId, status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1);
+  const order = assigned[0];
+  if (!order || order.driverId !== input.driverId) throw new Error("Driver location access denied");
+  if (order.status === "delivered") return { stored: false, reason: "order-complete" as const };
+  await db.insert(driverLocations).values({ orderId: input.orderId, driverId: input.driverId, latitude: input.latitude.toFixed(7), longitude: input.longitude.toFixed(7), accuracy: typeof input.accuracy === "number" ? input.accuracy.toFixed(2) : null });
+  return { stored: true };
+}
+
+export async function getLatestDriverLocation(orderId: string, userId: number) {
+  if (!(await getOrderParticipant(orderId, userId))) throw new Error("Order location access denied");
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(driverLocations).where(eq(driverLocations.orderId, orderId)).orderBy(desc(driverLocations.capturedAt)).limit(1);
+  const latest = rows[0];
+  if (!latest) return null;
+  return { latitude: Number(latest.latitude), longitude: Number(latest.longitude), accuracy: latest.accuracy === null ? undefined : Number(latest.accuracy), capturedAt: latest.capturedAt.toISOString() };
+}
+
+export type PersistedOrderStatus = "received" | "preparing" | "ready" | "on_the_way" | "delivered";
+export type OrderActionRequestType = "cancellation_requested" | "replacement_requested";
+
+export function canRequestOrderAction(status: PersistedOrderStatus, action: OrderActionRequestType) {
+  return action === "cancellation_requested" ? status === "received" || status === "preparing" : status === "on_the_way" || status === "delivered";
+}
+
+export async function createOrderActionRequest(input: { orderId: string; customerId: number; action: OrderActionRequestType; note?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select({ customerId: orders.customerId, status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1);
+  const order = rows[0];
+  if (!order || order.customerId !== input.customerId) throw new Error("Order action access denied");
+  if (!canRequestOrderAction(order.status, input.action)) throw new Error("This order action is not available at the current status");
+  const pending = await db
+    .select({ id: orderActionRequests.id })
+    .from(orderActionRequests)
+    .where(and(
+      eq(orderActionRequests.orderId, input.orderId),
+      eq(orderActionRequests.customerId, input.customerId),
+      eq(orderActionRequests.action, input.action),
+      eq(orderActionRequests.status, "pending"),
+    ))
+    .limit(1);
+  if (pending[0]) return { id: pending[0].id, duplicate: true };
+  const result = await db.insert(orderActionRequests).values({ orderId: input.orderId, customerId: input.customerId, action: input.action, note: input.note?.trim() || null });
+  return { id: Number((result as unknown as { insertId: number }).insertId), duplicate: false };
+}
+
+export async function listOrderActionRequests(orderId: string, customerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(orderActionRequests).where(and(eq(orderActionRequests.orderId, orderId), eq(orderActionRequests.customerId, customerId))).orderBy(desc(orderActionRequests.createdAt));
 }
 
 export function normalizeOrderMessageBody(value: string) {

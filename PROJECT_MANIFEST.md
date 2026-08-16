@@ -173,3 +173,11 @@ The export excludes `node_modules/`, `.cache/`, `.expo/`, `.git/`, `.manus/`, `.
 - **Order chat:** `drizzle/schema.ts` defines `orderMessages` and the optional `orders.driverId` relationship/index. `server/db.ts` enforces order-participant access, and `server/routers.ts` exposes protected `chat.list` and `chat.send` routes. The mobile tracking UI provides a bilingual chat composer with a local fallback for locally-created demo orders.
 - **Database migration:** `drizzle/0010_volatile_wrecker.sql` creates the order chat table and indexes without destructive operations.
 - **Validation:** Vitest covers Push token validation, email-safe mode, order chat body validation, commissions, recommendations, and authentication. TypeScript and lint complete without blocking errors; lint retains only pre-existing non-blocking warnings.
+
+## Production Extensions: Email, Order Actions, and Live GPS
+
+The weekly report flow now includes `ensureWeeklyReportHeartbeatJob` in `server/reports-scheduled.ts` and an authenticated admin mutation at `admin.ensureWeeklyReportSchedule`. The schedule uses the existing `/api/scheduled/weeklyReport` handler and a six-field UTC cron expression. The admin dashboard exposes a bilingual “Schedule email” action; actual external delivery remains controlled by the existing email provider environment settings and is not sent without a provider key.
+
+Live driver tracking now persists coordinate samples in the `driverLocations` table through `driverLocation.update` and exposes the latest authorized coordinate through `driverLocation.latest`. The driver app publishes foreground GPS samples, while the customer order screen refreshes the latest authorized location every 15 seconds for the selected active order. Migrations `drizzle/0011_daily_namora.sql` and `drizzle/0012_sudden_cassandra_nova.sql` add the GPS and order-action tables without destructive changes.
+
+Customer quick actions are persisted in `orderActionRequests` through `orderActions.create` and `orderActions.list`. Cancellation requests are allowed during `received` and `preparing`; replacement requests are allowed after the order reaches `on_the_way` or `delivered`. The UI keeps a local fallback for demo/offline-created orders while authenticated orders use the protected database route.

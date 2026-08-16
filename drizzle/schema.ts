@@ -85,6 +85,33 @@ export const orderMessages = mysqlTable("orderMessages", {
   senderIdx: index("order_messages_sender_idx").on(table.senderId, table.createdAt),
 }));
 
+export const driverLocations = mysqlTable("driverLocations", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  driverId: int("driverId").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 8, scale: 2 }),
+  capturedAt: timestamp("capturedAt").defaultNow().notNull(),
+}, (table) => ({
+  orderCapturedIdx: index("driver_locations_order_captured_idx").on(table.orderId, table.capturedAt),
+  driverCapturedIdx: index("driver_locations_driver_captured_idx").on(table.driverId, table.capturedAt),
+}));
+
+export const orderActionRequests = mysqlTable("orderActionRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  customerId: int("customerId").notNull(),
+  action: mysqlEnum("action", ["cancellation_requested", "replacement_requested"]).notNull(),
+  note: text("note"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  orderStatusIdx: index("order_action_order_status_idx").on(table.orderId, table.status),
+  customerCreatedIdx: index("order_action_customer_created_idx").on(table.customerId, table.createdAt),
+}));
+
 export const reviews = mysqlTable("reviews", {
   id: int("id").autoincrement().primaryKey(),
   orderId: varchar("orderId", { length: 64 }).notNull(),

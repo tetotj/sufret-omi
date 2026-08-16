@@ -78,6 +78,20 @@
       "when": 1786891510347,
       "tag": "0010_volatile_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1786892917871,
+      "tag": "0011_daily_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1786893090845,
+      "tag": "0012_sudden_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }
