@@ -584,3 +584,17 @@ export async function claimDueMarketingNotifications(): Promise<DueMarketingNoti
   }
   return claimed;
 }
+
+export async function generateWeeklyKitchenReports() {
+  const analytics = await getFinancialAnalytics(7);
+  return {
+    generatedAt: new Date().toISOString(),
+    periodDays: 7,
+    grossSales: analytics.grossSales,
+    platformCommission: analytics.platformCommission,
+    kitchenPayouts: analytics.kitchenPayouts,
+    orderCount: analytics.orderCount,
+    deliveredOrderCount: analytics.deliveredOrderCount,
+    kitchens: analytics.kitchens,
+  };
+}

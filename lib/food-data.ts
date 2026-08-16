@@ -87,6 +87,7 @@ export type Order = {
   pickupCoordinates: Coordinate;
   dropoffCoordinates: Coordinate;
   driverCoordinates?: Coordinate;
+  driverLocationUpdatedAt?: string;
   pickupAddress: Localized;
   dropoffAddress: Localized;
   driverRating?: number;

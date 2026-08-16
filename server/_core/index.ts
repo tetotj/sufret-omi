@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { handleMarketingScheduled } from "../marketing-scheduled";
+import { handleWeeklyReportScheduled } from "../reports-scheduled";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -64,6 +65,7 @@ async function startServer() {
   });
 
   app.post("/api/scheduled/publishMarketing", handleMarketingScheduled);
+  app.post("/api/scheduled/weeklyReport", handleWeeklyReportScheduled);
 
   app.use(
     "/api/trpc",

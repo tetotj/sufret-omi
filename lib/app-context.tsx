@@ -72,6 +72,7 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
     pickupCoordinates: value.pickupCoordinates ?? fallback?.pickupCoordinates ?? { latitude: pickupRegion.latitude, longitude: pickupRegion.longitude },
     dropoffCoordinates: value.dropoffCoordinates ?? fallback?.dropoffCoordinates ?? DEFAULT_DROPOFF,
     driverCoordinates: value.driverCoordinates ?? fallback?.driverCoordinates ?? { latitude: 31.978, longitude: 35.897 },
+    driverLocationUpdatedAt: value.driverLocationUpdatedAt ?? fallback?.driverLocationUpdatedAt,
     pickupAddress: value.pickupAddress ?? fallback?.pickupAddress ?? { ar: `${getLocalized(kitchen.name, "ar")}، ${getLocalized(kitchen.neighborhood, "ar")}`, en: `${getLocalized(kitchen.name, "en")}, ${getLocalized(kitchen.neighborhood, "en")}` },
     dropoffAddress: value.dropoffAddress ?? fallback?.dropoffAddress ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
     driverRating: typeof value.driverRating === "number" ? value.driverRating : fallback?.driverRating ?? 4.9,
@@ -146,6 +147,7 @@ type AppContextValue = AppState & {
   requestPayout: (amount: number) => void;
   setDriverAvailable: (available: boolean) => void;
   selectDriverOrder: (orderId: string) => void;
+  updateDriverLocation: (coordinates: { latitude: number; longitude: number }) => void;
   advanceDriverOrder: (orderId?: string) => void;
   updateMotherVerification: (patch: Partial<MotherVerificationProfile>) => void;
   updateDriverVerification: (patch: Partial<DriverVerificationProfile>) => void;
@@ -406,6 +408,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       setDriverAvailable: (driverAvailable) => setState((current) => ({ ...current, driverAvailable })),
       selectDriverOrder: (orderId) => setState((current) => ({ ...current, driverOrder: current.driverOrders.find((order) => order.id === orderId) ?? current.driverOrder })),
+      updateDriverLocation: (coordinates) => {
+        const updatedAt = new Date().toISOString();
+        setState((current) => {
+          const updateOrder = (order: Order) => ({ ...order, driverCoordinates: coordinates, driverLocationUpdatedAt: updatedAt });
+          const driverOrder = current.driverOrder ? updateOrder(current.driverOrder) : null;
+          const driverOrders = current.driverOrders.map(updateOrder);
+          const activeOrders = current.activeOrders.map((order) => driverOrders.find((driverOrder) => driverOrder.id === order.id) ?? order);
+          const activeOrder = current.activeOrder ? activeOrders.find((order) => order.id === current.activeOrder?.id) ?? current.activeOrder : null;
+          return { ...current, driverOrder, driverOrders, activeOrder, activeOrders, orderHistory: current.orderHistory.map((order) => driverOrders.find((driverOrder) => driverOrder.id === order.id) ?? order) };
+        });
+      },
       advanceDriverOrder: (orderId) => {
         const nextStatus: Record<NonNullable<Order>["status"], NonNullable<Order>["status"]> = { received: "preparing", preparing: "ready", ready: "on_the_way", on_the_way: "delivered", delivered: "delivered" };
         const targetId = orderId ?? state.driverOrder?.id;

@@ -1,5 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import * as Linking from "expo-linking";
+import * as Location from "expo-location";
 
 import { MapPreview } from "@/components/map-preview";
 import { UnifiedFilters, type UnifiedFilterSort } from "@/components/unified-filters";
@@ -244,8 +245,68 @@ function CustomerDashboard({ onBack, onNavigate }: { onBack: () => void; onNavig
   );
 }
 
+function useDriverLocationTracking(enabled: boolean, onLocation: (coordinates: { latitude: number; longitude: number }) => void) {
+  const callbackRef = useRef(onLocation);
+  const [status, setStatus] = useState<"idle" | "requesting" | "active" | "denied" | "unavailable">("idle");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    callbackRef.current = onLocation;
+  }, [onLocation]);
+
+  useEffect(() => {
+    if (!enabled) {
+      setStatus("idle");
+      return;
+    }
+    let cancelled = false;
+    let subscription: Location.LocationSubscription | null = null;
+    let browserWatchId: number | null = null;
+    const handlePosition = (position: { coords: { latitude: number; longitude: number } }) => {
+      if (cancelled) return;
+      const coordinates = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      callbackRef.current(coordinates);
+      setLastUpdatedAt(new Date().toISOString());
+      setStatus("active");
+    };
+
+    void (async () => {
+      setStatus("requesting");
+      if (Platform.OS === "web") {
+        if (!globalThis.navigator?.geolocation) {
+          setStatus("unavailable");
+          return;
+        }
+        browserWatchId = globalThis.navigator.geolocation.watchPosition(handlePosition, () => setStatus("denied"), { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 });
+        return;
+      }
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setStatus("unavailable");
+        return;
+      }
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        setStatus("denied");
+        return;
+      }
+      subscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.Balanced, timeInterval: 10_000, distanceInterval: 20 }, handlePosition);
+      if (!cancelled) setStatus("active");
+    })().catch(() => setStatus("denied"));
+
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+      if (browserWatchId !== null) globalThis.navigator?.geolocation?.clearWatch(browserWatchId);
+    };
+  }, [enabled]);
+
+  return { status, lastUpdatedAt };
+}
+
 function DriverDashboard({ onBack }: { onBack: () => void }) {
-  const { language, driverAvailable, setDriverAvailable, driverOrder, driverOrders, selectDriverOrder, driverVerification, advanceDriverOrder, showToast, signOut } = useApp();
+  const { language, driverAvailable, setDriverAvailable, driverOrder, driverOrders, selectDriverOrder, driverVerification, advanceDriverOrder, updateDriverLocation, showToast, signOut } = useApp();
+  const locationTracking = useDriverLocationTracking(driverAvailable && Boolean(driverOrder) && driverOrder?.status !== "delivered", updateDriverLocation);
   const currentStatus = driverOrder ? orderStatuses.find((status) => status.id === driverOrder.status) : null;
   const actionLabel = driverOrder?.status === "ready" ? (language === "ar" ? "استلمت الطلب من المطبخ" : "Picked up from kitchen") : driverOrder?.status === "on_the_way" ? (language === "ar" ? "تم التوصيل للعميلة" : "Delivered to customer") : language === "ar" ? "تحديث الحالة" : "Update status";
   const pickupDistance = driverOrder ? distanceKm(driverOrder.driverCoordinates ?? driverOrder.pickupCoordinates, driverOrder.pickupCoordinates) : 0;
@@ -289,6 +350,7 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
         <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text><View style={[styles.capacityMatch, capacityFits ? styles.capacityMatchOk : styles.capacityMatchWarn]}><MaterialIcons name={capacityFits ? "check-circle" : "warning-amber"} size={16} color={capacityFits ? "#2E9B72" : "#C4555D"} /><Text style={[styles.capacityMatchText, !capacityFits && styles.capacityMatchTextWarn]}>{capacityFits ? (language === "ar" ? `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "مركبتك"} مناسبة لحمولة ${getLocalized(loadCapacityLabels[requiredCapacity], language)}` : `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "Your vehicle"} fits the ${getLocalized(loadCapacityLabels[requiredCapacity], language)} order`) : (language === "ar" ? "هذه الحمولة أكبر من سعة مركبتك" : "This order is larger than your vehicle capacity")}</Text></View>{driverOrder.specialRequests ? <View style={styles.driverSpecialRequest}><MaterialIcons name="edit-note" size={18} color="#8A6516" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "تعليمات العميل" : "Customer instructions"}</Text><Text style={styles.specialRequestBody}>{driverOrder.specialRequests}</Text></View></View> : null}</View>
+        <View style={styles.driverLocationStatus}><MaterialIcons name={locationTracking.status === "active" ? "my-location" : locationTracking.status === "denied" ? "location-disabled" : "location-searching"} size={17} color={locationTracking.status === "active" ? "#2E9B72" : "#C98A2E"} /><View style={styles.driverLocationCopy}><Text style={styles.driverLocationTitle}>{locationTracking.status === "active" ? (language === "ar" ? "موقعك يُحدّث أثناء التوصيل" : "Your location is updating") : locationTracking.status === "requesting" ? (language === "ar" ? "جارٍ طلب صلاحية الموقع..." : "Requesting location permission...") : locationTracking.status === "denied" ? (language === "ar" ? "صلاحية الموقع مرفوضة" : "Location permission denied") : locationTracking.status === "unavailable" ? (language === "ar" ? "الموقع غير متاح حالياً" : "Location is currently unavailable") : (language === "ar" ? "تتبّع الموقع متوقف" : "Location tracking paused")}</Text><Text style={styles.driverLocationMeta}>{locationTracking.lastUpdatedAt ? `${language === "ar" ? "آخر تحديث" : "Last update"} ${new Date(locationTracking.lastUpdatedAt).toLocaleTimeString(language === "ar" ? "ar-JO" : "en-JO", { hour: "2-digit", minute: "2-digit" })}` : (language === "ar" ? "يظهر موقع السائق للعميلة بعد أول تحديث" : "The customer sees the driver after the first update")}</Text></View><View style={[styles.driverLocationDot, locationTracking.status === "active" && styles.driverLocationDotActive]} /></View>
         <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} driverCoordinates={driverOrder.driverCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} onPressMap={() => void openNavigation(driverOrder.status === "ready" ? "pickup" : "dropoff")} />
         <View style={styles.routeCard}>
           <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${pickupDistance.toFixed(1)} كم · حوالي ${pickupEtaMinutes} دقيقة للوصول` : `${pickupDistance.toFixed(1)} km · about ${pickupEtaMinutes} min to arrive`}</Text></View><MaterialIcons name="directions" size={20} color="#00AFC4" /></Pressable>
@@ -920,6 +982,12 @@ const styles = StyleSheet.create({
   driverOverline: { color: "#C98A2E", fontSize: 10, fontWeight: "900" },
   driverTitle: { color: "#082E34", fontSize: 21, fontWeight: "900", marginTop: 5 },
   driverBody: { color: "#1B5E3A", fontSize: 11, marginTop: 4 },
+  driverLocationStatus: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "#F4FFFB", borderRadius: 15, borderWidth: 1, borderColor: "#C7E8C8", padding: 11 },
+  driverLocationCopy: { flex: 1 },
+  driverLocationTitle: { color: "#1B5E3A", fontSize: 11, fontWeight: "900" },
+  driverLocationMeta: { color: "#6F9BA0", fontSize: 9, marginTop: 3 },
+  driverLocationDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#F6D889" },
+  driverLocationDotActive: { backgroundColor: "#2E9B72" },
   driverOrderCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 15, borderWidth: 1, borderColor: "#F6D889", gap: 9 },
   driverOrderHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   driverOrderTag: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EEF9DB", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 6 },

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, getFinancialAnalytics, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listUserProfiles, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listUserProfiles, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -82,6 +82,7 @@ export const appRouter = router({
     financialAnalytics: adminProcedure
       .input(z.object({ days: z.number().int().min(1).max(365).optional() }).optional())
       .query(({ input }) => getFinancialAnalytics(input?.days ?? 30)),
+    weeklyReport: adminProcedure.query(() => generateWeeklyKitchenReports()),
     listComplaints: adminProcedure.query(() => listComplaintRecords()),
     updateComplaint: adminProcedure
       .input(z.object({ complaintId: z.string().min(1), status: complaintStatusSchema, response: z.string().max(2000).optional() }))
