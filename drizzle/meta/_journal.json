@@ -71,6 +71,13 @@
       "when": 1786886944086,
       "tag": "0009_premium_nico_minoru",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1786891510347,
+      "tag": "0010_volatile_wrecker",
+      "breakpoints": true
     }
   ]
 }

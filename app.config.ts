@@ -144,7 +144,7 @@ const config: ExpoConfig = {
   ],
   extra: {
     eas: {
-      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "",
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || "",
     },
   },
   experiments: {

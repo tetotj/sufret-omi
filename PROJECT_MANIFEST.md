@@ -165,3 +165,11 @@ The resulting Android and iOS store artifacts must be signed with your own Googl
 ## Export Exclusions
 
 The export excludes `node_modules/`, `.cache/`, `.expo/`, `.git/`, `.manus/`, `.manus-logs/`, `dist/`, and other generated build or system artifacts. It also excludes real `.env` files if present. Only the placeholder environment example is included.
+
+## Latest Production Additions
+
+- **Driver Push assignment:** `server/marketing-notifications.ts` sends targeted Expo Push messages to the assigned driver, while `server/routers.ts` exposes the protected/admin assignment route and `app/(tabs)/index.tsx` registers the driver's Expo token.
+- **Excel reports:** `app/admin.tsx` uses SheetJS (`xlsx`) to export the weekly and financial report data as a real `.xlsx` workbook from the web dashboard.
+- **Order chat:** `drizzle/schema.ts` defines `orderMessages` and the optional `orders.driverId` relationship/index. `server/db.ts` enforces order-participant access, and `server/routers.ts` exposes protected `chat.list` and `chat.send` routes. The mobile tracking UI provides a bilingual chat composer with a local fallback for locally-created demo orders.
+- **Database migration:** `drizzle/0010_volatile_wrecker.sql` creates the order chat table and indexes without destructive operations.
+- **Validation:** Vitest covers Push token validation, email-safe mode, order chat body validation, commissions, recommendations, and authentication. TypeScript and lint complete without blocking errors; lint retains only pre-existing non-blocking warnings.

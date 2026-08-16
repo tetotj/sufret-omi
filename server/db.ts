@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, announcements, complaintsDb, complaintImages, favorites, kitchens, offers, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, announcements, complaintsDb, complaintImages, favorites, kitchens, offers, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -178,6 +178,38 @@ export type AdminUserRecord = {
 };
 
 export type FavoriteEntityType = "meal" | "kitchen";
+
+async function getOrderParticipant(orderId: string, userId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db.select({ customerId: orders.customerId, driverId: orders.driverId, kitchenUserId: kitchens.userId }).from(orders).leftJoin(kitchens, eq(orders.kitchenId, kitchens.id)).where(eq(orders.id, orderId)).limit(1);
+  const order = rows[0];
+  return Boolean(order && (order.customerId === userId || order.driverId === userId || order.kitchenUserId === userId));
+}
+
+export async function listOrderMessages(orderId: string, userId: number) {
+  if (!(await getOrderParticipant(orderId, userId))) throw new Error("Order chat access denied");
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(orderMessages).where(eq(orderMessages.orderId, orderId)).orderBy(orderMessages.createdAt);
+}
+
+export function normalizeOrderMessageBody(value: string) {
+  const body = value.trim();
+  if (!body) throw new Error("Message body is required");
+  if (body.length > 500) throw new Error("Message body is too long");
+  return body;
+}
+
+export async function createOrderMessage(input: { orderId: string; senderId: number; senderRole: "customer" | "mother" | "driver"; senderName: string; body: string }) {
+  const body = normalizeOrderMessageBody(input.body);
+  if (!(await getOrderParticipant(input.orderId, input.senderId))) throw new Error("Order chat access denied");
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(orderMessages).values({ ...input, body });
+  const insertId = Number((result as unknown as { insertId?: number }).insertId ?? 0);
+  return { id: insertId, ...input, body, createdAt: new Date() };
+}
 
 export async function listFavoriteIds(userId: number, entityType?: FavoriteEntityType): Promise<string[]> {
   const db = await getDb();
@@ -556,6 +588,13 @@ export async function listActivePushTokens(): Promise<Array<{ token: string }>> 
   const db = await getDb();
   if (!db) return [];
   const rows = await db.select({ token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.isActive, true));
+  return rows as Array<{ token: string }>;
+}
+
+export async function listActivePushTokensForUser(userId: number): Promise<Array<{ token: string }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ token: pushTokens.token }).from(pushTokens).where(and(eq(pushTokens.userId, userId), eq(pushTokens.isActive, true)));
   return rows as Array<{ token: string }>;
 }
 

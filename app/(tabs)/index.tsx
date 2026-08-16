@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
 import {
   Image,
   Modal,
@@ -86,6 +88,10 @@ function resolveRemoteAssetUrl(url?: string | null): string | undefined {
 }
 
 type AnnouncementSlide = { id: string; icon: IconName; eyebrowAr: string; eyebrowEn: string; titleAr: string; titleEn: string; bodyAr: string; bodyEn: string; ctaAr: string; ctaEn: string; target: "meals" | "orders"; imageUrl?: string | null };
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({ shouldShowAlert: true, shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }),
+});
+
 const FALLBACK_ANNOUNCEMENTS: AnnouncementSlide[] = [
   { id: "fallback-multi-kitchen", icon: "restaurant-menu", eyebrowAr: "تحديث جديد من سفرة أمي", eyebrowEn: "A new Sufret Omi update", titleAr: "اطلبي من أكثر من مطعم", titleEn: "Order from multiple kitchens", bodyAr: "قسّمنا السلة تلقائياً لكل مطبخ حتى توصلك طلباتك بسهولة.", bodyEn: "Your cart is split for each kitchen for an easier delivery.", ctaAr: "اكتشفي الأكلات", ctaEn: "Discover meals", target: "meals" },
   { id: "fallback-offers", icon: "local-offer", eyebrowAr: "عروض أمهات الأردن", eyebrowEn: "Jordanian home offers", titleAr: "نكهة بيتية بانتظارك", titleEn: "A home-cooked offer awaits", bodyAr: "اكتشفي أكلات مميزة محضّرة بحب من مطابخ قريبة منك.", bodyEn: "Discover special meals prepared with care by kitchens near you.", ctaAr: "شاهدي العروض", ctaEn: "See offers", target: "meals" },
@@ -340,9 +346,32 @@ function useDriverOrderAlert(orderSignature: string, enabled: boolean) {
 
 function DriverDashboard({ onBack }: { onBack: () => void }) {
   const { language, driverAvailable, setDriverAvailable, driverOrder, driverOrders, selectDriverOrder, driverVerification, advanceDriverOrder, updateDriverLocation, showToast, signOut } = useApp();
+  const registerPushTokenMutation = trpc.notifications.registerPushToken.useMutation();
   const locationTracking = useDriverLocationTracking(driverAvailable && Boolean(driverOrder) && driverOrder?.status !== "delivered", updateDriverLocation);
   const newOrderSignature = driverOrders.filter((order) => order.status === "received").map((order) => order.id).join("|");
   const orderAlert = useDriverOrderAlert(newOrderSignature, driverAvailable);
+
+  useEffect(() => {
+    if (!driverAvailable || Platform.OS === "web") return;
+    let cancelled = false;
+    const registerDriverPushToken = async () => {
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        const finalStatus = existingStatus === "granted" ? existingStatus : (await Notifications.requestPermissionsAsync()).status;
+        if (finalStatus !== "granted") return;
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        if (!projectId) return;
+        const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+        if (!cancelled) await registerPushTokenMutation.mutateAsync({ token, platform: Platform.OS === "ios" ? "ios" : "android" });
+      } catch {
+        // Push registration is optional; the local sound alert remains available.
+      }
+    };
+    void registerDriverPushToken();
+    return () => {
+      cancelled = true;
+    };
+  }, [driverAvailable, registerPushTokenMutation]);
   const currentStatus = driverOrder ? orderStatuses.find((status) => status.id === driverOrder.status) : null;
   const actionLabel = driverOrder?.status === "ready" ? (language === "ar" ? "استلمت الطلب من المطبخ" : "Picked up from kitchen") : driverOrder?.status === "on_the_way" ? (language === "ar" ? "تم التوصيل للعميلة" : "Delivered to customer") : language === "ar" ? "تحديث الحالة" : "Update status";
   const pickupDistance = driverOrder ? distanceKm(driverOrder.driverCoordinates ?? driverOrder.pickupCoordinates, driverOrder.pickupCoordinates) : 0;
@@ -387,7 +416,8 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
       <View style={styles.earningsRow}><DashboardMetric label={language === "ar" ? "توصيلات اليوم" : "Today's deliveries"} value="8" icon="two-wheeler" /><DashboardMetric label={language === "ar" ? "أرباح اليوم" : "Today's earnings"} value={language === "ar" ? "٢٤ د.أ" : "JOD 24"} icon="payments" /><DashboardMetric label={language === "ar" ? "التقييم" : "Rating"} value="4.9" icon="star" /></View>
       {driverOrder ? <>
         <View style={styles.driverOrderCard}><View style={styles.driverOrderHeader}><View><Text style={styles.incomingEyebrow}>{language === "ar" ? "التوصيلة الحالية" : "Current delivery"}</Text><Text style={styles.incomingId}>{driverOrder.id}</Text></View><View style={styles.driverOrderTag}><View style={styles.liveDot} /><Text style={styles.driverOrderTagText}>{currentStatus ? getLocalized(currentStatus.label, language) : "Live"}</Text></View></View><Text style={styles.driverOrderTitle}>{driverOrder.items.map((item) => `${item.quantity}× ${getLocalized(item.meal.name, language)}`).join("، ")}</Text><Text style={styles.driverOrderMeta}>{language === "ar" ? "استلام من" : "Pickup from"} {getLocalized(driverOrder.kitchen.name, language)} · {getLocalized(driverOrder.kitchen.neighborhood, language)}</Text><View style={[styles.capacityMatch, capacityFits ? styles.capacityMatchOk : styles.capacityMatchWarn]}><MaterialIcons name={capacityFits ? "check-circle" : "warning-amber"} size={16} color={capacityFits ? "#2E9B72" : "#C4555D"} /><Text style={[styles.capacityMatchText, !capacityFits && styles.capacityMatchTextWarn]}>{capacityFits ? (language === "ar" ? `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "مركبتك"} مناسبة لحمولة ${getLocalized(loadCapacityLabels[requiredCapacity], language)}` : `${vehicleType ? getLocalized(driverVehicleLabels[vehicleType], language) : "Your vehicle"} fits the ${getLocalized(loadCapacityLabels[requiredCapacity], language)} order`) : (language === "ar" ? "هذه الحمولة أكبر من سعة مركبتك" : "This order is larger than your vehicle capacity")}</Text></View>{driverOrder.specialRequests ? <View style={styles.driverSpecialRequest}><MaterialIcons name="edit-note" size={18} color="#8A6516" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "تعليمات العميل" : "Customer instructions"}</Text><Text style={styles.specialRequestBody}>{driverOrder.specialRequests}</Text></View></View> : null}</View>
-        <View style={styles.driverLocationStatus}><MaterialIcons name={locationTracking.status === "active" ? "my-location" : locationTracking.status === "denied" ? "location-disabled" : "location-searching"} size={17} color={locationTracking.status === "active" ? "#2E9B72" : "#C98A2E"} /><View style={styles.driverLocationCopy}><Text style={styles.driverLocationTitle}>{locationTracking.status === "active" ? (language === "ar" ? "موقعك يُحدّث أثناء التوصيل" : "Your location is updating") : locationTracking.status === "requesting" ? (language === "ar" ? "جارٍ طلب صلاحية الموقع..." : "Requesting location permission...") : locationTracking.status === "denied" ? (language === "ar" ? "صلاحية الموقع مرفوضة" : "Location permission denied") : locationTracking.status === "unavailable" ? (language === "ar" ? "الموقع غير متاح حالياً" : "Location is currently unavailable") : (language === "ar" ? "تتبّع الموقع متوقف" : "Location tracking paused")}</Text><Text style={styles.driverLocationMeta}>{locationTracking.lastUpdatedAt ? `${language === "ar" ? "آخر تحديث" : "Last update"} ${new Date(locationTracking.lastUpdatedAt).toLocaleTimeString(language === "ar" ? "ar-JO" : "en-JO", { hour: "2-digit", minute: "2-digit" })}` : (language === "ar" ? "يظهر موقع السائق للعميلة بعد أول تحديث" : "The customer sees the driver after the first update")}</Text></View><View style={[styles.driverLocationDot, locationTracking.status === "active" && styles.driverLocationDotActive]} /></View>
+                 <OrderChat orderId={driverOrder.id} language={language} />
+         <View style={styles.driverLocationStatus}><MaterialIcons name={locationTracking.status === "active" ? "my-location" : locationTracking.status === "denied" ? "location-disabled" : "location-searching"} size={17} color={locationTracking.status === "active" ? "#2E9B72" : "#C98A2E"} /><View style={styles.driverLocationCopy}><Text style={styles.driverLocationTitle}>{locationTracking.status === "active" ? (language === "ar" ? "موقعك يُحدّث أثناء التوصيل" : "Your location is updating") : locationTracking.status === "requesting" ? (language === "ar" ? "جارٍ طلب صلاحية الموقع..." : "Requesting location permission...") : locationTracking.status === "denied" ? (language === "ar" ? "صلاحية الموقع مرفوضة" : "Location permission denied") : locationTracking.status === "unavailable" ? (language === "ar" ? "الموقع غير متاح حالياً" : "Location is currently unavailable") : (language === "ar" ? "تتبّع الموقع متوقف" : "Location tracking paused")}</Text><Text style={styles.driverLocationMeta}>{locationTracking.lastUpdatedAt ? `${language === "ar" ? "آخر تحديث" : "Last update"} ${new Date(locationTracking.lastUpdatedAt).toLocaleTimeString(language === "ar" ? "ar-JO" : "en-JO", { hour: "2-digit", minute: "2-digit" })}` : (language === "ar" ? "يظهر موقع السائق للعميلة بعد أول تحديث" : "The customer sees the driver after the first update")}</Text></View><View style={[styles.driverLocationDot, locationTracking.status === "active" && styles.driverLocationDotActive]} /></View>
         <MapPreview pickupCoordinates={driverOrder.pickupCoordinates} driverCoordinates={driverOrder.driverCoordinates} dropoffCoordinates={driverOrder.dropoffCoordinates} onPressMap={() => void openNavigation(driverOrder.status === "ready" ? "pickup" : "dropoff")} />
         <View style={styles.routeCard}>
           <Pressable onPress={() => void openNavigation("pickup")} style={({ pressed }) => [styles.routeRow, pressed && styles.pressed]}><View style={[styles.routeMarker, styles.routeMarkerPickup]}><MaterialIcons name="storefront" size={14} color="#FFFFFF" /></View><View style={styles.routeCopy}><Text style={styles.routeLabel}>{language === "ar" ? "استلام من المطبخ" : "Pickup from kitchen"}</Text><Text style={styles.routeValue}>{getLocalized(driverOrder.pickupAddress, language)}</Text><Text style={styles.routeCoordinates}>{driverOrder.pickupCoordinates.latitude.toFixed(5)}, {driverOrder.pickupCoordinates.longitude.toFixed(5)}</Text><Text style={styles.routeDistance}>{language === "ar" ? `${pickupDistance.toFixed(1)} كم · حوالي ${pickupEtaMinutes} دقيقة للوصول` : `${pickupDistance.toFixed(1)} km · about ${pickupEtaMinutes} min to arrive`}</Text></View><MaterialIcons name="directions" size={20} color="#00AFC4" /></Pressable>
@@ -738,6 +768,7 @@ function OrdersScreen({ onBack, onOpenCart }: { onBack: () => void; onOpenCart: 
                 <MapPreview pickupCoordinates={activeOrder.pickupCoordinates} driverCoordinates={activeOrder.driverCoordinates} dropoffCoordinates={activeOrder.dropoffCoordinates} />
         {driver && <View style={styles.customerDriverCard}><View style={styles.customerDriverHeader}><View style={styles.driverAvatar}><MaterialIcons name="two-wheeler" size={22} color="#FFFFFF" /></View><View style={styles.customerDriverCopy}><Text style={styles.customerDriverEyebrow}>{language === "ar" ? "مندوبك بالطريق" : "Your driver is on the way"}</Text><Text style={styles.customerDriverName}>{getLocalized(driver.name, language)}</Text><Text style={styles.customerDriverMeta}>{getLocalized(driver.vehicle, language)} · {language === "ar" ? "لوحة" : "Plate"} {driver.plate}</Text></View><Pressable onPress={() => void callDriver()} style={({ pressed }) => [styles.callDriverButton, pressed && styles.pressed]}><MaterialIcons name="phone" size={18} color="#FFFFFF" /></Pressable></View><View style={styles.customerDriverStats}><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "الوقت المتبقي" : "Time remaining"}</Text><Text style={styles.customerDriverStatValue}>{getLocalized(activeOrder.eta, language)}</Text></View><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "من المطبخ" : "From kitchen"}</Text><Text style={styles.customerDriverStatValue}>{activeOrder.pickupCoordinates.latitude.toFixed(4)}, {activeOrder.pickupCoordinates.longitude.toFixed(4)}</Text></View><View><Text style={styles.customerDriverStatLabel}>{language === "ar" ? "التوصيل إلى" : "Delivering to"}</Text><Text style={styles.customerDriverStatValue}>{activeOrder.dropoffCoordinates.latitude.toFixed(4)}, {activeOrder.dropoffCoordinates.longitude.toFixed(4)}</Text></View></View></View>}
         {activeOrder.specialRequests ? <View style={styles.specialRequestCard}><MaterialIcons name="edit-note" size={19} color="#00AFC4" /><View style={styles.specialRequestCopy}><Text style={styles.specialRequestTitle}>{language === "ar" ? "طلباتك الخاصة" : "Your special requests"}</Text><Text style={styles.specialRequestBody}>{activeOrder.specialRequests}</Text></View></View> : null}
+        <OrderChat orderId={activeOrder.id} language={language} />
         <View style={styles.trackingCard}>
 <Text style={styles.trackingTitle}>{language === "ar" ? "وين وصل طلبك؟" : "Where is your order?"}</Text>{orderStatuses.map((status, index) => { const done = index <= currentIndex; const active = index === currentIndex; return <View key={status.id} style={styles.trackingRow}><View style={styles.trackRail}><View style={[styles.trackDot, done && styles.trackDotDone, active && styles.trackDotActive]}>{done && <MaterialIcons name="check" size={12} color="#FFFFFF" />}</View>{index < orderStatuses.length - 1 && <View style={[styles.trackLine, index < currentIndex && styles.trackLineDone]} />}</View><View style={styles.trackCopy}><Text style={[styles.trackLabel, active && styles.trackLabelActive]}>{getLocalized(status.label, language)}</Text><Text style={styles.trackCaption}>{getLocalized(status.caption, language)}</Text></View><MaterialIcons name={status.icon as IconName} size={19} color={done ? "#2E9B72" : "#8ABAC0"} /></View>; })}</View>
         {activeOrder.status !== "delivered" && <Pressable onPress={() => advanceOrder(activeOrder.id)} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><MaterialIcons name="refresh" size={18} color="#00AFC4" /><Text style={styles.secondaryButtonText}>{language === "ar" ? "تحديث حالة الطلب" : "Refresh order status"}</Text></Pressable>}
@@ -748,6 +779,32 @@ function OrdersScreen({ onBack, onOpenCart }: { onBack: () => void; onOpenCart: 
       {activeOrders.length > 1 && <OrderHistorySection orders={orderHistory.filter((order) => !activeOrders.some((active) => active.id === order.id))} language={language} onReorder={(order) => { reorder(order); onOpenCart(); }} />}
     </ScrollView>
   );
+}
+
+function OrderChat({ orderId, language }: { orderId: string; language: "ar" | "en" }) {
+  const { role, orderMessages, sendOrderMessage } = useApp();
+  const { user, isAuthenticated } = useAuth();
+  const [draft, setDraft] = useState("");
+  const localMessages = orderMessages[orderId] ?? [];
+  const remoteMessagesQuery = trpc.chat.list.useQuery({ orderId }, { enabled: isAuthenticated, retry: false });
+  const sendRemoteMessage = trpc.chat.send.useMutation({ onSuccess: () => { void remoteMessagesQuery.refetch(); } });
+  const messages = remoteMessagesQuery.data?.length ? remoteMessagesQuery.data : localMessages;
+  const senderName = user?.name?.trim() || (role === "customer" ? (language === "ar" ? "العميلة" : "Customer") : role === "driver" ? (language === "ar" ? "السائق" : "Driver") : (language === "ar" ? "المطبخ" : "Kitchen"));
+  const send = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    setDraft("");
+    if (isAuthenticated) {
+      try {
+        await sendRemoteMessage.mutateAsync({ orderId, senderRole: role, senderName, body: trimmed });
+        return;
+      } catch {
+        // Fall back to the local conversation when a locally-created demo order is not in the database yet.
+      }
+    }
+    sendOrderMessage(orderId, trimmed);
+  };
+  return <View style={styles.chatCard}><View style={styles.chatHeader}><View style={styles.chatIcon}><MaterialIcons name="chat" size={17} color="#FFFFFF" /></View><View style={styles.chatHeaderCopy}><Text style={styles.chatTitle}>{language === "ar" ? "محادثة الطلب" : "Order chat"}</Text><Text style={styles.chatSubtitle}>{language === "ar" ? "تواصلي مع السائق أو المطبخ حول هذا الطلب" : "Message the driver or kitchen about this order"}</Text></View><View style={styles.chatSecurePill}><MaterialIcons name="lock" size={11} color="#2E9B72" /><Text style={styles.chatSecureText}>{language === "ar" ? "خاصة" : "Private"}</Text></View></View><View style={styles.chatMessages}>{messages.length === 0 ? <Text style={styles.chatEmpty}>{language === "ar" ? "لا توجد رسائل بعد. اكتبي ملاحظة عند الحاجة." : "No messages yet. Send a note when needed."}</Text> : messages.map((message) => <View key={message.id} style={[styles.chatBubble, message.senderRole === role && styles.chatBubbleMine]}><Text style={styles.chatMeta}>{message.senderName} · {new Date(message.createdAt).toLocaleTimeString(language === "ar" ? "ar-JO" : "en-JO", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={styles.chatBody}>{message.body}</Text></View>)}</View><View style={styles.chatComposer}><TextInput value={draft} onChangeText={setDraft} onSubmitEditing={send} returnKeyType="send" placeholder={language === "ar" ? "اكتبي رسالة..." : "Write a message..."} placeholderTextColor="#8ABAC0" style={styles.chatInput} textAlign={language === "ar" ? "right" : "left"} maxLength={500} /><Pressable onPress={send} style={({ pressed }) => [styles.chatSend, pressed && styles.pressed]}><MaterialIcons name="send" size={17} color="#FFFFFF" /></Pressable></View></View>;
 }
 
 function MultiOrderTrackingSection({ orders, language, selectedOrderId, onSelectOrder, onAdvanceOrder, onShowToast }: { orders: Order[]; language: "ar" | "en"; selectedOrderId?: string; onSelectOrder: (orderId: string) => void; onAdvanceOrder: (orderId: string) => void; onShowToast: (message: string) => void }) {
@@ -1571,6 +1628,23 @@ const styles = StyleSheet.create({
   statusPill: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EEF9DB", borderRadius: 15, paddingHorizontal: 9, paddingVertical: 7 },
   statusPillText: { color: "#2E9B72", fontSize: 10, fontWeight: "900" },
   trackingCard: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "#C6EDEF" },
+  chatCard: { backgroundColor: "#F7FFF0", borderRadius: 20, padding: 14, borderWidth: 1, borderColor: "#C7E8C8", gap: 10 },
+  chatHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
+  chatIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: "#2E9B72", alignItems: "center", justifyContent: "center" },
+  chatHeaderCopy: { flex: 1, gap: 2 },
+  chatTitle: { color: "#082E34", fontSize: 13, fontWeight: "900" },
+  chatSubtitle: { color: "#4C747A", fontSize: 10 },
+  chatSecurePill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EAF7E7", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 5 },
+  chatSecureText: { color: "#2E9B72", fontSize: 9, fontWeight: "800" },
+  chatMessages: { gap: 7, maxHeight: 180 },
+  chatEmpty: { color: "#6F9BA0", fontSize: 10, lineHeight: 16 },
+  chatBubble: { alignSelf: "flex-start", maxWidth: "86%", backgroundColor: "#FFFFFF", borderRadius: 13, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: "#C7E8C8", paddingHorizontal: 10, paddingVertical: 8 },
+  chatBubbleMine: { alignSelf: "flex-end", backgroundColor: "#E5FCFF", borderColor: "#A8E6EA", borderBottomLeftRadius: 13, borderBottomRightRadius: 4 },
+  chatMeta: { color: "#8ABAC0", fontSize: 9, fontWeight: "800", marginBottom: 2 },
+  chatBody: { color: "#082E34", fontSize: 11, lineHeight: 16 },
+  chatComposer: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
+  chatInput: { flex: 1, minHeight: 40, maxHeight: 80, backgroundColor: "#FFFFFF", borderRadius: 13, borderWidth: 1, borderColor: "#C7E8C8", color: "#082E34", fontSize: 11, paddingHorizontal: 10, paddingVertical: 9 },
+  chatSend: { width: 38, height: 38, borderRadius: 13, backgroundColor: "#00AFC4", alignItems: "center", justifyContent: "center" },
   trackingTitle: { color: "#082E34", fontSize: 16, fontWeight: "900", marginBottom: 15 },
   trackingRow: { minHeight: 53, flexDirection: "row", alignItems: "flex-start", gap: 10 },
   trackRail: { width: 18, alignItems: "center" },

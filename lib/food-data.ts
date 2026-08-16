@@ -70,6 +70,15 @@ export type DriverDetails = {
   cargoCapacity: LoadCapacity;
 };
 
+export type OrderMessage = {
+  id: string;
+  orderId: string;
+  senderRole: Role;
+  senderName: string;
+  body: string;
+  createdAt: string;
+};
+
 export type Order = {
   id: string;
   kitchen: Kitchen;

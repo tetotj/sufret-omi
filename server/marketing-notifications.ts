@@ -1,10 +1,10 @@
-import { deactivatePushToken, listActivePushTokens } from "./db";
+import { deactivatePushToken, listActivePushTokens, listActivePushTokensForUser } from "./db";
 
 const EXPO_PUSH_ENDPOINT = "https://exp.host/--/api/v2/push/send";
 const CHUNK_SIZE = 100;
 const MAX_CONCURRENT_CHUNKS = 4;
 
-type MarketingNotification = {
+export type PushNotificationPayload = {
   title: string;
   body: string;
   data?: Record<string, string>;
@@ -21,7 +21,7 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-async function sendChunk(tokenChunk: Array<{ token: string }>, notification: MarketingNotification) {
+async function sendChunk(tokenChunk: Array<{ token: string }>, notification: PushNotificationPayload) {
   const response = await fetch(EXPO_PUSH_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -42,10 +42,8 @@ async function sendChunk(tokenChunk: Array<{ token: string }>, notification: Mar
   return { attempted: tokenChunk.length, accepted, deactivated };
 }
 
-export async function sendMarketingNotification(notification: MarketingNotification): Promise<{ attempted: number; accepted: number; deactivated: number }> {
-  const tokens = await listActivePushTokens();
+async function sendToTokens(tokens: Array<{ token: string }>, notification: PushNotificationPayload): Promise<{ attempted: number; accepted: number; deactivated: number }> {
   if (tokens.length === 0) return { attempted: 0, accepted: 0, deactivated: 0 };
-
   let accepted = 0;
   let deactivated = 0;
   const tokenChunks = chunk(tokens, CHUNK_SIZE);
@@ -59,6 +57,15 @@ export async function sendMarketingNotification(notification: MarketingNotificat
   return { attempted: tokens.length, accepted, deactivated };
 }
 
+export async function sendPushNotificationToUser(userId: number, notification: PushNotificationPayload): Promise<{ attempted: number; accepted: number; deactivated: number }> {
+  return sendToTokens(await listActivePushTokensForUser(userId), notification);
+}
+
+export async function sendMarketingNotification(notification: PushNotificationPayload): Promise<{ attempted: number; accepted: number; deactivated: number }> {
+  const tokens = await listActivePushTokens();
+  return sendToTokens(tokens, notification);
+}
+
 export function isExpoPushToken(token: string): boolean {
-  return /^ExponentPushToken\[[^\]]+\]$/.test(token.trim());
+  return /^(?:Exponent|Expo)PushToken\[[^\]]+\]$/.test(token.trim());
 }

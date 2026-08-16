@@ -15,6 +15,7 @@ import {
   Kitchen,
   meals,
   Order,
+  OrderMessage,
   RegionId,
   Role,
   getKitchen,
@@ -113,6 +114,7 @@ type AppState = {
   driverAvailable: boolean;
   driverOrder: Order | null;
   driverOrders: Order[];
+  orderMessages: Record<string, OrderMessage[]>;
   motherVerification: MotherVerificationProfile;
   driverVerification: DriverVerificationProfile;
   managedUsers: ManagedUser[];
@@ -149,6 +151,7 @@ type AppContextValue = AppState & {
   selectDriverOrder: (orderId: string) => void;
   updateDriverLocation: (coordinates: { latitude: number; longitude: number }) => void;
   advanceDriverOrder: (orderId?: string) => void;
+  sendOrderMessage: (orderId: string, body: string) => void;
   updateMotherVerification: (patch: Partial<MotherVerificationProfile>) => void;
   updateDriverVerification: (patch: Partial<DriverVerificationProfile>) => void;
   attachVerificationDocument: (role: Extract<Role, "mother" | "driver">, documentType: VerificationDocumentType, uri: string) => void;
@@ -192,6 +195,7 @@ const initialState: AppState = {
   driverAvailable: true,
   driverOrder: sampleDriverOrder,
   driverOrders: [sampleDriverOrder],
+  orderMessages: {},
   motherVerification: createMotherVerification("amman"),
   driverVerification: createDriverVerification("amman"),
   managedUsers: sampleManagedUsers,
@@ -221,6 +225,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           incomingOrders: Array.isArray(parsed.incomingOrders) ? parsed.incomingOrders.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : parsed.incomingOrder ? [normalizeOrder(parsed.incomingOrder as Partial<Order>, current.incomingOrder)].filter((order): order is Order => Boolean(order)) : current.incomingOrders,
           driverOrder: parsed.driverOrder === undefined ? current.driverOrder : normalizeOrder(parsed.driverOrder as Partial<Order> | null, current.driverOrder),
           driverOrders: Array.isArray(parsed.driverOrders) ? parsed.driverOrders.map((order) => normalizeOrder(order, null)).filter((order): order is Order => Boolean(order)) : parsed.driverOrder ? [normalizeOrder(parsed.driverOrder as Partial<Order>, current.driverOrder)].filter((order): order is Order => Boolean(order)) : current.driverOrders,
+          orderMessages: parsed.orderMessages && typeof parsed.orderMessages === "object" ? parsed.orderMessages as Record<string, OrderMessage[]> : current.orderMessages,
           motherVerification: normalizeMotherVerification(parsed.motherVerification, current.motherVerification),
           driverVerification: normalizeDriverVerification(parsed.driverVerification, current.driverVerification),
           managedUsers: Array.isArray(parsed.managedUsers) ? parsed.managedUsers : current.managedUsers,
@@ -434,6 +439,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const driverOrders = current.driverOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order);
           return { ...current, driverOrder: updatedOrder, driverOrders, activeOrders: current.activeOrders.map((order) => order.id === updatedOrder.id ? updatedOrder : order), orderHistory: current.orderHistory.map((order) => order.id === updatedOrder.id ? updatedOrder : order) };
         });
+      },
+      sendOrderMessage: (orderId, body) => {
+        const trimmed = body.trim();
+        if (!trimmed) return;
+        const senderName = state.role === "customer" ? (state.language === "ar" ? "سارة" : "Sara") : state.role === "driver" ? (state.driverVerification.fullName.trim() || (state.language === "ar" ? "السائق" : "Driver")) : (state.motherVerification.fullName.trim() || (state.language === "ar" ? "الأم" : "Kitchen"));
+        const message: OrderMessage = { id: `MSG-${Date.now()}`, orderId, senderRole: state.role, senderName, body: trimmed, createdAt: new Date().toISOString() };
+        setState((current) => ({ ...current, orderMessages: { ...current.orderMessages, [orderId]: [...(current.orderMessages[orderId] ?? []), message].slice(-100) } }));
       },
       updateMotherVerification: (patch) => setState((current) => ({ ...current, motherVerification: { ...current.motherVerification, ...patch, approvalStatus: current.motherVerification.approvalStatus === "approved" ? "approved" : patch.approvalStatus ?? "draft" } })),
       updateDriverVerification: (patch) => setState((current) => ({ ...current, driverVerification: { ...current.driverVerification, ...patch, approvalStatus: current.driverVerification.approvalStatus === "approved" ? "approved" : patch.approvalStatus ?? "draft" } })),

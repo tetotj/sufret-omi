@@ -58,6 +58,7 @@ export const meals = mysqlTable("meals", {
 export const orders = mysqlTable("orders", {
   id: varchar("id", { length: 64 }).primaryKey(),
   customerId: int("customerId").notNull(),
+  driverId: int("driverId"),
   kitchenId: varchar("kitchenId", { length: 64 }).notNull(),
   total: decimal("total", { precision: 8, scale: 2 }).notNull(),
   paymentMethod: mysqlEnum("paymentMethod", ["cod", "cliq", "wallet"]).notNull(),
@@ -66,8 +67,22 @@ export const orders = mysqlTable("orders", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   customerStatusIdx: index("orders_customer_status_idx").on(table.customerId, table.status),
+  driverStatusIdx: index("orders_driver_status_idx").on(table.driverId, table.status),
   kitchenStatusIdx: index("orders_kitchen_status_idx").on(table.kitchenId, table.status),
   createdAtIdx: index("orders_created_at_idx").on(table.createdAt),
+}));
+
+export const orderMessages = mysqlTable("orderMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  senderId: int("senderId").notNull(),
+  senderRole: mysqlEnum("senderRole", ["customer", "mother", "driver"]).notNull(),
+  senderName: varchar("senderName", { length: 160 }).notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  orderCreatedIdx: index("order_messages_order_created_idx").on(table.orderId, table.createdAt),
+  senderIdx: index("order_messages_sender_idx").on(table.senderId, table.createdAt),
 }));
 
 export const reviews = mysqlTable("reviews", {
@@ -224,6 +239,7 @@ export type InsertUser = typeof users.$inferInsert;
 export type Kitchen = typeof kitchens.$inferSelect;
 export type Meal = typeof meals.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type OrderMessageDb = typeof orderMessages.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type UserProfileDb = typeof userProfiles.$inferSelect;
