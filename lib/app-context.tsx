@@ -105,6 +105,7 @@ type AppState = {
   role: Role;
   selectedRegion: RegionId;
   selectedCategory: CategoryId | "all";
+  selectedSubcategory: string | "all";
   selectedKitchenId: string;
   cart: CartItem[];
   cartSpecialRequests: string;
@@ -137,6 +138,7 @@ type AppContextValue = AppState & {
   setRole: (role: Role) => void;
   setSelectedRegion: (region: RegionId) => void;
   setSelectedCategory: (category: CategoryId | "all") => void;
+  setSelectedSubcategory: (subcategory: string | "all") => void;
   setSelectedKitchenId: (kitchenId: string) => void;
   setCartSpecialRequests: (value: string) => void;
   addComplaint: (input: NewComplaint) => void;
@@ -192,6 +194,7 @@ const initialState: AppState = {
   role: "customer",
   selectedRegion: "amman",
   selectedCategory: "all",
+  selectedSubcategory: "all",
   selectedKitchenId: primaryKitchen.id,
   cart: [],
   cartSpecialRequests: "",
@@ -313,7 +316,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLanguage: (language) => setState((current) => ({ ...current, language })),
       setRole: (role) => setState((current) => ({ ...current, role })),
       setSelectedRegion: (selectedRegion) => setState((current) => ({ ...current, selectedRegion })),
-      setSelectedCategory: (selectedCategory) => setState((current) => ({ ...current, selectedCategory })),
+      setSelectedCategory: (selectedCategory) => setState((current) => ({ ...current, selectedCategory, selectedSubcategory: "all" })),
+      setSelectedSubcategory: (selectedSubcategory) => setState((current) => ({ ...current, selectedSubcategory })),
       setSelectedKitchenId: (selectedKitchenId) => setState((current) => ({ ...current, selectedKitchenId })),
       setCartSpecialRequests: (cartSpecialRequests) => setState((current) => ({ ...current, cartSpecialRequests })),
       addComplaint: (input) => setState((current) => ({ ...current, complaints: [{ ...input, id: `CMP-${Date.now().toString().slice(-6)}`, status: "new", createdAt: new Date().toISOString() }, ...current.complaints] })),

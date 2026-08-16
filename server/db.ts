@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, announcements, complaintsDb, complaintImages, driverLocations, favorites, kitchens, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, announcements, complaintsDb, complaintImages, driverLocations, favorites, kitchens, meals, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -179,17 +179,39 @@ export type AdminUserRecord = {
 
 export type FavoriteEntityType = "meal" | "kitchen";
 
+export type KitchenDescriptionApprovalStatus = "pending" | "approved" | "rejected";
+
 export type KitchenDescriptionRecord = {
   kitchenId: string;
   descriptionAr: string;
   descriptionEn: string;
   showDescription: boolean;
+  descriptionApprovalStatus: KitchenDescriptionApprovalStatus;
+};
+
+export type PendingKitchenDescription = KitchenDescriptionRecord & {
+  kitchenNameAr: string;
+  kitchenNameEn: string;
+  motherNameAr: string;
+  motherNameEn: string;
+};
+
+export type MealApprovalStatus = "pending" | "approved" | "rejected";
+
+export type PendingMealApproval = {
+  mealId: string;
+  kitchenId: string;
+  nameAr: string;
+  nameEn: string;
+  category: string;
+  price: string;
+  approvalStatus: MealApprovalStatus;
 };
 
 export async function getKitchenDescription(kitchenId: string): Promise<KitchenDescriptionRecord | null> {
   const db = await getDb();
   if (!db) return null;
-  const rows = await db.select({ kitchenId: kitchens.id, descriptionAr: kitchens.descriptionAr, descriptionEn: kitchens.descriptionEn, showDescription: kitchens.showDescription }).from(kitchens).where(eq(kitchens.id, kitchenId)).limit(1);
+  const rows = await db.select({ kitchenId: kitchens.id, descriptionAr: kitchens.descriptionAr, descriptionEn: kitchens.descriptionEn, showDescription: kitchens.showDescription, descriptionApprovalStatus: kitchens.descriptionApprovalStatus }).from(kitchens).where(eq(kitchens.id, kitchenId)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -200,8 +222,39 @@ export async function updateKitchenDescription(userId: number, kitchenId: string
   if (!owner[0] || owner[0].userId !== userId) throw new Error("Kitchen description access denied");
   const descriptionAr = input.descriptionAr.trim();
   const descriptionEn = input.descriptionEn.trim();
-  await db.update(kitchens).set({ descriptionAr, descriptionEn, showDescription: input.showDescription }).where(and(eq(kitchens.id, kitchenId), eq(kitchens.userId, userId)));
-  return { kitchenId, descriptionAr, descriptionEn, showDescription: input.showDescription };
+  const descriptionApprovalStatus: KitchenDescriptionApprovalStatus = input.showDescription ? "pending" : "approved";
+  await db.update(kitchens).set({ descriptionAr, descriptionEn, showDescription: input.showDescription && descriptionApprovalStatus === "approved", descriptionApprovalStatus }).where(and(eq(kitchens.id, kitchenId), eq(kitchens.userId, userId)));
+  return { kitchenId, descriptionAr, descriptionEn, showDescription: input.showDescription && descriptionApprovalStatus === "approved", descriptionApprovalStatus };
+}
+
+export async function listPendingKitchenDescriptions(): Promise<PendingKitchenDescription[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ kitchenId: kitchens.id, descriptionAr: kitchens.descriptionAr, descriptionEn: kitchens.descriptionEn, showDescription: kitchens.showDescription, descriptionApprovalStatus: kitchens.descriptionApprovalStatus, kitchenNameAr: kitchens.nameAr, kitchenNameEn: kitchens.nameEn, motherNameAr: kitchens.motherNameAr, motherNameEn: kitchens.motherNameEn }).from(kitchens).where(eq(kitchens.descriptionApprovalStatus, "pending"));
+}
+
+export async function decideKitchenDescription(kitchenId: string, status: KitchenDescriptionApprovalStatus): Promise<KitchenDescriptionRecord> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const showDescription = status === "approved";
+  await db.update(kitchens).set({ descriptionApprovalStatus: status, showDescription }).where(eq(kitchens.id, kitchenId));
+  const updated = await getKitchenDescription(kitchenId);
+  if (!updated) throw new Error("Kitchen description not found");
+  return updated;
+}
+
+export async function listPendingMealApprovals(): Promise<PendingMealApproval[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ mealId: meals.id, kitchenId: meals.kitchenId, nameAr: meals.nameAr, nameEn: meals.nameEn, category: meals.category, price: meals.price, approvalStatus: meals.approvalStatus }).from(meals).where(eq(meals.approvalStatus, "pending"));
+}
+
+export async function decideMealApproval(mealId: string, status: MealApprovalStatus): Promise<PendingMealApproval | null> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(meals).set({ approvalStatus: status, available: status === "approved" }).where(eq(meals.id, mealId));
+  const updated = await db.select({ mealId: meals.id, kitchenId: meals.kitchenId, nameAr: meals.nameAr, nameEn: meals.nameEn, category: meals.category, price: meals.price, approvalStatus: meals.approvalStatus }).from(meals).where(eq(meals.id, mealId)).limit(1);
+  return updated[0] ?? null;
 }
 
 async function getOrderParticipant(orderId: string, userId: number) {

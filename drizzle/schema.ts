@@ -27,6 +27,7 @@ export const kitchens = mysqlTable("kitchens", {
   descriptionAr: varchar("descriptionAr", { length: 500 }).notNull().default(""),
   descriptionEn: varchar("descriptionEn", { length: 500 }).notNull().default(""),
   showDescription: boolean("showDescription").default(false).notNull(),
+  descriptionApprovalStatus: mysqlEnum("descriptionApprovalStatus", ["pending", "approved", "rejected"]).default("approved").notNull(),
   region: mysqlEnum("region", ["amman", "irbid", "zarqa", "salt", "madaba"]).notNull(),
   neighborhoodAr: text("neighborhoodAr").notNull(),
   neighborhoodEn: text("neighborhoodEn").notNull(),
@@ -52,6 +53,7 @@ export const meals = mysqlTable("meals", {
   prepMinutes: int("prepMinutes").notNull(),
   dailyLimit: int("dailyLimit").notNull(),
   available: boolean("available").default(true).notNull(),
+  approvalStatus: mysqlEnum("approvalStatus", ["pending", "approved", "rejected"]).default("approved").notNull(),
   image: text("image").notNull(),
 }, (table) => ({
   kitchenAvailableIdx: index("meals_kitchen_available_idx").on(table.kitchenId, table.available),

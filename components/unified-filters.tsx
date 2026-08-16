@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { categories, regions, type CategoryId, type RegionId } from "@/lib/food-data";
+import { categories, getCategory, regions, type CategoryId, type RegionId } from "@/lib/food-data";
 
 export type UnifiedFilterSort = "recommended" | "distance" | "rating" | "fast" | "high" | "low";
 
@@ -12,9 +12,11 @@ type UnifiedFiltersProps = {
   language: Language;
   regionScope: RegionId | "all";
   category: CategoryId | "all";
+  subcategory: string | "all";
   sort: UnifiedFilterSort;
   onRegionChange: (region: RegionId | "all") => void;
   onCategoryChange: (category: CategoryId | "all") => void;
+  onSubcategoryChange: (subcategory: string | "all") => void;
   onSortChange: (sort: UnifiedFilterSort) => void;
   onClose: () => void;
 };
@@ -28,9 +30,10 @@ const sortOptions: { id: UnifiedFilterSort; ar: string; en: string; icon: React.
   { id: "low", ar: "الأرخص أولاً", en: "Price: low to high", icon: "arrow-upward" },
 ];
 
-export function UnifiedFilters({ visible, language, regionScope, category, sort, onRegionChange, onCategoryChange, onSortChange, onClose }: UnifiedFiltersProps) {
+export function UnifiedFilters({ visible, language, regionScope, category, subcategory, sort, onRegionChange, onCategoryChange, onSubcategoryChange, onSortChange, onClose }: UnifiedFiltersProps) {
   if (!visible) return null;
   const isArabic = language === "ar";
+  const subfilters = category === "all" ? [] : getCategory(category).subfilters ?? [];
   return (
     <View style={styles.panel}>
       <View style={styles.header}>
@@ -47,9 +50,10 @@ export function UnifiedFilters({ visible, language, regionScope, category, sort,
         <FilterChip label={isArabic ? "الكل" : "All types"} selected={category === "all"} onPress={() => onCategoryChange("all")} />
         {categories.map((item) => <FilterChip key={item.id} label={item.label[language]} selected={category === item.id} onPress={() => onCategoryChange(item.id)} />)}
       </ScrollView>
+      {subfilters.length > 0 && <><Text style={styles.sectionTitle}>{isArabic ? "التصنيف الفرعي" : "Subcategory"}</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}><FilterChip label={isArabic ? "الكل" : "All"} selected={subcategory === "all"} onPress={() => onSubcategoryChange("all")} />{subfilters.map((item) => <FilterChip key={item.id} label={item.label[language]} selected={subcategory === item.id} onPress={() => onSubcategoryChange(item.id)} />)}</ScrollView></>}
       <Text style={styles.sectionTitle}>{isArabic ? "ترتيب النتائج" : "Sort results"}</Text>
       <View style={styles.sortGrid}>{sortOptions.map((option) => <Pressable key={option.id} onPress={() => onSortChange(option.id)} style={[styles.sortOption, sort === option.id && styles.sortOptionActive]}><MaterialIcons name={option.icon} size={15} color={sort === option.id ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.sortOptionText, sort === option.id && styles.sortOptionTextActive]}>{isArabic ? option.ar : option.en}</Text></Pressable>)}</View>
-      <Pressable onPress={() => { onRegionChange("all"); onCategoryChange("all"); onSortChange("recommended"); }} style={styles.clearButton}><MaterialIcons name="restart-alt" size={16} color="#00AFC4" /><Text style={styles.clearText}>{isArabic ? "مسح الفلاتر" : "Clear filters"}</Text></Pressable>
+      <Pressable onPress={() => { onRegionChange("all"); onCategoryChange("all"); onSubcategoryChange("all"); onSortChange("recommended"); }} style={styles.clearButton}><MaterialIcons name="restart-alt" size={16} color="#00AFC4" /><Text style={styles.clearText}>{isArabic ? "مسح الفلاتر" : "Clear filters"}</Text></Pressable>
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -24,6 +24,8 @@ const kitchenDescriptionInput = kitchenIdSchema.extend({
   descriptionEn: z.string().trim().max(500),
   showDescription: z.boolean(),
 });
+const kitchenDescriptionDecisionInput = kitchenIdSchema.extend({ status: z.enum(["pending", "approved", "rejected"]) });
+const mealApprovalDecisionInput = z.object({ mealId: z.string().trim().min(1).max(64), status: z.enum(["pending", "approved", "rejected"]) });
 const announcementInput = z.object({
   id: z.string().min(1).max(64),
   eyebrowAr: z.string().min(1).max(240),
@@ -86,6 +88,10 @@ export const appRouter = router({
     updateUserStatus: adminProcedure
       .input(z.object({ userId: z.string().min(1), status: userStatusSchema }))
       .mutation(({ input }) => updateUserProfileStatus(input.userId, input.status)),
+    listPendingKitchenDescriptions: adminProcedure.query(() => listPendingKitchenDescriptions()),
+    decideKitchenDescription: adminProcedure.input(kitchenDescriptionDecisionInput).mutation(({ input }) => decideKitchenDescription(input.kitchenId, input.status)),
+    listPendingMealApprovals: adminProcedure.query(() => listPendingMealApprovals()),
+    decideMealApproval: adminProcedure.input(mealApprovalDecisionInput).mutation(({ input }) => decideMealApproval(input.mealId, input.status)),
     financialAnalytics: adminProcedure
       .input(z.object({ days: z.number().int().min(1).max(365).optional() }).optional())
       .query(({ input }) => getFinancialAnalytics(input?.days ?? 30)),

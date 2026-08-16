@@ -1,0 +1,2 @@
+ALTER TABLE `kitchens` ADD `descriptionApprovalStatus` enum('pending','approved','rejected') DEFAULT 'approved' NOT NULL;--> statement-breakpoint
+ALTER TABLE `meals` ADD `approvalStatus` enum('pending','approved','rejected') DEFAULT 'approved' NOT NULL;

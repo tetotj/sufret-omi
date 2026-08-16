@@ -465,14 +465,14 @@ function DiscoverMapScreen({ onBack, onOpenMeals }: { onBack: () => void; onOpen
 }
 
 function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBack: () => void; onOpenCart: () => void; onOpenKitchen: (kitchenId: string) => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
-  const { language, selectedRegion, selectedCategory, setSelectedRegion, setSelectedCategory, updateQuantity, cart, availableMeals } = useApp();
+  const { language, selectedRegion, selectedCategory, selectedSubcategory, setSelectedRegion, setSelectedCategory, setSelectedSubcategory, updateQuantity, cart, availableMeals } = useApp();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">(selectedRegion);
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("distance");
   const region = getRegion(selectedRegion);
   const activeRegion = regionScope === "all" ? region : getRegion(regionScope);
   const mealsTitle = selectedCategory === "all" ? (language === "ar" ? "كل الأكلات القريبة" : "All nearby meals") : getLocalized(getCategory(selectedCategory).label, language);
-  const nearbyMeals = useMemo(() => availableMeals.filter((meal) => selectedCategory === "all" || meal.category === selectedCategory).map((meal) => {
+  const nearbyMeals = useMemo(() => availableMeals.filter((meal) => (selectedCategory === "all" || meal.category === selectedCategory) && (selectedSubcategory === "all" || meal.subcategory === selectedSubcategory)).map((meal) => {
     const kitchen = kitchens.find((item) => item.id === meal.kitchenId) ?? kitchens[0];
     return { meal, kitchen, distance: getKitchenDistanceKm(kitchen, activeRegion) };
   }).filter(({ kitchen }) => regionScope === "all" || kitchen.region === regionScope).sort((left, right) => {
@@ -481,10 +481,10 @@ function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBa
     if (filterSort === "high") return right.meal.price - left.meal.price;
     if (filterSort === "low") return left.meal.price - right.meal.price;
     return left.distance - right.distance;
-  }), [activeRegion, availableMeals, regionScope, selectedCategory, filterSort]);
+  }), [activeRegion, availableMeals, regionScope, selectedCategory, selectedSubcategory, filterSort]);
 
   return (
-    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onRequestAdd(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
+    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onRequestAdd(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
   );
 }
 
@@ -507,8 +507,10 @@ function CustomerHome({
     cartCount,
     selectedRegion,
     selectedCategory,
+    selectedSubcategory,
     setSelectedRegion,
     setSelectedCategory,
+    setSelectedSubcategory,
     setSelectedKitchenId,
     availableMeals,
     activeOrder,
@@ -542,10 +544,11 @@ function CustomerHome({
     const filtered = availableMeals.filter((meal) => {
       const matchesQuery = !normalized || `${meal.name.ar} ${meal.name.en}`.toLowerCase().includes(normalized);
       const matchesCategory = selectedCategory === "all" || meal.category === selectedCategory;
+      const matchesSubcategory = selectedSubcategory === "all" || meal.subcategory === selectedSubcategory;
       const matchesOffer = !offersOnly || offerMealIds.has(meal.id);
       const kitchen = kitchenById.get(meal.kitchenId);
       const matchesRegion = regionScope === "all" || kitchen?.region === regionScope;
-      return matchesQuery && matchesCategory && matchesOffer && matchesRegion;
+      return matchesQuery && matchesCategory && matchesSubcategory && matchesOffer && matchesRegion;
     });
     return [...filtered].sort((left, right) => {
       const leftKitchen = kitchenById.get(left.kitchenId);
@@ -557,7 +560,7 @@ function CustomerHome({
       if (filterSort === "distance") return (leftKitchen ? getKitchenDistanceKm(leftKitchen, region) : Number.MAX_SAFE_INTEGER) - (rightKitchen ? getKitchenDistanceKm(rightKitchen, region) : Number.MAX_SAFE_INTEGER);
       return (rightKitchen?.rating ?? 0) - (leftKitchen?.rating ?? 0);
     });
-  }, [availableMeals, query, selectedCategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById]);
+  }, [availableMeals, query, selectedCategory, selectedSubcategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById]);
 
   const openKitchen = (kitchenId: string) => {
     setSelectedKitchenId(kitchenId);
@@ -595,7 +598,7 @@ function CustomerHome({
 
       {filtersOpen && (
         <View style={styles.filterPanel}>
-          <UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={(next) => { setOffersOnly(false); setSelectedCategory(next); }} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} />
+          <UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={(next) => { setOffersOnly(false); setSelectedCategory(next); }} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} />
         </View>
       )}
 
