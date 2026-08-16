@@ -133,7 +133,7 @@ export default function HomeScreen() {
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen onSignedIn={(nextRole, guest = false, phone = "") => { signIn(nextRole, guest, phone); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
+    return <LoginScreen onSignedIn={(nextRole, guest = false, phone = "", accountStatus) => { signIn(nextRole, guest, phone, accountStatus); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
   }
 
   if ((role === "mother" || role === "driver") && !canAccessRoleDashboard(role)) {
@@ -185,7 +185,7 @@ export default function HomeScreen() {
   );
 }
 
-function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean, phone?: string) => void }) {
+function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void }) {
   const { language, setLanguage } = useApp();
   const localSignIn = trpc.auth.localSignIn.useMutation();
   const [mode, setMode] = useState<Role>("customer");
@@ -202,8 +202,9 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean,
     }
     setError("");
     try {
-      await localSignIn.mutateAsync({ phone: phone.trim(), name: name.trim() || undefined, role: mode });
-      onSignedIn(mode, false, phone.trim());
+      const result = await localSignIn.mutateAsync({ phone: phone.trim(), name: name.trim() || undefined, role: mode });
+      const accountStatus = result.accountStatus as "active" | "pending_approval" | "suspended" | "rejected";
+      onSignedIn(result.businessRole as Role, false, phone.trim(), accountStatus);
     } catch {
       setError(language === "ar" ? "تعذر حفظ الحساب. تحققي من اتصال الخدمة وحاولي مرة أخرى." : "The account could not be saved. Check the service connection and try again.");
     }

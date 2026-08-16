@@ -92,7 +92,7 @@ export const appRouter = router({
       .input(z.object({ phone: z.string().min(7).max(32), name: z.string().max(120).optional(), role: z.enum(["customer", "mother", "driver"]) }))
       .mutation(async ({ input }) => {
         const user = await upsertLocalUser(input);
-        return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active" };
+        return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role };
       }),
   }),
   admin: router({

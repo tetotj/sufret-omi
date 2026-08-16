@@ -103,24 +103,26 @@ export async function upsertLocalUser(input: { phone: string; name?: string; rol
   const now = new Date();
   const existing = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   const profileId = `local-${normalizedPhone}`;
-  const ensureProfile = async (userId: number, status: "active" | "pending_approval") => {
+  const ensureProfile = async (userId: number, requestedStatus: "active" | "pending_approval") => {
     const existingProfile = await db.select().from(userProfiles).where(eq(userProfiles.id, profileId)).limit(1);
     if (existingProfile[0]) {
-      await db.update(userProfiles).set({ name: input.name?.trim() || existingProfile[0].name, phone: input.phone.trim() }).where(eq(userProfiles.id, profileId));
-      return existingProfile[0];
+      const nextStatus = existingProfile[0].role === input.role ? existingProfile[0].status : requestedStatus;
+      await db.update(userProfiles).set({ name: input.name?.trim() || existingProfile[0].name, phone: input.phone.trim(), role: input.role, status: nextStatus }).where(eq(userProfiles.id, profileId));
+      return { ...existingProfile[0], role: input.role, status: nextStatus };
     }
-    await db.insert(userProfiles).values({
+    const profile = {
       id: profileId,
       userId,
       name: input.name?.trim() || `Sufret Omi ${normalizedPhone.slice(-4)}`,
       phone: input.phone.trim(),
       role: input.role,
-      status,
+      status: requestedStatus,
       region: "Amman",
       details: JSON.stringify({ source: "local_phone" }),
       joinedDate: now.toISOString().slice(0, 10),
-    });
-    return undefined;
+    } as const;
+    await db.insert(userProfiles).values(profile);
+    return profile;
   };
 
   if (existing[0]) {
@@ -129,8 +131,10 @@ export async function upsertLocalUser(input: { phone: string; name?: string; rol
       loginMethod: "local_phone",
       lastSignedIn: now,
     }).where(eq(users.id, existing[0].id));
-    await ensureProfile(existing[0].id, existing[0].accountStatus === "active" ? "active" : "pending_approval");
-    return { ...existing[0], lastSignedIn: now };
+    const existingProfile = await db.select().from(userProfiles).where(eq(userProfiles.id, profileId)).limit(1);
+    const requestedStatus = input.role === "customer" ? "active" : existingProfile[0]?.role === input.role ? (existingProfile[0].status === "active" ? "active" : "pending_approval") : "pending_approval";
+    const profile = await ensureProfile(existing[0].id, requestedStatus);
+    return { ...existing[0], lastSignedIn: now, accountStatus: profile?.status === "active" ? "active" : "pending_approval", businessRole: profile?.role ?? input.role };
   }
 
   const accountStatus = input.role === "customer" ? "active" : "pending_approval";
@@ -147,8 +151,8 @@ export async function upsertLocalUser(input: { phone: string; name?: string; rol
     lastSignedIn: now,
   });
   const created = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  if (created[0]) await ensureProfile(created[0].id, accountStatus);
-  return created[0];
+  const profile = created[0] ? await ensureProfile(created[0].id, accountStatus) : undefined;
+  return created[0] ? { ...created[0], accountStatus: profile?.status === "active" ? "active" : "pending_approval", businessRole: profile?.role ?? input.role } : created[0];
 }
 
 export async function getUserByOpenId(openId: string) {
