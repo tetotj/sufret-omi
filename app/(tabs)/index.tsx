@@ -380,6 +380,7 @@ function CustomerHome({
     isKitchenAvailable,
   } = useApp();
   const { mealIds: favoriteMealIds, kitchenIds: favoriteKitchenIds, toggle: toggleFavorite } = useFavorites();
+  const favoriteCount = favoriteMealIds.size + favoriteKitchenIds.size;
   const announcementsQuery = trpc.marketing.announcements.useQuery(undefined, { staleTime: 15_000, gcTime: 60_000, refetchOnWindowFocus: false });
   const offersQuery = trpc.marketing.offers.useQuery(undefined, { staleTime: 15_000, gcTime: 60_000, refetchOnWindowFocus: false });
   const announcements = useMemo<AnnouncementSlide[]>(() => announcementsQuery.data !== undefined ? announcementsQuery.data.map((item) => ({ ...item, icon: item.icon as IconName, imageUrl: resolveRemoteAssetUrl(item.imageUrl) })) : FALLBACK_ANNOUNCEMENTS, [announcementsQuery.data]);
@@ -443,6 +444,7 @@ function CustomerHome({
         <LanguageToggle />
         <View style={styles.unifiedSearchField}><MaterialIcons name="search" size={18} color="#4C747A" /><TextInput value={query} onChangeText={setQuery} placeholder={language === "ar" ? "ابحثي" : "Search"} placeholderTextColor="#8ABAC0" style={styles.unifiedSearchInput} textAlign={language === "ar" ? "right" : "left"} /></View>
         <Pressable onPress={() => setFiltersOpen((value) => !value)} style={({ pressed }) => [styles.unifiedIconButton, filtersOpen && styles.unifiedIconButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /></Pressable>
+        <Pressable onPress={() => onNavigate("favorites")} style={({ pressed }) => [styles.unifiedIconButton, view === "favorites" && styles.unifiedIconButtonActive, pressed && styles.pressed]}><MaterialIcons name={view === "favorites" ? "favorite" : "favorite-border"} size={18} color={view === "favorites" ? "#FFFFFF" : "#D76545"} />{favoriteCount > 0 && <View style={styles.favoriteBadge}><Text style={styles.favoriteBadgeText}>{favoriteCount}</Text></View>}</Pressable>
         <Pressable onPress={() => onNavigate("cart")} style={({ pressed }) => [styles.unifiedCartButton, pressed && styles.pressed]}><MaterialIcons name="shopping-cart" size={19} color="#FFFFFF" />{cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}</Pressable>
       </View>
       {!isKitchenAvailable && <View style={styles.scheduleClosedBanner}><MaterialIcons name="event-busy" size={19} color="#A55A40" /><View style={styles.scheduleClosedCopy}><Text style={styles.scheduleClosedTitle}>{language === "ar" ? "المطبخ مغلق اليوم" : "Kitchen closed today"}</Text><Text style={styles.scheduleClosedBody}>{language === "ar" ? "يمكنك التصفح الآن والطلب في يوم متاح." : "You can browse now and order on an available day."}</Text></View></View>}
@@ -1057,6 +1059,8 @@ const styles = StyleSheet.create({
   iconButton: { width: 39, height: 39, borderRadius: 14, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#C6EDEF" },
   cartBadge: { position: "absolute", right: -3, top: -4, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: "#00AFC4", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#F2FEFF" },
   cartBadgeText: { fontSize: 9, color: "#FFFFFF", fontWeight: "900" },
+  favoriteBadge: { position: "absolute", right: -3, top: -4, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: "#D76545", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#F2FEFF" },
+  favoriteBadgeText: { fontSize: 9, color: "#FFFFFF", fontWeight: "900" },
   announcementBoard: { backgroundColor: "#FFFFFF", minHeight: 190, borderRadius: 28, borderWidth: 1, borderColor: "#BCEFF4", padding: 18, overflow: "hidden", shadowColor: "#00AFC4", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
   announcementSlide: { minHeight: 145, flexDirection: "row", alignItems: "center", gap: 10 },
   announcementSlideCopy: { flex: 1, zIndex: 2 },
