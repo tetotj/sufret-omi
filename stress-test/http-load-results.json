@@ -1,0 +1,147 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "startedAt": "2026-08-16T21:22:12.035Z",
+  "finishedAt": "2026-08-16T21:22:14.774Z",
+  "stages": [
+    {
+      "name": "smoke",
+      "requests": 20,
+      "concurrency": 1,
+      "failures": 0,
+      "failureRate": 0,
+      "avgMs": 74.06,
+      "p50Ms": 2.31,
+      "p95Ms": 68.47,
+      "p99Ms": 1319.85,
+      "maxMs": 1319.85,
+      "byEndpoint": {
+        "health": {
+          "requests": 5,
+          "failures": 0,
+          "p95Ms": 68.47
+        },
+        "auth-me-anonymous": {
+          "requests": 5,
+          "failures": 0,
+          "p95Ms": 7.73
+        },
+        "marketing-announcements": {
+          "requests": 5,
+          "failures": 0,
+          "p95Ms": 1319.85
+        },
+        "marketing-offers": {
+          "requests": 5,
+          "failures": 0,
+          "p95Ms": 47.85
+        }
+      },
+      "sampleFailures": []
+    },
+    {
+      "name": "warm",
+      "requests": 100,
+      "concurrency": 10,
+      "failures": 0,
+      "failureRate": 0,
+      "avgMs": 9.55,
+      "p50Ms": 6.99,
+      "p95Ms": 19.62,
+      "p99Ms": 26.37,
+      "maxMs": 29.91,
+      "byEndpoint": {
+        "health": {
+          "requests": 25,
+          "failures": 0,
+          "p95Ms": 14.22
+        },
+        "auth-me-anonymous": {
+          "requests": 25,
+          "failures": 0,
+          "p95Ms": 15.35
+        },
+        "marketing-announcements": {
+          "requests": 25,
+          "failures": 0,
+          "p95Ms": 19.08
+        },
+        "marketing-offers": {
+          "requests": 25,
+          "failures": 0,
+          "p95Ms": 23.41
+        }
+      },
+      "sampleFailures": []
+    },
+    {
+      "name": "medium",
+      "requests": 500,
+      "concurrency": 50,
+      "failures": 0,
+      "failureRate": 0,
+      "avgMs": 42.92,
+      "p50Ms": 22.28,
+      "p95Ms": 143.04,
+      "p99Ms": 436.22,
+      "maxMs": 436.96,
+      "byEndpoint": {
+        "health": {
+          "requests": 125,
+          "failures": 0,
+          "p95Ms": 159.63
+        },
+        "auth-me-anonymous": {
+          "requests": 125,
+          "failures": 0,
+          "p95Ms": 180.4
+        },
+        "marketing-announcements": {
+          "requests": 125,
+          "failures": 0,
+          "p95Ms": 60.08
+        },
+        "marketing-offers": {
+          "requests": 125,
+          "failures": 0,
+          "p95Ms": 143.04
+        }
+      },
+      "sampleFailures": []
+    },
+    {
+      "name": "high",
+      "requests": 1000,
+      "concurrency": 100,
+      "failures": 0,
+      "failureRate": 0,
+      "avgMs": 64.68,
+      "p50Ms": 34.03,
+      "p95Ms": 274.58,
+      "p99Ms": 662.82,
+      "maxMs": 670.39,
+      "byEndpoint": {
+        "health": {
+          "requests": 250,
+          "failures": 0,
+          "p95Ms": 170.62
+        },
+        "auth-me-anonymous": {
+          "requests": 250,
+          "failures": 0,
+          "p95Ms": 208.33
+        },
+        "marketing-announcements": {
+          "requests": 250,
+          "failures": 0,
+          "p95Ms": 372.6
+        },
+        "marketing-offers": {
+          "requests": 250,
+          "failures": 0,
+          "p95Ms": 412.53
+        }
+      },
+      "sampleFailures": []
+    }
+  ]
+}

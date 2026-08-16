@@ -1,0 +1,59 @@
+=== CHECK ===
+
+> app-template@1.0.0 check /home/ubuntu/sufret-omi
+> tsc --noEmit
+
+check_exit=0
+
+=== DB READONLY AUDIT ===
+tables [
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: '__drizzle_migrations' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'announcements' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'complaintImages' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'complaintsDb' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'driverLocations' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'favorites' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'kitchens' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'meals' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'offers' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'orderActionRequests' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'orderMessages' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'orders' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'pushTokens' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'reviews' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'transactions' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'userDocuments' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'userProfiles' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'users' }
+]
+count __drizzle_migrations 8
+count announcements 3
+count complaintImages 0
+count complaintsDb 0
+count driverLocations 0
+count favorites 0
+count kitchens 0
+count meals 0
+count offers 3
+count orderActionRequests 0
+count orderMessages 0
+count orders 0
+count pushTokens 0
+count reviews 0
+count transactions 0
+count userDocuments 0
+count userProfiles 18
+count users 18
+[ERROR] Command was killed with SIGHUP (Terminal closed): pnpm install
+
+pnpm: Command was killed with SIGHUP (Terminal closed): pnpm install
+    at getFinalError (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:89001:14)
+    at makeError (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:91308:21)
+    at getSyncResult (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:93152:10)
+    at spawnSubprocessSync (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:93112:14)
+    at execaCoreSync (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:93042:23)
+    at callBoundExeca (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:95570:23)
+    at boundExeca (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:95547:49)
+    at sync2 (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:95702:14)
+    at runPnpmCli (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:252538:5)
+    at runDepsStatusCheck (file:///home/ubuntu/.nvm/versions/node/v22.13.0/lib/node_modules/pnpm/dist/pnpm.mjs:254302:7)

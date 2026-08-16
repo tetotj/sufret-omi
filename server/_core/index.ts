@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { handleMarketingScheduled } from "../marketing-scheduled";
 import { handleWeeklyReportScheduled } from "../reports-scheduled";
+import { isAllowedCorsOrigin } from "./cors";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -33,21 +34,28 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
+  // Only trusted web origins may use credentialed browser requests.
+  // Native clients do not send an Origin header and remain unaffected.
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin) {
+    const allowed = !origin || isAllowedCorsOrigin(origin);
+    if (origin && allowed) {
       res.header("Access-Control-Allow-Origin", origin);
+      res.header("Vary", "Origin");
+      res.header("Access-Control-Allow-Credentials", "true");
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header(
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
     );
-    res.header("Access-Control-Allow-Credentials", "true");
 
-    // Handle preflight requests
     if (req.method === "OPTIONS") {
+      if (!allowed) {
+        res.status(403).json({ error: "Origin is not allowed" });
+        return;
+      }
+      res.header("Access-Control-Max-Age", "600");
       res.sendStatus(200);
       return;
     }

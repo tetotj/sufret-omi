@@ -1,0 +1,40 @@
+=== API HEALTH ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-AzbDCknigoLcxpA2nHtHLiQp+Ow"
+Date: Sun, 16 Aug 2026 21:45:24 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786916724422}
+=== CORS SECURITY ===
+HTTP/1.1 403 Forbidden
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 33
+ETag: W/"21-GFVuTwLoze2zZd/q++uJt2GAFJA"
+Date: Sun, 16 Aug 2026 21:45:24 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"Origin is not allowed"}
+=== STATUS ===
+ [31mM[m server/_core/index.ts
+ [31mM[m todo.md
+[31m??[m server/_core/cors.ts
+[31m??[m stress-test/
+[31m??[m tests/cors.test.ts
+
+=== OPEN TODO ===
+229:- [ ] إضافة اختصار المفضلة في الشريط العلوي لتطبيق العميل
+230:- [ ] إضافة رسم بياني توضيحي للمبيعات والعمولات داخل التحليلات المالية للمشرف
+231:- [ ] طلب بيانات مزود SMS عبر أداة الأسرار الآمنة لتفعيل إرسال الرسائل الفورية
+232:- [ ] تشغيل الاختبارات وإلغاء أي تحذيرات وحفظ نقطة استقرار نهائية للمشروع
+239:- [ ] تجهيز إعدادات SMS الإنتاجية مع مزود REST/Twilio وإخفاء الأسرار
+240:- [ ] إضافة مسار اختبار SMS آمن دون إرسال رسائل حقيقية افتراضياً

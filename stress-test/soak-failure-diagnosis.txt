@@ -1,0 +1,174 @@
+=== HEALTH AFTER SOAK ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-LKGhu4j53ZlwN4KE/3SXFs68Z24"
+Date: Sun, 16 Aug 2026 21:36:33 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786916193485}
+=== RECENT SERVER LOG ===
+[2026-08-16T21:36:12.351Z] '--color-warning': '#C98A2E',
+[2026-08-16T21:36:12.351Z] '--color-error': '#C4555D'
+[2026-08-16T21:36:12.351Z] }
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:12.351Z] Web Bundled 3734ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.391Z] Error: Premature close
+[2026-08-16T21:36:12.391Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T21:36:12.391Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T21:36:12.437Z] Error: Premature close
+[2026-08-16T21:36:12.437Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T21:36:12.437Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T21:36:12.437Z] Web Bundled 3348ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.438Z] Web Bundled 2967ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.474Z] Error: Premature close
+[2026-08-16T21:36:12.474Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T21:36:12.474Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T21:36:12.506Z] Error: Premature close
+[2026-08-16T21:36:12.506Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T21:36:12.506Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T21:36:12.506Z] Web Bundled 2730ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.506Z] Web Bundled 2092ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.539Z] Error: Premature close
+[2026-08-16T21:36:12.539Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T21:36:12.540Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T21:36:12.569Z] Web Bundled 1349ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.570Z] Error: Premature close
+[2026-08-16T21:36:12.570Z] at onclose (node:internal/streams/end-of-stream:158:30)
+[2026-08-16T21:36:12.570Z] at processTicksAndRejections (node:internal/process/task_queues:85:11)
+[2026-08-16T21:36:12.571Z] Web Bundled 778ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:12.783Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:12.784Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:12.942Z] λ Bundled 26ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:13.041Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T21:36:13.044Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T21:36:13.173Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T21:36:13.173Z] '--color-primary': '#00AFC4',
+[2026-08-16T21:36:13.173Z] '--color-background': '#F2FEFF',
+[2026-08-16T21:36:13.173Z] '--color-surface': '#FFFFFF',
+[2026-08-16T21:36:13.173Z] '--color-foreground': '#082E34',
+[2026-08-16T21:36:13.173Z] '--color-muted': '#4C747A',
+[2026-08-16T21:36:13.173Z] '--color-border': '#C6EDEF',
+[2026-08-16T21:36:13.173Z] '--color-success': '#2E9B72',
+[2026-08-16T21:36:13.173Z] '--color-warning': '#C98A2E',
+[2026-08-16T21:36:13.173Z] '--color-error': '#C4555D'
+[2026-08-16T21:36:13.173Z] }
+[2026-08-16T21:36:13.191Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T21:36:13.195Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:13.226Z] Web Bundled 442ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:14.893Z] Web Bundled 1690ms node_modules/expo-router/entry.js (1490 modules)
+[2026-08-16T21:36:14.898Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:14.899Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:15.058Z] λ Bundled 26ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:15.173Z] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[2026-08-16T21:36:15.176Z] "shadow*" style props are deprecated. Use "boxShadow".
+[2026-08-16T21:36:15.368Z] λ  LOG  { colorScheme: 'light', setColorScheme: [Function (anonymous)] } {
+[2026-08-16T21:36:15.368Z] '--color-primary': '#00AFC4',
+[2026-08-16T21:36:15.368Z] '--color-background': '#F2FEFF',
+[2026-08-16T21:36:15.368Z] '--color-surface': '#FFFFFF',
+[2026-08-16T21:36:15.368Z] '--color-foreground': '#082E34',
+[2026-08-16T21:36:15.368Z] '--color-muted': '#4C747A',
+[2026-08-16T21:36:15.368Z] '--color-border': '#C6EDEF',
+[2026-08-16T21:36:15.368Z] '--color-success': '#2E9B72',
+[2026-08-16T21:36:15.368Z] '--color-warning': '#C98A2E',
+[2026-08-16T21:36:15.368Z] '--color-error': '#C4555D'
+[2026-08-16T21:36:15.368Z] }
+[2026-08-16T21:36:15.387Z] λ  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[2026-08-16T21:36:15.392Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:15.404Z] Web Bundled 504ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:15.700Z] Web Bundled 56ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:17.788Z] LOG  [web] Logs will appear in the browser console
+[2026-08-16T21:36:19.567Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:19.569Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:19.624Z] ELIFECYCLE  Command failed.
+[2026-08-16T21:36:19.626Z] ELIFECYCLE  Command failed.
+[2026-08-16T21:36:19.628Z] ELIFECYCLE  Command failed.
+[2026-08-16T21:36:19.642Z] 9:36:19 PM [tsx] Previous process hasn't exited yet. Force killing...
+[2026-08-16T21:36:19.745Z] λ Bundled 33ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:20.811Z] Lockfile is up to date, resolution step is skipped
+[2026-08-16T21:36:21.063Z] Progress: resolved 0, reused 1, downloaded 0, added 0
+[2026-08-16T21:36:21.644Z] Dev server exited with code -1
+[2026-08-16T21:36:22.651Z] Starting dev server with command: pnpm run dev
+[2026-08-16T21:36:23.678Z] > app-template@1.0.0 dev /home/ubuntu/sufret-omi
+[2026-08-16T21:36:23.678Z] > node scripts/dev.mjs
+[2026-08-16T21:36:24.180Z] > app-template@1.0.0 dev:metro /home/ubuntu/sufret-omi
+[2026-08-16T21:36:24.180Z] > cross-env CI=1 EXPO_NO_INTERACTIVE=1 EXPO_USE_METRO_WORKSPACE_ROOT=1 pnpm exec expo start --lan --port ${EXPO_PORT:-8081}
+[2026-08-16T21:36:24.180Z] > app-template@1.0.0 dev:server /home/ubuntu/sufret-omi
+[2026-08-16T21:36:24.180Z] > cross-env NODE_ENV=development tsx watch server/_core/index.ts
+[2026-08-16T21:36:24.980Z] Starting project at /home/ubuntu/sufret-omi
+[2026-08-16T21:36:25.469Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:25.857Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:25.857Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:25.859Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:26.077Z] React Compiler enabled
+[2026-08-16T21:36:26.147Z] Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+[2026-08-16T21:36:26.230Z] Starting Metro Bundler
+[2026-08-16T21:36:26.259Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:26.774Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:26.778Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:27.150Z] [OAuth] Initialized with baseURL: https://api.manus.im
+[2026-08-16T21:36:27.298Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:27.299Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:27.307Z] [api] server listening on port 3000
+[2026-08-16T21:36:27.857Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:27.857Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:28.587Z] The following packages should be updated for best compatibility with the installed expo version:
+[2026-08-16T21:36:28.588Z] expo@54.0.29 - expected version: ~54.0.36
+[2026-08-16T21:36:28.588Z] expo-audio@1.1.0 - expected version: ~1.1.1
+[2026-08-16T21:36:28.588Z] expo-constants@18.0.12 - expected version: ~18.0.13
+[2026-08-16T21:36:28.588Z] expo-font@14.0.10 - expected version: ~14.0.12
+[2026-08-16T21:36:28.588Z] expo-linking@8.0.10 - expected version: ~8.0.12
+[2026-08-16T21:36:28.588Z] expo-notifications@0.32.15 - expected version: ~0.32.17
+[2026-08-16T21:36:28.588Z] expo-router@6.0.19 - expected version: ~6.0.24
+[2026-08-16T21:36:28.588Z] expo-splash-screen@31.0.12 - expected version: ~31.0.13
+[2026-08-16T21:36:28.588Z] expo-video@3.0.15 - expected version: ~3.0.16
+[2026-08-16T21:36:28.588Z] expo-web-browser@15.0.10 - expected version: ~15.0.11
+[2026-08-16T21:36:28.588Z] Your project may not work correctly until you install the expected versions of the packages.
+[2026-08-16T21:36:28.589Z] Waiting on http://localhost:8081
+[2026-08-16T21:36:28.591Z] Logs for your project will appear below.
+[2026-08-16T21:36:28.591Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:28.591Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:28.591Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:28.591Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:28.591Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:28.591Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:28.849Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:28.850Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:30.107Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:30.107Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:30.782Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:30.783Z] EXPO_USE_METRO_WORKSPACE_ROOT is enabled by default, use EXPO_NO_METRO_WORKSPACE_ROOT instead to disable.
+[2026-08-16T21:36:31.139Z] λ Bundled 3378ms node_modules/expo-router/node/render.js (1490 modules)
+[2026-08-16T21:36:32.199Z] Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 91.3% (1491/1569)
+[2026-08-16T21:36:32.199Z] λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1489/1490)
+[2026-08-16T21:36:32.199Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] λ node_modules/expo-router/node/render.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[2026-08-16T21:36:32.199Z] λ Bundled 3545ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:32.199Z] λ Bundled 3522ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:32.199Z] λ Bundled 2556ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:32.199Z] λ Bundled 1324ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:32.199Z] λ Bundled 669ms node_modules/expo-router/node/render.js (1 module)
+[2026-08-16T21:36:32.199Z] Web Bundled 3914ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:32.199Z] Web Bundled 3846ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:32.199Z] Web Bundled 2883ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:32.199Z] Web Bundled 4002ms node_modules/expo-router/entry.js (1569 modules)
+[2026-08-16T21:36:32.199Z] Web Bundled 1682ms node_modules/expo-router/entry.js (1 module)
+[2026-08-16T21:36:32.201Z] Web Bundled 1417ms node_modules/expo-router/entry.js (1 module)

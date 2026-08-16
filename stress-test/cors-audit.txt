@@ -1,0 +1,30 @@
+=== EVIL ORIGIN PREFLIGHT ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: https://evil.example
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+Content-Type: text/plain; charset=utf-8
+Content-Length: 2
+ETag: W/"2-nOO9QiTIwXgNtWtBJezz8kv3SLc"
+Date: Sun, 16 Aug 2026 21:34:48 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+OK
+=== EVIL ORIGIN GET ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: https://evil.example
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-bYAwxOhYCYVqvhImP17eMJ1kCbI"
+Date: Sun, 16 Aug 2026 21:34:48 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786916088105}

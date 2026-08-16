@@ -1,0 +1,66 @@
+[
+  {
+    "Field": "id",
+    "Type": "int",
+    "Null": "NO",
+    "Key": "PRI",
+    "Default": null,
+    "Extra": "auto_increment"
+  },
+  {
+    "Field": "orderId",
+    "Type": "varchar(64)",
+    "Null": "NO",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "driverId",
+    "Type": "int",
+    "Null": "NO",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "latitude",
+    "Type": "decimal(10,7)",
+    "Null": "NO",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "longitude",
+    "Type": "decimal(10,7)",
+    "Null": "NO",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "accuracy",
+    "Type": "decimal(8,2)",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "capturedAt",
+    "Type": "timestamp",
+    "Null": "NO",
+    "Key": "",
+    "Default": "CURRENT_TIMESTAMP",
+    "Extra": ""
+  }
+]
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Packages: -163
+--------------------------------------------------------------------------------
+Progress: resolved 0, reused 163, downloaded 0, added 0
+Progress: resolved 0, reused 163, downloaded 0, added 0, done
+
+Done in 2.1s

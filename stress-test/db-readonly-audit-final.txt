@@ -1,0 +1,45 @@
+tables [
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: '__drizzle_migrations' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'announcements' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'complaintImages' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'complaintsDb' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'driverLocations' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'favorites' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'kitchens' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'meals' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'offers' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'orderActionRequests' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'orderMessages' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'orders' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'pushTokens' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'reviews' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'transactions' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'userDocuments' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'userProfiles' },
+  { Tables_in_Ed9iASTwDqHX5nXNiy5RfD: 'users' }
+]
+count __drizzle_migrations 8
+count announcements 3
+count complaintImages 0
+count complaintsDb 0
+count driverLocations 0
+count favorites 0
+count kitchens 0
+count meals 0
+count offers 3
+count orderActionRequests 0
+count orderMessages 0
+count orders 0
+count pushTokens 0
+count reviews 0
+count transactions 0
+count userDocuments 0
+count userProfiles 18
+count users 18
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Packages: -163
+--------------------------------------------------------------------------------
+Progress: resolved 0, reused 163, downloaded 0, added 0, done
+
+Done in 2.2s

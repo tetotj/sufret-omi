@@ -1,0 +1,86 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "totalRequests": 3000,
+  "concurrency": 250,
+  "startedAt": "2026-08-16T21:36:24.918Z",
+  "finishedAt": "2026-08-16T21:36:25.844Z",
+  "failures": 3000,
+  "failureRate": 1,
+  "avgMs": 69.92,
+  "p50Ms": 67.87,
+  "p95Ms": 105.07,
+  "p99Ms": 114.96,
+  "maxMs": 123.63,
+  "failuresSample": [
+    {
+      "path": "/api/health",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 123.630786,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 68.40308,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/trpc/marketing.announcements",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 68.075982,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/trpc/marketing.offers",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 67.996731,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/health",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 67.86614300000001,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 67.88265300000002,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/trpc/marketing.announcements",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 68.06541199999998,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/trpc/marketing.offers",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 68.22999800000001,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/health",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 68.92454199999999,
+      "error": "fetch failed"
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 0,
+      "ok": false,
+      "latencyMs": 68.673293,
+      "error": "fetch failed"
+    }
+  ]
+}

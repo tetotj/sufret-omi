@@ -1,0 +1,70 @@
+=== /api/trpc/marketing.announcements ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+content-type: application/json
+vary: trpc-accept
+Date: Sun, 16 Aug 2026 21:34:44 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"result":{"data":{"json":[{"id":"announcement-multi-kitchen","eyebrowAr":"تحديث جديد من سفرة أمي","eyebrowEn":"A new Sufret Omi update","titleAr":"اطلبي من أكثر من مطعم","titleEn":"Order from multiple kitchens","bodyAr":"قسّمنا السلة تلقائياً لكل مطبخ حتى توصلك طلباتك بسهولة.","bodyEn":"Your cart is split for each kitchen for an easier delivery.","ctaAr":"اكتشفي الأكلات","ctaEn":"Discover meals","icon":"restaurant-menu","target":"meals","sortOrder":1,"isActive":true,"startsAt":null,"endsAt":null,"imageUrl":null},{"id":"announcement-jordanian-offers","eyebrowAr":"عروض أمهات الأردن","eyebrowEn":"Jordanian home offers","titleAr":"نكهة بيتية بانتظارك","titleEn":"A home-cooked offer awaits","bodyAr":"اكتشفي أكلات مميزة محضّرة بحب من مطابخ قريبة منك.","bodyEn":"Discover special meals prepared with care by kitchens near you.","ctaAr":"شاهدي العروض","ctaEn":"See offers","icon":"local-offer","target":"meals","sortOrder":2,"isActive":true,"startsAt":null,"endsAt":null,"imageUrl":null},{"id":"announcement-order-tracking","eyebrowAr":"تتبّع أسهل لطلباتك","eyebrowEn":"Easier order tracking","titleAr":"كل طلب في مكانه","titleEn":"Every order in one place","bodyAr":"تابعي حالة كل مطبخ وسائق خطوة بخطوة من شاشة طلباتي.","bodyEn":"Follow every kitchen and driver step by step from My Orders.","ctaAr":"تتبعي طلباتك","ctaEn":"Track orders","icon":"two-wheeler","target":"orders","sortOrder":3,"isActive":true,"startsAt":null,"endsAt":null,"imageUrl":null}],"meta":{"values":{"0.startsAt":["undefined"],"0.endsAt":["undefined"],"0.imageUrl":["undefined"],"1.startsAt":["undefined"],"1.endsAt":["undefined"],"1.imageUrl":["undefined"],"2.startsAt":["undefined"],"2.endsAt":["undefined"],"2.imageUrl":["undefined"]}}}}}
+=== /api/trpc/marketing.offers ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+content-type: application/json
+vary: trpc-accept
+Date: Sun, 16 Aug 2026 21:34:44 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"result":{"data":{"json":[{"id":"offer-mansaf-family","mealId":"mansaf-family","badgeAr":"عرض سفرة العيلة","badgeEn":"Family table offer","discountPercent":10,"sortOrder":1,"isActive":true,"startsAt":null,"endsAt":null,"imageUrl":null},{"id":"offer-maqluba-chicken","mealId":"maqluba-chicken","badgeAr":"خصم اليوم","badgeEn":"Today's discount","discountPercent":15,"sortOrder":2,"isActive":true,"startsAt":null,"endsAt":null,"imageUrl":null},{"id":"offer-zaatar-bakery","mealId":"zaatar-bakery","badgeAr":"عرض المخبوزات","badgeEn":"Bakery offer","discountPercent":10,"sortOrder":3,"isActive":true,"startsAt":null,"endsAt":null,"imageUrl":null}],"meta":{"values":{"0.startsAt":["undefined"],"0.endsAt":["undefined"],"0.imageUrl":["undefined"],"1.startsAt":["undefined"],"1.endsAt":["undefined"],"1.imageUrl":["undefined"],"2.startsAt":["undefined"],"2.endsAt":["undefined"],"2.imageUrl":["undefined"]}}}}}
+=== /api/trpc/admin.listUsers?input=%7B%22json%22%3Anull%7D ===
+HTTP/1.1 403 Forbidden
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+content-type: application/json
+vary: trpc-accept
+Date: Sun, 16 Aug 2026 21:34:44 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"error":{"json":{"message":"You do not have required permission (10002)","code":-32003,"data":{"code":"FORBIDDEN","httpStatus":403,"stack":"TRPCError: You do not have required permission (10002)\n    at <anonymous> (/home/ubuntu/sufret-omi/server/_core/trpc.ts:38:13)\n    at callRecursive (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:256:24)\n    at procedure (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:281:24)\n    at /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1948:24\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"admin.listUsers"}}}}
+=== /api/trpc/favorites.mine?input=%7B%22json%22%3Anull%7D ===
+HTTP/1.1 401 Unauthorized
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+content-type: application/json
+vary: trpc-accept
+Date: Sun, 16 Aug 2026 21:34:44 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"error":{"json":{"message":"Please login (10001)","code":-32001,"data":{"code":"UNAUTHORIZED","httpStatus":401,"stack":"TRPCError: Please login (10001)\n    at <anonymous> (/home/ubuntu/sufret-omi/server/_core/trpc.ts:17:11)\n    at callRecursive (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:256:24)\n    at procedure (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:281:24)\n    at /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1948:24\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"favorites.mine"}}}}
+=== /api/trpc/complaints.mine?input=%7B%22json%22%3Anull%7D ===
+HTTP/1.1 401 Unauthorized
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Access-Control-Allow-Credentials: true
+content-type: application/json
+vary: trpc-accept
+Date: Sun, 16 Aug 2026 21:34:44 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"error":{"json":{"message":"Please login (10001)","code":-32001,"data":{"code":"UNAUTHORIZED","httpStatus":401,"stack":"TRPCError: Please login (10001)\n    at <anonymous> (/home/ubuntu/sufret-omi/server/_core/trpc.ts:17:11)\n    at callRecursive (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:256:24)\n    at procedure (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:281:24)\n    at /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1948:24\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"complaints.mine"}}}}

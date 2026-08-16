@@ -1,0 +1,29 @@
+=== EVIL PREFLIGHT ===
+HTTP/1.1 403 Forbidden
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 33
+ETag: W/"21-GFVuTwLoze2zZd/q++uJt2GAFJA"
+Date: Sun, 16 Aug 2026 21:36:05 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"error":"Origin is not allowed"}
+=== TRUSTED GET ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: https://sufretapp-ed9iastw.manus.space
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-OhcUr89qmjmBXvqg3NvgNcq7Uq8"
+Date: Sun, 16 Aug 2026 21:36:05 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786916165743}
