@@ -244,8 +244,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const { toast: _toast, ...persisted } = state;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)).catch(() => undefined);
+    const persistTimer = setTimeout(() => {
+      const { toast: _toast, ...persisted } = state;
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)).catch(() => undefined);
+    }, 350);
+    return () => clearTimeout(persistTimer);
   }, [state]);
 
   const value = useMemo<AppContextValue>(() => {

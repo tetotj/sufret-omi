@@ -19,7 +19,7 @@ type UnifiedFiltersProps = {
   onClose: () => void;
 };
 
-const sortOptions: Array<{ id: UnifiedFilterSort; ar: string; en: string; icon: React.ComponentProps<typeof MaterialIcons>["name"] }> = [
+const sortOptions: { id: UnifiedFilterSort; ar: string; en: string; icon: React.ComponentProps<typeof MaterialIcons>["name"] }[] = [
   { id: "recommended", ar: "موصى به", en: "Recommended", icon: "trending-up" },
   { id: "distance", ar: "الأقرب أولاً", en: "Nearest first", icon: "near-me" },
   { id: "rating", ar: "الأعلى تقييماً", en: "Top rated", icon: "star" },

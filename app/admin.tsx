@@ -23,7 +23,7 @@ type UserFilter = "all" | UserProfileRole | "pending_approval" | "suspended";
 
 type IconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
-const adminSections: Array<{ id: AdminSection; label: string; en: string; icon: IconName }> = [
+const adminSections: { id: AdminSection; label: string; en: string; icon: IconName }[] = [
   { id: "overview", label: "نظرة عامة", en: "Overview", icon: "dashboard" },
   { id: "analytics", label: "التحليلات المالية", en: "Financial analytics", icon: "analytics" },
   { id: "users", label: "كل المستخدمين", en: "All users", icon: "groups" },
@@ -170,11 +170,13 @@ function AdminUsers({ language, showToast, useDatabase }: { language: "ar" | "en
   const { managedUsers: localManagedUsers, updateUserStatus } = useApp();
   const remoteQuery = trpc.admin.listUsers.useQuery(undefined, { enabled: useDatabase });
   const updateMutation = trpc.admin.updateUserStatus.useMutation();
-  const managedUsers = useDatabase ? ((remoteQuery.data ?? []) as unknown as ManagedUser[]) : localManagedUsers;
   const [filter, setFilter] = useState<UserFilter>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ManagedUser | null>(null);
-  const filtered = useMemo(() => managedUsers.filter((user) => (filter === "all" || user.role === filter || user.status === filter) && `${user.name} ${user.phone} ${user.region}`.toLowerCase().includes(query.toLowerCase())), [filter, managedUsers, query]);
+  const filtered = useMemo(() => {
+    const managedUsers = useDatabase ? ((remoteQuery.data ?? []) as unknown as ManagedUser[]) : localManagedUsers;
+    return managedUsers.filter((user) => (filter === "all" || user.role === filter || user.status === filter) && `${user.name} ${user.phone} ${user.region}`.toLowerCase().includes(query.toLowerCase()));
+  }, [filter, localManagedUsers, query, remoteQuery.data, useDatabase]);
   const update = (user: ManagedUser, status: UserAccountStatus) => {
     if (useDatabase) {
       updateMutation.mutate({ userId: user.id, status }, { onSuccess: () => { remoteQuery.refetch(); setSelected(null); showToast(language === "ar" ? `تم تغيير حالة ${user.name} في قاعدة البيانات` : `${user.name}'s database status changed`); }, onError: () => showToast(language === "ar" ? "تعذر تحديث المستخدم من الخادم" : "Could not update user on the server") });

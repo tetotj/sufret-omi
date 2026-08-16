@@ -23,7 +23,21 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
   const [routeGeometry, setRouteGeometry] = useState<[number, number][]>([]);
   const [routeStatus, setRouteStatus] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
   const selected = useMemo(() => regions.find((region) => region.id === selectedRegion) ?? regions[0], [selectedRegion]);
-  const routeCoordinates = useMemo(() => driverCoordinates && pickupCoordinates && dropoffCoordinates ? [driverCoordinates, pickupCoordinates, dropoffCoordinates] : null, [driverCoordinates, pickupCoordinates, dropoffCoordinates]);
+  const driverLatitude = driverCoordinates?.latitude;
+  const driverLongitude = driverCoordinates?.longitude;
+  const pickupLatitude = pickupCoordinates?.latitude;
+  const pickupLongitude = pickupCoordinates?.longitude;
+  const dropoffLatitude = dropoffCoordinates?.latitude;
+  const dropoffLongitude = dropoffCoordinates?.longitude;
+  const routeCoordinates = useMemo(() => {
+    if ([driverLatitude, driverLongitude, pickupLatitude, pickupLongitude, dropoffLatitude, dropoffLongitude].some((value) => typeof value !== "number")) return null;
+    const quantizeDriver = (value: number) => Number(value.toFixed(3));
+    return [
+      { latitude: quantizeDriver(driverLatitude as number), longitude: quantizeDriver(driverLongitude as number) },
+      { latitude: pickupLatitude as number, longitude: pickupLongitude as number },
+      { latitude: dropoffLatitude as number, longitude: dropoffLongitude as number },
+    ];
+  }, [driverLatitude, driverLongitude, pickupLatitude, pickupLongitude, dropoffLatitude, dropoffLongitude]);
 
   useEffect(() => {
     if (!routeCoordinates) {
@@ -32,11 +46,12 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
       return;
     }
     let cancelled = false;
+    const controller = new AbortController();
     const waypoints = routeCoordinates;
     const coordinateParam = waypoints.map((point) => `${point.longitude},${point.latitude}`).join(";");
     const routingBase = (process.env.EXPO_PUBLIC_ROUTING_API_URL ?? "https://router.project-osrm.org").replace(/\/$/, "");
     setRouteStatus("loading");
-    void fetch(`${routingBase}/route/v1/driving/${coordinateParam}?overview=full&geometries=geojson&steps=false`)
+    void fetch(`${routingBase}/route/v1/driving/${coordinateParam}?overview=simplified&geometries=geojson&steps=false`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(`Routing request failed: ${response.status}`);
         return (await response.json()) as { routes?: { geometry?: { coordinates?: [number, number][] } }[] };
@@ -59,6 +74,7 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [routeCoordinates]);
 

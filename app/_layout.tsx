@@ -57,6 +57,9 @@ export default function RootLayout() {
       new QueryClient({
         defaultOptions: {
           queries: {
+            // Keep stable data in memory briefly to avoid repeated screen-mount requests.
+            staleTime: 30_000,
+            gcTime: 5 * 60_000,
             // Disable automatic refetching on window focus for mobile
             refetchOnWindowFocus: false,
             // Retry failed requests once

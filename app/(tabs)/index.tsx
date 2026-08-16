@@ -1,13 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import {
-  Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +18,7 @@ import {
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { Image } from "expo-image";
 
 import { MapPreview } from "@/components/map-preview";
 import { UnifiedFilters, type UnifiedFilterSort } from "@/components/unified-filters";
@@ -32,7 +32,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useApp } from "@/lib/app-context";
 import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels } from "@/lib/verification-data";
 import { chooseImages, imageUriToDataUrl, MediaPermissionError } from "@/lib/media-picker";
-import { getWeekdayFromDate, isMealAvailableOnDay, weeklyScheduleToCsv, weekdays, type WeekdayId } from "@/lib/schedule-data";
+import { getWeekdayFromDate, isMealAvailableOnDay, weeklyScheduleToCsv, weekdays } from "@/lib/schedule-data";
 import {
   categories,
   canCarryLoad,
@@ -44,7 +44,6 @@ import {
   getKitchenDistanceKm,
   getKitchenMeals,
   getLocalized,
-  getMeal,
   getRegion,
   kitchens,
   meals,
@@ -59,7 +58,6 @@ import {
   scheduleLabels,
   t,
   totalCart,
-  unitCount,
 } from "@/lib/food-data";
 
 type ViewId = "home" | "explore" | "discover" | "meals" | "orders" | "profile" | "favorites" | "kitchen" | "cart" | "complaints" | "dashboard" | "delivery";
@@ -349,10 +347,21 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
   const { language, driverAvailable, setDriverAvailable, driverOrder, driverOrders, selectDriverOrder, driverVerification, advanceDriverOrder, updateDriverLocation, showToast, signOut } = useApp();
   const registerPushTokenMutation = trpc.notifications.registerPushToken.useMutation();
   const updateDriverLocationMutation = trpc.driverLocation.update.useMutation();
+  const lastPublishedLocation = useRef<{ orderId: string; latitude: number; longitude: number; at: number } | null>(null);
   const publishDriverLocation = useCallback((coordinates: { latitude: number; longitude: number; accuracy?: number }) => {
+    const order = driverOrder;
+    const now = Date.now();
+    const previous = lastPublishedLocation.current;
+    const sameOrder = Boolean(order && previous?.orderId === order.id);
+    const movedEnough = !sameOrder || !previous || Math.abs(previous.latitude - coordinates.latitude) >= 0.0003 || Math.abs(previous.longitude - coordinates.longitude) >= 0.0003;
+    const waitedEnough = !sameOrder || !previous || now - previous.at >= 30_000;
+    if (!movedEnough && !waitedEnough) return;
     updateDriverLocation({ latitude: coordinates.latitude, longitude: coordinates.longitude });
-    if (!driverOrder) return;
-    void updateDriverLocationMutation.mutateAsync({ orderId: driverOrder.id, latitude: coordinates.latitude, longitude: coordinates.longitude, accuracy: coordinates.accuracy }).catch(() => undefined);
+    if (!order) return;
+    lastPublishedLocation.current = { orderId: order.id, latitude: coordinates.latitude, longitude: coordinates.longitude, at: now };
+    void updateDriverLocationMutation.mutateAsync({ orderId: order.id, latitude: coordinates.latitude, longitude: coordinates.longitude, accuracy: coordinates.accuracy }).catch(() => {
+      if (lastPublishedLocation.current?.orderId === order.id && lastPublishedLocation.current.at === now) lastPublishedLocation.current = previous;
+    });
   }, [driverOrder, updateDriverLocation, updateDriverLocationMutation]);
   const locationTracking = useDriverLocationTracking(driverAvailable && Boolean(driverOrder) && driverOrder?.status !== "delivered", publishDriverLocation);
   const newOrderSignature = driverOrders.filter((order) => order.status === "received").map((order) => order.id).join("|");
@@ -455,11 +464,8 @@ function DiscoverMapScreen({ onBack, onOpenMeals }: { onBack: () => void; onOpen
   );
 }
 
-type MealFilterSort = "recommended" | "distance" | "rating" | "prep";
-type MealPriceBand = "all" | "low" | "medium" | "high";
-
 function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBack: () => void; onOpenCart: () => void; onOpenKitchen: (kitchenId: string) => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
-  const { language, selectedRegion, selectedCategory, setSelectedRegion, setSelectedCategory, updateQuantity, cart, cartCount } = useApp();
+  const { language, selectedRegion, selectedCategory, setSelectedRegion, setSelectedCategory, updateQuantity, cart } = useApp();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">(selectedRegion);
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("distance");
@@ -480,12 +486,6 @@ function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBa
   return (
     <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onRequestAdd(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
   );
-}
-
-function MealsFilterSheet({ language, visible, topRatedOnly, fastDeliveryOnly, priceBand, sortBy, onClose, onTopRatedChange, onFastDeliveryChange, onPriceBandChange, onSortChange, onClear }: { language: "ar" | "en"; visible: boolean; topRatedOnly: boolean; fastDeliveryOnly: boolean; priceBand: MealPriceBand; sortBy: MealFilterSort; onClose: () => void; onTopRatedChange: (value: boolean) => void; onFastDeliveryChange: (value: boolean) => void; onPriceBandChange: (value: MealPriceBand) => void; onSortChange: (value: MealFilterSort) => void; onClear: () => void }) {
-  const CheckboxRow = ({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) => <Pressable onPress={onPress} style={({ pressed }) => [styles.sideFilterCheckboxRow, pressed && styles.pressed]}><View style={[styles.sideFilterCheckbox, selected && styles.sideFilterCheckboxActive]}>{selected && <MaterialIcons name="check" size={15} color="#FFFFFF" />}</View><Text style={styles.sideFilterCheckboxLabel}>{label}</Text></Pressable>;
-  const RadioRow = ({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) => <Pressable onPress={onPress} style={({ pressed }) => [styles.sideFilterRadioRow, pressed && styles.pressed]}><View style={[styles.sideFilterRadio, selected && styles.sideFilterRadioActive]}>{selected && <View style={styles.sideFilterRadioDot} />}</View><Text style={styles.sideFilterRadioLabel}>{label}</Text></Pressable>;
-  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}><View style={styles.sideFilterBackdrop}><Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} /><View style={[styles.sideFilterSheet, language === "ar" ? styles.sideFilterSheetRtl : styles.sideFilterSheetLtr]}><ScrollView contentContainerStyle={styles.sideFilterContent} showsVerticalScrollIndicator={false}><View style={styles.sideFilterHeader}><Text style={styles.sideFilterTitle}>{language === "ar" ? "الفلاتر" : "Filters"}</Text><Pressable onPress={onClose} style={styles.sideFilterClose}><MaterialIcons name="close" size={22} color="#082E34" /></Pressable></View><Text style={styles.sideFilterSectionTitle}>{language === "ar" ? "اختيارات سريعة" : "Quick filters"}</Text><CheckboxRow label={language === "ar" ? "الأعلى تقييماً (٤٫٥+)" : "Top rated (4.5+)"} selected={topRatedOnly} onPress={() => onTopRatedChange(!topRatedOnly)} /><CheckboxRow label={language === "ar" ? "توصيل سريع (حتى ٣٠ دقيقة)" : "Fast delivery (up to 30 min)"} selected={fastDeliveryOnly} onPress={() => onFastDeliveryChange(!fastDeliveryOnly)} /><Text style={styles.sideFilterSectionTitle}>{language === "ar" ? "نطاق السعر" : "Price range"}</Text><View style={styles.sideFilterPriceRow}>{([{ id: "low", ar: "منخفض", en: "Low" }, { id: "medium", ar: "متوسط", en: "Medium" }, { id: "high", ar: "مرتفع", en: "High" }] as const).map((option) => <Pressable key={option.id} onPress={() => onPriceBandChange(priceBand === option.id ? "all" : option.id)} style={[styles.sideFilterPriceButton, priceBand === option.id && styles.sideFilterPriceButtonActive]}><Text style={[styles.sideFilterPriceText, priceBand === option.id && styles.sideFilterPriceTextActive]}>{language === "ar" ? option.ar : option.en}</Text></Pressable>)}</View><Text style={styles.sideFilterSectionTitle}>{language === "ar" ? "ترتيب حسب" : "Sort by"}</Text><RadioRow label={language === "ar" ? "الأقرب" : "Distance"} selected={sortBy === "distance"} onPress={() => onSortChange("distance")} /><RadioRow label={language === "ar" ? "الأعلى تقييماً" : "Ratings (high to low)"} selected={sortBy === "rating"} onPress={() => onSortChange("rating")} /><RadioRow label={language === "ar" ? "الأسرع تحضيراً" : "Preparation time (low to high)"} selected={sortBy === "prep"} onPress={() => onSortChange("prep")} /><View style={styles.sideFilterActions}><Pressable onPress={onClear} style={styles.sideFilterClearButton}><Text style={styles.sideFilterClearText}>{language === "ar" ? "مسح الكل" : "Clear all"}</Text></Pressable><Pressable onPress={onClose} style={styles.sideFilterApplyButton}><Text style={styles.sideFilterApplyText}>{language === "ar" ? "تطبيق" : "Apply"}</Text></Pressable></View></ScrollView></View></View></Modal>;
 }
 
 function CustomerHome({
@@ -510,15 +510,14 @@ function CustomerHome({
     setSelectedRegion,
     setSelectedCategory,
     setSelectedKitchenId,
-    selectedKitchen,
     activeOrder,
     updateQuantity,
     isKitchenAvailable,
   } = useApp();
   const { mealIds: favoriteMealIds, kitchenIds: favoriteKitchenIds, toggle: toggleFavorite } = useFavorites();
   const favoriteCount = favoriteMealIds.size + favoriteKitchenIds.size;
-  const announcementsQuery = trpc.marketing.announcements.useQuery(undefined, { staleTime: 15_000, gcTime: 60_000, refetchOnWindowFocus: false });
-  const offersQuery = trpc.marketing.offers.useQuery(undefined, { staleTime: 15_000, gcTime: 60_000, refetchOnWindowFocus: false });
+  const announcementsQuery = trpc.marketing.announcements.useQuery(undefined, { staleTime: 60_000, gcTime: 5 * 60_000, refetchOnWindowFocus: false });
+  const offersQuery = trpc.marketing.offers.useQuery(undefined, { staleTime: 60_000, gcTime: 5 * 60_000, refetchOnWindowFocus: false });
   const announcements = useMemo<AnnouncementSlide[]>(() => announcementsQuery.data !== undefined ? announcementsQuery.data.map((item) => ({ ...item, icon: item.icon as IconName, imageUrl: resolveRemoteAssetUrl(item.imageUrl) })) : FALLBACK_ANNOUNCEMENTS, [announcementsQuery.data]);
   const offerRecords = useMemo(() => offersQuery.data ?? [], [offersQuery.data]);
   const offerMealIds = useMemo(() => new Set(offersQuery.data !== undefined ? offerRecords.map((offer) => offer.mealId) : [...OFFER_MEAL_IDS]), [offersQuery.data, offerRecords]);
@@ -531,6 +530,8 @@ function CustomerHome({
   const [announcementIndex, setAnnouncementIndex] = useState(0);
   const region = getRegion(selectedRegion);
   const announcement = announcements[announcementIndex] ?? announcements[0];
+  const kitchenById = useMemo(() => new Map(kitchens.map((kitchen) => [kitchen.id, kitchen])), []);
+  const cartQuantityByMeal = useMemo(() => new Map(cart.map((item) => [item.meal.id, item.quantity])), [cart]);
   useEffect(() => { const timer = setInterval(() => setAnnouncementIndex((current) => (current + 1) % announcements.length), 5000); return () => clearInterval(timer); }, [announcements.length]);
 
   const visibleKitchens = useMemo(() => regionScope === "all" ? kitchens : kitchens.filter((kitchen) => kitchen.region === regionScope), [regionScope]);
@@ -541,13 +542,13 @@ function CustomerHome({
       const matchesQuery = !normalized || `${meal.name.ar} ${meal.name.en}`.toLowerCase().includes(normalized);
       const matchesCategory = selectedCategory === "all" || meal.category === selectedCategory;
       const matchesOffer = !offersOnly || offerMealIds.has(meal.id);
-      const kitchen = kitchens.find((item) => item.id === meal.kitchenId);
+      const kitchen = kitchenById.get(meal.kitchenId);
       const matchesRegion = regionScope === "all" || kitchen?.region === regionScope;
       return matchesQuery && matchesCategory && matchesOffer && matchesRegion;
     });
     return [...filtered].sort((left, right) => {
-      const leftKitchen = kitchens.find((item) => item.id === left.kitchenId);
-      const rightKitchen = kitchens.find((item) => item.id === right.kitchenId);
+      const leftKitchen = kitchenById.get(left.kitchenId);
+      const rightKitchen = kitchenById.get(right.kitchenId);
       if (filterSort === "high") return right.price - left.price;
       if (filterSort === "low") return left.price - right.price;
       if (filterSort === "rating") return (rightKitchen?.rating ?? 0) - (leftKitchen?.rating ?? 0);
@@ -555,7 +556,7 @@ function CustomerHome({
       if (filterSort === "distance") return (leftKitchen ? getKitchenDistanceKm(leftKitchen, region) : Number.MAX_SAFE_INTEGER) - (rightKitchen ? getKitchenDistanceKm(rightKitchen, region) : Number.MAX_SAFE_INTEGER);
       return (rightKitchen?.rating ?? 0) - (leftKitchen?.rating ?? 0);
     });
-  }, [query, selectedCategory, regionScope, filterSort, region, offersOnly, offerMealIds]);
+  }, [query, selectedCategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById]);
 
   const openKitchen = (kitchenId: string) => {
     setSelectedKitchenId(kitchenId);
@@ -628,9 +629,10 @@ function CustomerHome({
 
       <SectionHeader title={offersOnly ? (language === "ar" ? "عروض اليوم" : "Today's offers") : language === "ar" ? "أكثر الأكلات طلباً" : "Most ordered today"} action={language === "ar" ? "أضيفي للسفرة" : "Add to table"} />
       <View style={styles.mealList}>
-        {visibleMeals.map((meal) => (
-          <MealRow key={meal.id} meal={meal} language={language} isFavorite={favoriteMealIds.has(meal.id)} onToggleFavorite={() => void toggleFavorite("meal", meal.id)} offerBadge={offersOnly ? offerBadges.get(meal.id) : undefined} offerImage={offersOnly ? offerImages.get(meal.id) : undefined} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => openKitchen(meal.kitchenId)} onAdd={() => onRequestAdd(meal)} />
-        ))}
+        {visibleMeals.map((meal) => {
+          const quantity = cartQuantityByMeal.get(meal.id) ?? 0;
+          return <MealRow key={meal.id} meal={meal} language={language} isFavorite={favoriteMealIds.has(meal.id)} onToggleFavorite={() => void toggleFavorite("meal", meal.id)} offerBadge={offersOnly ? offerBadges.get(meal.id) : undefined} offerImage={offersOnly ? offerImages.get(meal.id) : undefined} quantity={quantity} onRemove={() => updateQuantity(meal.id, Math.max(0, quantity - 1))} onPress={() => openKitchen(meal.kitchenId)} onAdd={() => onRequestAdd(meal)} />;
+        })}
       </View>
       {visibleMeals.length === 0 && <EmptyState language={language} />}
 
@@ -713,7 +715,7 @@ function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof me
 }
 
 function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }: { visible: boolean; initialSpecialRequests: string; onClose: () => void; onComplete: () => void }) {
-  const { language, customerPhone, placeOrder, cart, cartTotal } = useApp();
+  const { language, customerPhone, placeOrder, cart } = useApp();
   const orderSmsMutation = trpc.notifications.sendOrderConfirmationSms.useMutation();
   const multiPricing = getMultiOrderPricing(cart, 1.25);
   const pricing = multiPricing;
@@ -754,7 +756,7 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
 function OrdersScreen({ onBack, onOpenCart }: { onBack: () => void; onOpenCart: () => void }) {
   const { language, activeOrder, activeOrders, orderHistory, reorder, selectActiveOrder, advanceOrder, rateOrder, showToast } = useApp();
   const { user } = useAuth();
-  const latestLocationQuery = trpc.driverLocation.latest.useQuery({ orderId: activeOrder?.id ?? "none" }, { enabled: Boolean(user && activeOrder?.driver), refetchInterval: 15_000, retry: false });
+  const latestLocationQuery = trpc.driverLocation.latest.useQuery({ orderId: activeOrder?.id ?? "none" }, { enabled: Boolean(user && activeOrder?.driver), staleTime: 20_000, gcTime: 2 * 60_000, refetchInterval: 30_000, refetchIntervalInBackground: false, retry: false });
   const liveDriverCoordinates = latestLocationQuery.data ? { latitude: latestLocationQuery.data.latitude, longitude: latestLocationQuery.data.longitude } : activeOrder?.driverCoordinates;
   const liveLocationUpdatedAt = latestLocationQuery.data?.capturedAt ?? activeOrder?.driverLocationUpdatedAt;
   const currentIndex = activeOrder ? orderStatuses.findIndex((item) => item.id === activeOrder.status) : -1;
@@ -996,7 +998,7 @@ function ComplaintsScreen({ onBack }: { onBack: () => void }) {
 }
 
 function MotherDashboard({ onBack }: { onBack: () => void }) {
-  const { language, kitchenOpen, toggleKitchen, incomingOrder, incomingOrders, selectIncomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast, weeklySchedule, toggleClosedDay, toggleMealScheduleDay, isKitchenAvailable } = useApp();
+  const { language, toggleKitchen, incomingOrder, incomingOrders, selectIncomingOrder, acceptIncomingOrder, rejectIncomingOrder, requestPayout, lastPayout, setRole, motherVerification, complaints, updateComplaintStatus, showToast, weeklySchedule, toggleClosedDay, toggleMealScheduleDay, isKitchenAvailable } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const todayClosed = weeklySchedule.closedDays.includes(getWeekdayFromDate());
   const [scheduleOpen, setScheduleOpen] = useState(false);
