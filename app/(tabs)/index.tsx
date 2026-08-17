@@ -725,40 +725,107 @@ function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof me
 }
 
 function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }: { visible: boolean; initialSpecialRequests: string; onClose: () => void; onComplete: () => void }) {
-  const { language, customerPhone, placeOrder, cart } = useApp();
+  const { language, customerPhone, placeOrder, cart, showToast } = useApp();
   const orderSmsMutation = trpc.notifications.sendOrderConfirmationSms.useMutation();
   const multiPricing = getMultiOrderPricing(cart, 1.25);
   const pricing = multiPricing;
   const [payment, setPayment] = useState<"cod" | "cliq" | "wallet">("cod");
   const [schedule, setSchedule] = useState<"now" | "scheduled">("now");
+  const [scheduledDay, setScheduledDay] = useState("غداً (الإثنين)");
+  const [scheduledHour, setScheduledHour] = useState("02:00 ظهراً");
+  const [deliveryAddress, setDeliveryAddress] = useState(language === "ar" ? "عمّان - خلدا، قرب الشارع الرئيسي" : "Amman - Khalda, Main Street");
   const [specialRequests, setSpecialRequests] = useState("");
   useEffect(() => {
     if (visible) setSpecialRequests(initialSpecialRequests);
   }, [initialSpecialRequests, visible]);
 
-  const buildSpecialRequests = () => specialRequests.trim();
+  const buildSpecialRequests = () => {
+    const timeDetail = schedule === "scheduled" ? `${language === "ar" ? "موعد التوصيل" : "Delivery Time"}: ${scheduledDay} - ${scheduledHour}` : "";
+    const addressDetail = `${language === "ar" ? "موقع التوصيل" : "Location"}: ${deliveryAddress}`;
+    return [timeDetail, addressDetail, specialRequests.trim()].filter(Boolean).join(" · ");
+  };
 
   const confirmOrder = () => {
     const placed = placeOrder(payment, schedule, buildSpecialRequests());
     if (placed) {
       if (customerPhone.trim()) void orderSmsMutation.mutateAsync({ phone: customerPhone.trim(), orderCount: Math.max(1, multiPricing.groups.length), total: pricing.grandTotal, language }).catch(() => undefined);
+      showToast(language === "ar" ? "تم إرسال الطلب بنجاح وتحديد الموقع والموعد" : "Order placed with location & schedule");
       onComplete();
     }
   };
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}><View style={styles.checkoutSheet}>
-        <View style={styles.sheetHandle} /><View style={styles.sheetHeader}><View><Text style={styles.sheetEyebrow}>{language === "ar" ? "آخر خطوة" : "One last step"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "تأكيد الطلب" : "Confirm order"}</Text></View><Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable></View>
-        <Text style={styles.optionLabel}>{language === "ar" ? "متى بتحبي يوصل؟" : "When should it arrive?"}</Text>
-        <View style={styles.optionRow}>{(["now", "scheduled"] as const).map((item) => <OptionCard key={item} selected={schedule === item} onPress={() => setSchedule(item)} icon={item === "now" ? "bolt" : "event"} title={t(scheduleLabels[item], language)} subtitle={item === "now" ? (language === "ar" ? "٤٥ دقيقة تقريباً" : "About 45 min") : (language === "ar" ? "مناسب للعزائم" : "Great for gatherings")} />)}</View>
-        <Text style={styles.optionLabel}>{language === "ar" ? "طريقة الدفع" : "Payment method"}</Text>
-        <View style={styles.paymentList}>{(["cod", "cliq", "wallet"] as const).map((item) => <Pressable key={item} onPress={() => setPayment(item)} style={[styles.paymentOption, payment === item && styles.paymentOptionActive]}><View style={[styles.paymentIcon, payment === item && styles.paymentIconActive]}><MaterialIcons name={item === "cod" ? "payments" : item === "cliq" ? "account-balance" : "wallet"} size={18} color={payment === item ? "#FFFFFF" : "#00AFC4"} /></View><View style={styles.paymentCopy}><Text style={styles.paymentTitle}>{t(paymentLabels[item], language)}</Text><Text style={styles.paymentSubtitle}>{item === "cod" ? (language === "ar" ? "ادفعي عند الباب" : "Pay at the door") : item === "cliq" ? (language === "ar" ? "تحويل فوري وآمن" : "Instant and secure transfer") : (language === "ar" ? "زين كاش، أورانج موني" : "Zain Cash, Orange Money")}</Text></View><MaterialIcons name={payment === item ? "radio-button-checked" : "radio-button-unchecked"} size={22} color={payment === item ? "#00AFC4" : "#8ABAC0"} /></Pressable>)}</View>
-        <Text style={styles.optionLabel}>{language === "ar" ? "ملاحظات الطلب (اختياري)" : "Order notes (optional)"}</Text>
-        <View style={styles.specialRequestInputWrap}><MaterialIcons name="edit-note" size={20} color="#00AFC4" /><TextInput value={specialRequests} onChangeText={setSpecialRequests} placeholder={language === "ar" ? "مثال: اتركي الطلب عند الباب..." : "Example: leave the order at the door..."} placeholderTextColor="#8ABAC0" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View>
-        {multiPricing.groups.length > 1 && <View style={styles.multiOrderSummary}><Text style={styles.multiOrderSummaryTitle}>{language === "ar" ? `${multiPricing.groups.length} طلبات منفصلة من مطابخ مختلفة` : `${multiPricing.groups.length} separate orders from different kitchens`}</Text>{multiPricing.groups.map((group) => { const kitchen = kitchens.find((item) => item.id === group.kitchenId) ?? kitchens[0]; return <View key={group.kitchenId} style={styles.multiOrderRow}><Text style={styles.multiOrderKitchen}>{getLocalized(kitchen.name, language)}</Text><Text style={styles.multiOrderTotal}>{formatJod(group.pricing.grandTotal, language)}</Text></View>; })}</View>}
-        <View style={styles.sheetPriceBreakdown}><SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(pricing.subtotal, language)} /><SummaryRow label={language === "ar" ? "التوصيل لكل مطبخ" : "Delivery per kitchen"} value={formatJod(pricing.deliveryFee, language)} /><SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} /></View><View style={styles.sheetTotal}><Text style={styles.sheetTotalLabel}>{language === "ar" ? "الإجمالي النهائي" : "Final total"}</Text><Text style={styles.sheetTotalValue}>{formatJod(pricing.grandTotal, language)}</Text></View>
-        <Pressable onPress={confirmOrder} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أكّد واطلب" : "Confirm order"}</Text><MaterialIcons name="check" size={18} color="#FFFFFF" /></Pressable>
-      </View></View>
+      <View style={styles.modalBackdrop}><ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}>
+        <View style={styles.checkoutSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تأكيد الطلب والموقع" : "Order & Location"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "موقع التوصيل والموعد" : "Delivery & Schedule"}</Text></View>
+            <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
+          </View>
+          
+          {/* موقع التوصيل */}
+          <Text style={styles.optionLabel}>{language === "ar" ? "📍 موقع التوصيل الحالي" : "📍 Delivery Location"}</Text>
+          <View style={styles.specialRequestInputWrap}>
+            <MaterialIcons name="location-on" size={20} color="#00AFC4" />
+            <TextInput value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder={language === "ar" ? "أدخلي تفاصيل العنوان (المنطقة، الشارع، رقم البناية)" : "Enter address details..."} placeholderTextColor="#8ABAC0" style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} />
+          </View>
+
+          {/* موعد الطلب باليوم والساعة */}
+          <Text style={styles.optionLabel}>{language === "ar" ? "⏰ موعد الطلب (اليوم والساعة)" : "⏰ Schedule (Day & Time)"}</Text>
+          <View style={styles.optionRow}>
+            {(["now", "scheduled"] as const).map((item) => (
+              <OptionCard key={item} selected={schedule === item} onPress={() => setSchedule(item)} icon={item === "now" ? "bolt" : "event"} title={t(scheduleLabels[item], language)} subtitle={item === "now" ? (language === "ar" ? "فوري (45 دقيقة)" : "Instant (~45m)") : (language === "ar" ? "حسب الموعد المختار" : "Scheduled")} />
+            ))}
+          </View>
+
+          {schedule === "scheduled" && (
+            <View style={{ gap: 8, backgroundColor: "#E5FCFF", padding: 10, borderRadius: 14, borderWidth: 1, borderColor: "#BCEFF4" }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4", marginBottom: 3 }}>{language === "ar" ? "اليوم:" : "Day:"}</Text>
+                  <TextInput value={scheduledDay} onChangeText={setScheduledDay} placeholder="اليوم" placeholderTextColor="#8ABAC0" style={{ backgroundColor: "#FFFFFF", borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, fontSize: 11, color: "#082E34", borderWidth: 1, borderColor: "#C6EDEF" }} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4", marginBottom: 3 }}>{language === "ar" ? "الساعة:" : "Time:"}</Text>
+                  <TextInput value={scheduledHour} onChangeText={setScheduledHour} placeholder="الساعة" placeholderTextColor="#8ABAC0" style={{ backgroundColor: "#FFFFFF", borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, fontSize: 11, color: "#082E34", borderWidth: 1, borderColor: "#C6EDEF" }} />
+                </View>
+              </View>
+            </View>
+          )}
+
+          <Text style={styles.optionLabel}>{language === "ar" ? "💳 طريقة الدفع" : "Payment method"}</Text>
+          <View style={styles.paymentList}>
+            {(["cod", "cliq", "wallet"] as const).map((item) => (
+              <Pressable key={item} onPress={() => setPayment(item)} style={[styles.paymentOption, payment === item && styles.paymentOptionActive]}>
+                <View style={[styles.paymentIcon, payment === item && styles.paymentIconActive]}><MaterialIcons name={item === "cod" ? "payments" : item === "cliq" ? "account-balance" : "wallet"} size={18} color={payment === item ? "#FFFFFF" : "#00AFC4"} /></View>
+                <View style={styles.paymentCopy}><Text style={styles.paymentTitle}>{t(paymentLabels[item], language)}</Text><Text style={styles.paymentSubtitle}>{item === "cod" ? (language === "ar" ? "ادفعي عند الباب" : "Pay at the door") : item === "cliq" ? (language === "ar" ? "تحويل فوري وآمن" : "Instant transfer") : (language === "ar" ? "زين كاش، أورانج موني" : "Zain Cash, Orange Money")}</Text></View>
+                <MaterialIcons name={payment === item ? "radio-button-checked" : "radio-button-unchecked"} size={22} color={payment === item ? "#00AFC4" : "#8ABAC0"} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.optionLabel}>{language === "ar" ? "📝 ملاحظات إضافية" : "Order notes"}</Text>
+          <View style={styles.specialRequestInputWrap}>
+            <MaterialIcons name="edit-note" size={20} color="#00AFC4" />
+            <TextInput value={specialRequests} onChangeText={setSpecialRequests} placeholder={language === "ar" ? "مثال: يرجى الاتصال عند الوصول..." : "Example: please call upon arrival..."} placeholderTextColor="#8ABAC0" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} />
+          </View>
+
+          {multiPricing.groups.length > 1 && (
+            <View style={styles.multiOrderSummary}>
+              <Text style={styles.multiOrderSummaryTitle}>{language === "ar" ? `${multiPricing.groups.length} طلبات منفصلة لكل مطبخ` : `${multiPricing.groups.length} separate orders per kitchen`}</Text>
+              {multiPricing.groups.map((group) => { const kitchen = kitchens.find((item) => item.id === group.kitchenId) ?? kitchens[0]; return <View key={group.kitchenId} style={styles.multiOrderRow}><Text style={styles.multiOrderKitchen}>{getLocalized(kitchen.name, language)}</Text><Text style={styles.multiOrderTotal}>{formatJod(group.pricing.grandTotal, language)}</Text></View>; })}
+            </View>
+          )}
+
+          <View style={styles.sheetPriceBreakdown}>
+            <SummaryRow label={language === "ar" ? "قيمة الطعام" : "Food subtotal"} value={formatJod(pricing.subtotal, language)} />
+            <SummaryRow label={language === "ar" ? "التوصيل لكل مطبخ" : "Delivery per kitchen"} value={formatJod(pricing.deliveryFee, language)} />
+            <SummaryRow label={language === "ar" ? "عمولة المنصة (٥٪)" : "Platform commission (5%)"} value={formatJod(pricing.commission, language)} />
+          </View>
+          <View style={styles.sheetTotal}><Text style={styles.sheetTotalLabel}>{language === "ar" ? "الإجمالي النهائي" : "Final total"}</Text><Text style={styles.sheetTotalValue}>{formatJod(pricing.grandTotal, language)}</Text></View>
+          <Pressable onPress={confirmOrder} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أكّد واطلب" : "Confirm order"}</Text><MaterialIcons name="check" size={18} color="#FFFFFF" /></Pressable>
+        </View>
+      </ScrollView></View>
     </Modal>
   );
 }
