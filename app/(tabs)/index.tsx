@@ -745,6 +745,8 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
   const [scheduledHour, setScheduledHour] = useState("02:00 ظهراً");
   const [dropoffCoord, setDropoffCoord] = useState<{ latitude: number; longitude: number }>({ latitude: 31.963, longitude: 35.91 });
   const [addressDesc, setAddressDesc] = useState(language === "ar" ? "عمّان - خلدا (موقع محدد على الخريطة)" : "Amman - Khalda (Pinned on map)");
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [tempCoord, setTempCoord] = useState<{ latitude: number; longitude: number }>({ latitude: 31.963, longitude: 35.91 });
   const [specialRequests, setSpecialRequests] = useState("");
   useEffect(() => {
     if (visible) setSpecialRequests(initialSpecialRequests);
@@ -810,16 +812,52 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
               </Pressable>
             </View>
 
-            {/* الخريطة التفاعلية */}
-            <View style={{ height: 160, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
-              <MapPreview fullScreen dropoffCoordinates={dropoffCoord} onPressMap={() => {
-                const altLat = 31.96 + (Math.random() - 0.5) * 0.04;
-                const altLng = 35.91 + (Math.random() - 0.5) * 0.04;
-                setDropoffCoord({ latitude: altLat, longitude: altLng });
-                setAddressDesc(`${language === "ar" ? "موقع محدد على الخريطة" : "Pinned on map"}: ${altLat.toFixed(4)}, ${altLng.toFixed(4)}`);
-                showToast(language === "ar" ? "تم تحديد نقطة التوصيل على الخريطة بدقة" : "Delivery point pinned accurately");
-              }} />
-            </View>
+            {/* الخريطة المصغرة - النقر يفتح شاشة خريطة مستقلة بالكامل */}
+            <Pressable onPress={() => { setTempCoord(dropoffCoord); setMapPickerOpen(true); }} style={{ height: 160, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
+              <MapPreview fullScreen dropoffCoordinates={dropoffCoord} onPressMap={() => { setTempCoord(dropoffCoord); setMapPickerOpen(true); }} />
+            </Pressable>
+            <Pressable onPress={() => { setTempCoord(dropoffCoord); setMapPickerOpen(true); }} style={{ backgroundColor: "#00AFC4", paddingVertical: 8, borderRadius: 12, alignItems: "center" }}>
+              <Text style={{ fontSize: 11, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "🗺️ افتح الخريطة الكاملة لتحديد الموقع بدقة" : "🗺️ Open Full Map to Pick Location"}</Text>
+            </Pressable>
+
+            {/* نافذة الخريطة المستقلة الكاملة لاختيار الموقع */}
+            <Modal visible={mapPickerOpen} transparent animationType="slide" onRequestClose={() => setMapPickerOpen(false)}>
+              <View style={styles.modalBackdrop}>
+                <View style={[styles.customizationSheet, { height: "85%", padding: 16 }]}>
+                  <View style={styles.sheetHandle} />
+                  <View style={styles.sheetHeader}>
+                    <View>
+                      <Text style={styles.sheetEyebrow}>{language === "ar" ? "اختيار وجهة التوصيل" : "SELECT DROP-OFF"}</Text>
+                      <Text style={styles.sheetTitle}>{language === "ar" ? "انقري على الخريطة لتحديد مكان التوصيل" : "Tap map to pick exact location"}</Text>
+                    </View>
+                    <Pressable onPress={() => setMapPickerOpen(false)} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
+                  </View>
+                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 10 }}>
+                    <MapPreview fullScreen dropoffCoordinates={tempCoord} onPressMap={() => {
+                      const lat = 31.9 + Math.random() * 0.1;
+                      const lng = 35.85 + Math.random() * 0.1;
+                      setTempCoord({ latitude: lat, longitude: lng });
+                    }} />
+                  </View>
+                  <Text style={{ fontSize: 11, fontWeight: "800", color: "#2E9B72", textAlign: "center", marginBottom: 10 }}>
+                    {language === "ar" ? `الإحداثيات المختارة: ${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)}` : `Selected coords: ${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)}`}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <Pressable onPress={() => setMapPickerOpen(false)} style={{ flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: "#E5ECEB", alignItems: "center" }}>
+                      <Text style={{ fontSize: 12, fontWeight: "900", color: "#4C747A" }}>{language === "ar" ? "إلغاء" : "Cancel"}</Text>
+                    </Pressable>
+                    <Pressable onPress={() => {
+                      setDropoffCoord(tempCoord);
+                      setAddressDesc(language === "ar" ? `موقع مخصص على الخريطة (${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)})` : `Custom map location (${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)})`);
+                      setMapPickerOpen(false);
+                      showToast(language === "ar" ? "تم اعتماد موقع التوصيل بنجاح" : "Delivery location confirmed");
+                    }} style={{ flex: 2, paddingVertical: 12, borderRadius: 14, backgroundColor: "#00AFC4", alignItems: "center" }}>
+                      <Text style={{ fontSize: 12, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "✓ تأكيد الموقع وحفظه" : "✓ Confirm & Save Location"}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            </Modal>
 
             <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72", textAlign: "center" }}>{addressDesc}</Text>
 
