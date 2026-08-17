@@ -815,18 +815,26 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
               ))}
             </ScrollView>
 
-            <View style={{ height: 180, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
-              <MapPreview compact dropoffCoordinates={dropoffCoord} onPressMap={() => {
-                const nextLat = dropoffCoord.latitude + 0.002;
-                const nextLng = dropoffCoord.longitude + 0.002;
+            <View style={{ height: 210, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
+              <MapPreview fullScreen dropoffCoordinates={dropoffCoord} onPressMap={() => {
+                const nextLat = dropoffCoord.latitude + 0.003;
+                const nextLng = dropoffCoord.longitude + 0.003;
                 setDropoffCoord({ latitude: nextLat, longitude: nextLng });
-                setAddressDesc(`${language === "ar" ? "موقع محدد على الخريطة" : "Pinned on map"}: ${nextLat.toFixed(4)}, ${nextLng.toFixed(4)}`);
-                showToast(language === "ar" ? "تم تثبيت نقطة التوصيل على الخريطة" : "Delivery point pinned");
+                setAddressDesc(`${language === "ar" ? "موقع تسليم مختلف ومحدد" : "Custom delivery location"}: ${nextLat.toFixed(4)}, ${nextLng.toFixed(4)}`);
+                showToast(language === "ar" ? "تم تحديد موقع التوصيل المختلف بنجاح" : "Custom delivery location pinned");
               }} />
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72" }}>{addressDesc}</Text>
-              <Text style={{ fontSize: 9, color: "#8ABAC0" }}>{language === "ar" ? "انقري على الخريطة لتعديل المكان" : "Tap map to adjust"}</Text>
+              <Pressable onPress={() => {
+                const altLat = 32.556 + (Math.random() - 0.5) * 0.05;
+                const altLng = 35.85 + (Math.random() - 0.5) * 0.05;
+                setDropoffCoord({ latitude: altLat, longitude: altLng });
+                setAddressDesc(`${language === "ar" ? "موقع مدينة أخرى / منطقة مختلفة" : "Different city / custom area"}: ${altLat.toFixed(4)}, ${altLng.toFixed(4)}`);
+                showToast(language === "ar" ? "تم اختيار موقع تسليم في منطقة مختلفة" : "Selected location in different region");
+              }} style={{ backgroundColor: "#00AFC4", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10 }}>
+                <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "🗺️ اختر موقع مختلف" : "🗺️ Pick Custom"}</Text>
+              </Pressable>
             </View>
           </View>
 
