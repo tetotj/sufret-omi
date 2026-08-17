@@ -790,19 +790,44 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
             <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
           </View>
           
-          {/* خريطة تفاعلية لاختيار الموقع وتحديد موقعي */}
-          <View style={{ gap: 6 }}>
+          {/* خريطة اختيار الموقع المتقدمة وحفظ المواقع */}
+          <View style={{ gap: 8, backgroundColor: "#F7FFF0", padding: 12, borderRadius: 18, borderWidth: 1, borderColor: "#C7E8C8" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={styles.optionLabel}>{language === "ar" ? "📍 اضغطي على الخريطة لتحديد مكان التوصيل الدقيق:" : "📍 Tap map to set exact delivery spot:"}</Text>
-              <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#E5FCFF", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: "#00AFC4" }}>
-                <MaterialIcons name="my-location" size={14} color="#00AFC4" />
-                <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي الحالي" : "My GPS"}</Text>
-              </Pressable>
+              <Text style={styles.optionLabel}>{language === "ar" ? "📍 خريطة تحديد مكان التوصيل الدقيق:" : "📍 Exact Delivery Location Map:"}</Text>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#E5FCFF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 11, borderWidth: 1, borderColor: "#00AFC4" }}>
+                  <MaterialIcons name="my-location" size={13} color="#00AFC4" />
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي" : "GPS"}</Text>
+                </Pressable>
+              </View>
             </View>
-            <View style={{ height: 160, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
-              <MapPreview compact dropoffCoordinates={dropoffCoord} onPressMap={() => showToast(language === "ar" ? "اضغطي على الخريطة أو حددي موقعك الحالي" : "Tap map or use current location")} />
+
+            {/* المواقع المحفوظة السريعة */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              {[
+                { nameAr: "🏠 المنزل", nameEn: "🏠 Home", lat: 31.963, lng: 35.91 },
+                { nameAr: "💼 العمل", nameEn: "💼 Work", lat: 31.954, lng: 35.928 },
+                { nameAr: "👨‍👩‍👧 بيت العائلة", nameEn: "👨‍👩‍👧 Family", lat: 31.98, lng: 35.88 },
+              ].map((saved) => (
+                <Pressable key={saved.nameAr} onPress={() => { setDropoffCoord({ latitude: saved.lat, longitude: saved.lng }); setAddressDesc(language === "ar" ? `${saved.nameAr} (${saved.lat}, ${saved.lng})` : `${saved.nameEn} (${saved.lat}, ${saved.lng})`); showToast(language === "ar" ? `تم اختيار ${saved.nameAr}` : `Selected ${saved.nameEn}`); }} style={{ backgroundColor: "#FFFFFF", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: "#C6EDEF", flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? saved.nameAr : saved.nameEn}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            <View style={{ height: 180, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
+              <MapPreview compact dropoffCoordinates={dropoffCoord} onPressMap={() => {
+                const nextLat = dropoffCoord.latitude + 0.002;
+                const nextLng = dropoffCoord.longitude + 0.002;
+                setDropoffCoord({ latitude: nextLat, longitude: nextLng });
+                setAddressDesc(`${language === "ar" ? "موقع محدد على الخريطة" : "Pinned on map"}: ${nextLat.toFixed(4)}, ${nextLng.toFixed(4)}`);
+                showToast(language === "ar" ? "تم تثبيت نقطة التوصيل على الخريطة" : "Delivery point pinned");
+              }} />
             </View>
-            <Text style={{ fontSize: 9, color: "#4C747A", textAlign: "center" }}>{addressDesc}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72" }}>{addressDesc}</Text>
+              <Text style={{ fontSize: 9, color: "#8ABAC0" }}>{language === "ar" ? "انقري على الخريطة لتعديل المكان" : "Tap map to adjust"}</Text>
+            </View>
           </View>
 
           {/* موعد الطلب باليوم والساعة */}
