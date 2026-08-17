@@ -1,0 +1,44 @@
+
+> app-template@1.0.0 check /home/ubuntu/sufret-omi
+> tsc --noEmit
+
+app/admin.tsx(403,159): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextInputProps): TextInput', gave the following error.
+    Type '{ value: string; onChangeText: Dispatch<SetStateAction<string>>; placeholder: string; placeholderTextColor: string; keyboardCategory: string; style: ({ minHeight: number; ... 6 more ...; paddingHorizontal: number; } | { ...; })[]; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<TextInput> & Readonly<TextInputProps>'.
+      Property 'keyboardCategory' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<TextInput> & Readonly<TextInputProps>'.
+  Overload 2 of 2, '(props: TextInputProps, context: any): TextInput', gave the following error.
+    Type '{ value: string; onChangeText: Dispatch<SetStateAction<string>>; placeholder: string; placeholderTextColor: string; keyboardCategory: string; style: ({ minHeight: number; ... 6 more ...; paddingHorizontal: number; } | { ...; })[]; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<TextInput> & Readonly<TextInputProps>'.
+      Property 'keyboardCategory' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<TextInput> & Readonly<TextInputProps>'.
+ ELIFECYCLE  Command failed with exit code 2.
+check_exit=2
+
+> app-template@1.0.0 test /home/ubuntu/sufret-omi
+> vitest run
+
+
+ RUN  v2.1.9 /home/ubuntu/sufret-omi
+
+ ✓ tests/catalog-categories.test.ts (1 test) 3ms
+ ✓ tests/commission.test.ts (3 tests) 5ms
+ ✓ tests/recommendations.test.ts (2 tests) 4ms
+ ✓ tests/cors.test.ts (3 tests) 10ms
+stdout | tests/email.test.ts > weekly email delivery > skips delivery safely when Resend is not configured
+[Email] Skipping weekly email report for مطبخ تجريبي (mother@example.com): Email provider API key is not configured.
+
+ ✓ tests/email.test.ts (1 test) 9ms
+ ✓ tests/order-actions.test.ts (2 tests) 5ms
+ ✓ tests/admin-access.test.ts (2 tests) 3ms
+ ✓ tests/order-chat.test.ts (3 tests) 8ms
+ ↓ tests/auth.logout.test.ts (1 test | 1 skipped)
+stdout | tests/auth.logout.test.ts
+[OAuth] Initialized with baseURL: https://api.manus.im
+
+ ✓ tests/marketing-notifications.test.ts (2 tests) 5ms
+ ✓ tests/auth.local-user.test.ts (1 test) 2ms
+
+ Test Files  10 passed | 1 skipped (11)
+      Tests  20 passed | 1 skipped (21)
+   Start at  11:43:06
+   Duration  1.98s (transform 934ms, setup 0ms, collect 4.19s, tests 53ms, environment 5ms, prepare 1.37s)
+
+test_exit=0
