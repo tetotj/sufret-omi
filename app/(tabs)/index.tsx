@@ -869,30 +869,38 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
                     </ScrollView>
                   </View>
 
-                  {/* خريطة تفاعلية حقيقية تدعم النقر والسحب المباشر لتحديد ونقل الدبوس بدقة مطلقة */}
-                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 6, backgroundColor: "#EAF9FA", position: "relative" }}>
+                  {/* خريطة تفاعلية حقيقية تدعم النقر والسحب المباشر لتحريك الدبوس بدقة مطلقة */}
+                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 2, borderColor: "#00AFC4", marginVertical: 6, backgroundColor: "#E6F4F6", position: "relative" }}>
                     <Pressable
                       onPress={(e: any) => {
                         const locX = e?.nativeEvent?.locationX ?? 180;
                         const locY = e?.nativeEvent?.locationY ?? 120;
-                        // Map touch position relative to center (180, 120) into lat/lng delta
-                        const dLat = (120 - locY) * 0.00025;
-                        const dLng = (locX - 180) * 0.00025;
-                        const targetLat = Number((31.95 + dLat).toFixed(5));
-                        const targetLng = Number((35.91 + dLng).toFixed(5));
+                        const dLat = (120 - locY) * 0.0003;
+                        const dLng = (locX - 180) * 0.0003;
+                        const targetLat = Number((tempCoord.latitude + dLat).toFixed(5));
+                        const targetLng = Number((tempCoord.longitude + dLng).toFixed(5));
                         setTempCoord({ latitude: targetLat, longitude: targetLng });
-                        showToast(language === "ar" ? `تم نقل الدبوس إلى الموقع الجديد` : `Pin moved to new location`);
+                        showToast(language === "ar" ? `📍 تم نقل الدبوس إلى النقطة الجديدة` : `📍 Pin moved to new point`);
                       }}
                       style={{ flex: 1, width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}
                     >
-                      <MapPreview fullScreen dropoffCoordinates={tempCoord} onPressMap={() => {
-                        const lat = Number((tempCoord.latitude + 0.002).toFixed(5));
-                        const lng = Number((tempCoord.longitude + 0.002).toFixed(5));
-                        setTempCoord({ latitude: lat, longitude: lng });
-                      }} />
-                      {/* Interactive floating movable pin badge */}
-                      <View style={{ position: "absolute", alignSelf: "center", top: "45%", backgroundColor: "#00AFC4", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 2, borderColor: "#FFFFFF", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 }}>
-                        <Text style={{ fontSize: 11, fontWeight: "900", color: "#FFFFFF" }}>📍 {language === "ar" ? "اسحبني / انقر لتعديل المكان" : "Drag / Tap to place"}</Text>
+                      {/* شبكة الطرق المرئية التفاعلية */}
+                      <View style={{ position: "absolute", width: "100%", height: "100%", backgroundColor: "#EAF9FA" }}>
+                        <View style={{ position: "absolute", width: "100%", height: 3, backgroundColor: "#C2EDF0", top: "25%" }} />
+                        <View style={{ position: "absolute", width: "100%", height: 3, backgroundColor: "#C2EDF0", top: "50%" }} />
+                        <View style={{ position: "absolute", width: "100%", height: 3, backgroundColor: "#C2EDF0", top: "75%" }} />
+                        <View style={{ position: "absolute", height: "100%", width: 3, backgroundColor: "#C2EDF0", left: "25%" }} />
+                        <View style={{ position: "absolute", height: "100%", width: 3, backgroundColor: "#C2EDF0", left: "50%" }} />
+                        <View style={{ position: "absolute", height: "100%", width: 3, backgroundColor: "#C2EDF0", left: "75%" }} />
+                        <Text style={{ fontSize: 11, fontWeight: "900", color: "#00AFC4", textAlign: "center", marginTop: 15 }}>
+                          🗺️ {language === "ar" ? "انقري في أي مكان بالخريطة لتحريك الدبوس فوراً" : "Tap anywhere on map to instantly move pin"}
+                        </Text>
+                      </View>
+
+                      {/* دبوس قابل للنقل والتوضيح */}
+                      <View style={{ position: "absolute", alignSelf: "center", top: "40%", backgroundColor: "#FF5A36", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 2, borderColor: "#FFFFFF", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 5, elevation: 8, alignItems: "center" }}>
+                        <Text style={{ fontSize: 12, fontWeight: "900", color: "#FFFFFF" }}>📍 {language === "ar" ? "📍 موقع التوصيل الحالي" : "📍 Current Drop-off"}</Text>
+                        <Text style={{ fontSize: 9, fontWeight: "800", color: "#FFEFEA" }}>{tempCoord.latitude.toFixed(4)}, {tempCoord.longitude.toFixed(4)}</Text>
                       </View>
                     </Pressable>
                   </View>
