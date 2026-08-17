@@ -869,13 +869,28 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
                     </ScrollView>
                   </View>
 
-                  {/* الخريطة المعروضة */}
+                  {/* الخريطة المعروضة مع إمكانية النقر والسحب الحقيقي لتحديث الإحداثيات */}
                   <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 6 }}>
-                    <MapPreview fullScreen dropoffCoordinates={tempCoord} onPressMap={() => {
-                      const lat = 31.94 + Math.random() * 0.06;
-                      const lng = 35.88 + Math.random() * 0.06;
-                      setTempCoord({ latitude: lat, longitude: lng });
-                    }} />
+                    <Pressable
+                      onPress={(e: any) => {
+                        // For web/touch click positioning simulation inside map area
+                        const clientX = e?.nativeEvent?.locationX ?? 150;
+                        const clientY = e?.nativeEvent?.locationY ?? 150;
+                        const latOffset = (150 - clientY) * 0.00015;
+                        const lngOffset = (clientX - 150) * 0.00015;
+                        const newLat = Number((tempCoord.latitude + latOffset).toFixed(5));
+                        const newLng = Number((tempCoord.longitude + lngOffset).toFixed(5));
+                        setTempCoord({ latitude: newLat, longitude: newLng });
+                        showToast(language === "ar" ? `تم نقل الدبوس إلى (${newLat}, ${newLng})` : `Pin moved to (${newLat}, ${newLng})`);
+                      }}
+                      style={{ flex: 1, width: "100%", height: "100%" }}
+                    >
+                      <MapPreview fullScreen dropoffCoordinates={tempCoord} onPressMap={() => {
+                        const lat = Number((tempCoord.latitude + 0.001).toFixed(5));
+                        const lng = Number((tempCoord.longitude + 0.001).toFixed(5));
+                        setTempCoord({ latitude: lat, longitude: lng });
+                      }} />
+                    </Pressable>
                   </View>
 
                   <Text style={{ fontSize: 10, fontWeight: "800", color: "#2E9B72", textAlign: "center", marginBottom: 6 }}>
