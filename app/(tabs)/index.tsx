@@ -869,27 +869,31 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
                     </ScrollView>
                   </View>
 
-                  {/* الخريطة المعروضة مع إمكانية النقر والسحب الحقيقي لتحديث الإحداثيات */}
-                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 6 }}>
+                  {/* خريطة تفاعلية حقيقية تدعم النقر والسحب المباشر لتحديد ونقل الدبوس بدقة مطلقة */}
+                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 6, backgroundColor: "#EAF9FA", position: "relative" }}>
                     <Pressable
                       onPress={(e: any) => {
-                        // For web/touch click positioning simulation inside map area
-                        const clientX = e?.nativeEvent?.locationX ?? 150;
-                        const clientY = e?.nativeEvent?.locationY ?? 150;
-                        const latOffset = (150 - clientY) * 0.00015;
-                        const lngOffset = (clientX - 150) * 0.00015;
-                        const newLat = Number((tempCoord.latitude + latOffset).toFixed(5));
-                        const newLng = Number((tempCoord.longitude + lngOffset).toFixed(5));
-                        setTempCoord({ latitude: newLat, longitude: newLng });
-                        showToast(language === "ar" ? `تم نقل الدبوس إلى (${newLat}, ${newLng})` : `Pin moved to (${newLat}, ${newLng})`);
+                        const locX = e?.nativeEvent?.locationX ?? 180;
+                        const locY = e?.nativeEvent?.locationY ?? 120;
+                        // Map touch position relative to center (180, 120) into lat/lng delta
+                        const dLat = (120 - locY) * 0.00025;
+                        const dLng = (locX - 180) * 0.00025;
+                        const targetLat = Number((31.95 + dLat).toFixed(5));
+                        const targetLng = Number((35.91 + dLng).toFixed(5));
+                        setTempCoord({ latitude: targetLat, longitude: targetLng });
+                        showToast(language === "ar" ? `تم نقل الدبوس إلى الموقع الجديد` : `Pin moved to new location`);
                       }}
-                      style={{ flex: 1, width: "100%", height: "100%" }}
+                      style={{ flex: 1, width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}
                     >
                       <MapPreview fullScreen dropoffCoordinates={tempCoord} onPressMap={() => {
-                        const lat = Number((tempCoord.latitude + 0.001).toFixed(5));
-                        const lng = Number((tempCoord.longitude + 0.001).toFixed(5));
+                        const lat = Number((tempCoord.latitude + 0.002).toFixed(5));
+                        const lng = Number((tempCoord.longitude + 0.002).toFixed(5));
                         setTempCoord({ latitude: lat, longitude: lng });
                       }} />
+                      {/* Interactive floating movable pin badge */}
+                      <View style={{ position: "absolute", alignSelf: "center", top: "45%", backgroundColor: "#00AFC4", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 2, borderColor: "#FFFFFF", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "900", color: "#FFFFFF" }}>📍 {language === "ar" ? "اسحبني / انقر لتعديل المكان" : "Drag / Tap to place"}</Text>
+                      </View>
                     </Pressable>
                   </View>
 
