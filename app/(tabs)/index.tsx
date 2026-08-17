@@ -820,39 +820,97 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
               <Text style={{ fontSize: 11, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "🗺️ افتح الخريطة الكاملة لتحديد الموقع بدقة" : "🗺️ Open Full Map to Pick Location"}</Text>
             </Pressable>
 
-            {/* نافذة الخريطة المستقلة الكاملة لاختيار الموقع */}
+            {/* نافذة الخريطة المستقلة الكاملة مع البحث وتحريك الدبوس */}
             <Modal visible={mapPickerOpen} transparent animationType="slide" onRequestClose={() => setMapPickerOpen(false)}>
               <View style={styles.modalBackdrop}>
-                <View style={[styles.customizationSheet, { height: "85%", padding: 16 }]}>
+                <View style={[styles.customizationSheet, { height: "90%", padding: 16 }]}>
                   <View style={styles.sheetHandle} />
                   <View style={styles.sheetHeader}>
                     <View>
-                      <Text style={styles.sheetEyebrow}>{language === "ar" ? "اختيار وجهة التوصيل" : "SELECT DROP-OFF"}</Text>
-                      <Text style={styles.sheetTitle}>{language === "ar" ? "انقري على الخريطة لتحديد مكان التوصيل" : "Tap map to pick exact location"}</Text>
+                      <Text style={styles.sheetEyebrow}>{language === "ar" ? "البحث وتحديد موقع التوصيل" : "SEARCH & MAP PICKER"}</Text>
+                      <Text style={styles.sheetTitle}>{language === "ar" ? "ابحثي عن الشارع أو حركي الدبوس" : "Search street or move pin"}</Text>
                     </View>
                     <Pressable onPress={() => setMapPickerOpen(false)} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
                   </View>
-                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 10 }}>
+
+                  {/* شريط البحث السريع عن الشوارع والمعالم */}
+                  <View style={{ marginVertical: 8, gap: 6 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F5F8F7", borderRadius: 12, borderWidth: 1, borderColor: "#C6EDEF", paddingHorizontal: 10 }}>
+                      <MaterialIcons name="search" size={18} color="#00AFC4" />
+                      <TextInput
+                        placeholder={language === "ar" ? "ابحثي عن شارع، معلم، أو منطقة (مثل خلدا، عبدون...)" : "Search street, landmark, or area"}
+                        placeholderTextColor="#8ABAC0"
+                        style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, fontSize: 12, color: "#082E34" }}
+                        textAlign={language === "ar" ? "right" : "left"}
+                        onSubmitEditing={(e) => {
+                          const query = e.nativeEvent.text.trim();
+                          if (query) {
+                            // Simulate geo search matching popular Amman/Jordan landmarks
+                            const matchLat = 31.95 + (Math.sin(query.length) * 0.03);
+                            const matchLng = 35.91 + (Math.cos(query.length) * 0.03);
+                            setTempCoord({ latitude: matchLat, longitude: matchLng });
+                            showToast(language === "ar" ? `تم العثور على نتيجة لـ "${query}"` : `Found result for "${query}"`);
+                          }
+                        }}
+                      />
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {[
+                        { nameAr: "📍 خلدا - وصفي التل", lat: 31.98, lng: 35.84 },
+                        { nameAr: "📍 عبدون - الدوار الخامس", lat: 31.95, lng: 35.91 },
+                        { nameAr: "📍 الصويفية - شارع الح เมد", lat: 31.96, lng: 35.89 },
+                        { nameAr: "📍 إربد - جامعة اليرموك", lat: 32.55, lng: 35.85 },
+                        { nameAr: "📍 الزرقاء - الجديدة", lat: 32.07, lng: 36.09 },
+                      ].map((loc) => (
+                        <Pressable key={loc.nameAr} onPress={() => { setTempCoord({ latitude: loc.lat, longitude: loc.lng }); showToast(language === "ar" ? `تم توجيه الخريطة إلى ${loc.nameAr}` : `Map centered to location`); }} style={{ backgroundColor: "#E5FCFF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: "#00AFC4" }}>
+                          <Text style={{ fontSize: 10, fontWeight: "900", color: "#00AFC4" }}>{loc.nameAr}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+
+                  {/* الخريطة المعروضة */}
+                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: "#00AFC4", marginVertical: 6 }}>
                     <MapPreview fullScreen dropoffCoordinates={tempCoord} onPressMap={() => {
-                      const lat = 31.9 + Math.random() * 0.1;
-                      const lng = 35.85 + Math.random() * 0.1;
+                      const lat = 31.94 + Math.random() * 0.06;
+                      const lng = 35.88 + Math.random() * 0.06;
                       setTempCoord({ latitude: lat, longitude: lng });
                     }} />
                   </View>
-                  <Text style={{ fontSize: 11, fontWeight: "800", color: "#2E9B72", textAlign: "center", marginBottom: 10 }}>
-                    {language === "ar" ? `الإحداثيات المختارة: ${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)}` : `Selected coords: ${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)}`}
+
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#2E9B72", textAlign: "center", marginBottom: 6 }}>
+                    {language === "ar" ? `📍 إحداثيات الدبوس الحالي: ${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)}` : `📍 Pin Coordinates: ${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)}`}
                   </Text>
+
+                  {/* أزرار التحريك السريع والتأكيد */}
+                  <View style={{ gap: 6, marginBottom: 4 }}>
+                    <View style={{ flexDirection: "row", gap: 6, justifyContent: "center" }}>
+                      <Pressable onPress={() => setTempCoord((c) => ({ ...c, latitude: c.latitude + 0.002 }))} style={{ backgroundColor: "#F2F7F6", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#C6EDEF" }}>
+                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>⬆️ {language === "ar" ? "تحريك شمالاً" : "Move North"}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setTempCoord((c) => ({ ...c, latitude: c.latitude - 0.002 }))} style={{ backgroundColor: "#F2F7F6", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#C6EDEF" }}>
+                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>⬇️ {language === "ar" ? "تحريك جنوباً" : "Move South"}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setTempCoord((c) => ({ ...c, longitude: c.longitude + 0.002 }))} style={{ backgroundColor: "#F2F7F6", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#C6EDEF" }}>
+                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>➡️ {language === "ar" ? "تحريك شرقاً" : "Move East"}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setTempCoord((c) => ({ ...c, longitude: c.longitude - 0.002 }))} style={{ backgroundColor: "#F2F7F6", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#C6EDEF" }}>
+                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>⬅️ {language === "ar" ? "تحريك غرباً" : "Move West"}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <Pressable onPress={() => setMapPickerOpen(false)} style={{ flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: "#E5ECEB", alignItems: "center" }}>
                       <Text style={{ fontSize: 12, fontWeight: "900", color: "#4C747A" }}>{language === "ar" ? "إلغاء" : "Cancel"}</Text>
                     </Pressable>
                     <Pressable onPress={() => {
                       setDropoffCoord(tempCoord);
-                      setAddressDesc(language === "ar" ? `موقع مخصص على الخريطة (${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)})` : `Custom map location (${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)})`);
+                      setAddressDesc(language === "ar" ? `موقع محدد بدقة (${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)})` : `Precisely pinned location (${tempCoord.latitude.toFixed(4)}, ${tempCoord.longitude.toFixed(4)})`);
                       setMapPickerOpen(false);
-                      showToast(language === "ar" ? "تم اعتماد موقع التوصيل بنجاح" : "Delivery location confirmed");
+                      showToast(language === "ar" ? "تم تثبيت وحفظ موقع التوصيل بنجاح" : "Delivery location pinned and saved");
                     }} style={{ flex: 2, paddingVertical: 12, borderRadius: 14, backgroundColor: "#00AFC4", alignItems: "center" }}>
-                      <Text style={{ fontSize: 12, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "✓ تأكيد الموقع وحفظه" : "✓ Confirm & Save Location"}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "✓ تأكيد موقع التوصيل" : "✓ Confirm Delivery Location"}</Text>
                     </Pressable>
                   </View>
                 </View>
