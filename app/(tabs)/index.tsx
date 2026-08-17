@@ -733,23 +733,50 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
   const [schedule, setSchedule] = useState<"now" | "scheduled">("now");
   const [scheduledDay, setScheduledDay] = useState("غداً (الإثنين)");
   const [scheduledHour, setScheduledHour] = useState("02:00 ظهراً");
-  const [deliveryAddress, setDeliveryAddress] = useState(language === "ar" ? "عمّان - خلدا، قرب الشارع الرئيسي" : "Amman - Khalda, Main Street");
+  const [dropoffCoord, setDropoffCoord] = useState<{ latitude: number; longitude: number }>({ latitude: 31.963, longitude: 35.91 });
+  const [addressDesc, setAddressDesc] = useState(language === "ar" ? "عمّان - خلدا (موقع محدد على الخريطة)" : "Amman - Khalda (Pinned on map)");
   const [specialRequests, setSpecialRequests] = useState("");
   useEffect(() => {
     if (visible) setSpecialRequests(initialSpecialRequests);
   }, [initialSpecialRequests, visible]);
 
+  const handleMapPress = (e?: any) => {
+    const coord = e?.nativeEvent?.coordinate;
+    if (coord) {
+      setDropoffCoord({ latitude: coord.latitude, longitude: coord.longitude });
+      setAddressDesc(`${language === "ar" ? "إحداثيات" : "Coord"}: ${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`);
+      showToast(language === "ar" ? "تم تحديث موقع التوصيل على الخريطة" : "Delivery location updated on map");
+    }
+  };
+
+  const locateUserOnMap = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        showToast(language === "ar" ? "نحتاج إذن الموقع لتحديد مكانك" : "Location permission needed");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const current = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      setDropoffCoord(current);
+      setAddressDesc(`${language === "ar" ? "موقعي الحالي" : "My current location"}: ${current.latitude.toFixed(4)}, ${current.longitude.toFixed(4)}`);
+      showToast(language === "ar" ? "تم تحديد موقعك الحالي بنجاح" : "Current location detected");
+    } catch {
+      showToast(language === "ar" ? "تعذّر جلب موقعك الحالي" : "Could not fetch current location");
+    }
+  };
+
   const buildSpecialRequests = () => {
     const timeDetail = schedule === "scheduled" ? `${language === "ar" ? "موعد التوصيل" : "Delivery Time"}: ${scheduledDay} - ${scheduledHour}` : "";
-    const addressDetail = `${language === "ar" ? "موقع التوصيل" : "Location"}: ${deliveryAddress}`;
-    return [timeDetail, addressDetail, specialRequests.trim()].filter(Boolean).join(" · ");
+    const locDetail = `${language === "ar" ? "الإحداثيات" : "GPS"}: (${dropoffCoord.latitude.toFixed(4)}, ${dropoffCoord.longitude.toFixed(4)}) - ${addressDesc}`;
+    return [timeDetail, locDetail, specialRequests.trim()].filter(Boolean).join(" · ");
   };
 
   const confirmOrder = () => {
     const placed = placeOrder(payment, schedule, buildSpecialRequests());
     if (placed) {
       if (customerPhone.trim()) void orderSmsMutation.mutateAsync({ phone: customerPhone.trim(), orderCount: Math.max(1, multiPricing.groups.length), total: pricing.grandTotal, language }).catch(() => undefined);
-      showToast(language === "ar" ? "تم إرسال الطلب بنجاح وتحديد الموقع والموعد" : "Order placed with location & schedule");
+      showToast(language === "ar" ? "تم إرسال الطلب بنجاح وتحديد الموقع على الخريطة" : "Order placed with interactive map location");
       onComplete();
     }
   };
@@ -759,15 +786,23 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
         <View style={styles.checkoutSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تأكيد الطلب والموقع" : "Order & Location"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "موقع التوصيل والموعد" : "Delivery & Schedule"}</Text></View>
+            <View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تأكيد الطلب والموقع" : "Order & Location"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "اختر موقع التوصيل على الخريطة" : "Select Delivery on Map"}</Text></View>
             <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
           </View>
           
-          {/* موقع التوصيل */}
-          <Text style={styles.optionLabel}>{language === "ar" ? "📍 موقع التوصيل الحالي" : "📍 Delivery Location"}</Text>
-          <View style={styles.specialRequestInputWrap}>
-            <MaterialIcons name="location-on" size={20} color="#00AFC4" />
-            <TextInput value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder={language === "ar" ? "أدخلي تفاصيل العنوان (المنطقة، الشارع، رقم البناية)" : "Enter address details..."} placeholderTextColor="#8ABAC0" style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} />
+          {/* خريطة تفاعلية لاختيار الموقع وتحديد موقعي */}
+          <View style={{ gap: 6 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={styles.optionLabel}>{language === "ar" ? "📍 اضغطي على الخريطة لتحديد مكان التوصيل الدقيق:" : "📍 Tap map to set exact delivery spot:"}</Text>
+              <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#E5FCFF", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: "#00AFC4" }}>
+                <MaterialIcons name="my-location" size={14} color="#00AFC4" />
+                <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي الحالي" : "My GPS"}</Text>
+              </Pressable>
+            </View>
+            <View style={{ height: 160, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
+              <MapPreview compact dropoffCoordinates={dropoffCoord} onPressMap={() => showToast(language === "ar" ? "اضغطي على الخريطة أو حددي موقعك الحالي" : "Tap map or use current location")} />
+            </View>
+            <Text style={{ fontSize: 9, color: "#4C747A", textAlign: "center" }}>{addressDesc}</Text>
           </View>
 
           {/* موعد الطلب باليوم والساعة */}
