@@ -800,51 +800,40 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
             <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
           </View>
           
-          {/* خريطة اختيار الموقع المتقدمة وحفظ المواقع */}
-          <View style={{ gap: 8, backgroundColor: "#F7FFF0", padding: 12, borderRadius: 18, borderWidth: 1, borderColor: "#C7E8C8" }}>
+          {/* تفاصيل عنوان التوصيل والخريطة الدقيقة */}
+          <View style={{ gap: 10, backgroundColor: "#F7FFF0", padding: 12, borderRadius: 18, borderWidth: 1, borderColor: "#C7E8C8" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={styles.optionLabel}>{language === "ar" ? "📍 خريطة تحديد مكان التوصيل الدقيق:" : "📍 Exact Delivery Location Map:"}</Text>
-              <View style={{ flexDirection: "row", gap: 6 }}>
-                <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#E5FCFF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 11, borderWidth: 1, borderColor: "#00AFC4" }}>
-                  <MaterialIcons name="my-location" size={13} color="#00AFC4" />
-                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي" : "GPS"}</Text>
-                </Pressable>
-              </View>
+              <Text style={styles.optionLabel}>{language === "ar" ? "📍 تحديد موقع التوصيل على الخريطة والشارع:" : "📍 Exact Delivery Location & Street:"}</Text>
+              <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#E5FCFF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 11, borderWidth: 1, borderColor: "#00AFC4" }}>
+                <MaterialIcons name="my-location" size={13} color="#00AFC4" />
+                <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي الحالي" : "My GPS"}</Text>
+              </Pressable>
             </View>
 
-            {/* المواقع المحفوظة السريعة */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              {[
-                { nameAr: "🏠 المنزل", nameEn: "🏠 Home", lat: 31.963, lng: 35.91 },
-                { nameAr: "💼 العمل", nameEn: "💼 Work", lat: 31.954, lng: 35.928 },
-                { nameAr: "👨‍👩‍👧 بيت العائلة", nameEn: "👨‍👩‍👧 Family", lat: 31.98, lng: 35.88 },
-              ].map((saved) => (
-                <Pressable key={saved.nameAr} onPress={() => { setDropoffCoord({ latitude: saved.lat, longitude: saved.lng }); setAddressDesc(language === "ar" ? `${saved.nameAr} (${saved.lat}, ${saved.lng})` : `${saved.nameEn} (${saved.lat}, ${saved.lng})`); showToast(language === "ar" ? `تم اختيار ${saved.nameAr}` : `Selected ${saved.nameEn}`); }} style={{ backgroundColor: "#FFFFFF", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: "#C6EDEF", flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ fontSize: 10, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? saved.nameAr : saved.nameEn}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            <View style={{ height: 210, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
+            {/* الخريطة التفاعلية */}
+            <View style={{ height: 160, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
               <MapPreview fullScreen dropoffCoordinates={dropoffCoord} onPressMap={() => {
-                const nextLat = dropoffCoord.latitude + 0.003;
-                const nextLng = dropoffCoord.longitude + 0.003;
-                setDropoffCoord({ latitude: nextLat, longitude: nextLng });
-                setAddressDesc(`${language === "ar" ? "موقع تسليم مختلف ومحدد" : "Custom delivery location"}: ${nextLat.toFixed(4)}, ${nextLng.toFixed(4)}`);
-                showToast(language === "ar" ? "تم تحديد موقع التوصيل المختلف بنجاح" : "Custom delivery location pinned");
+                const altLat = 31.96 + (Math.random() - 0.5) * 0.04;
+                const altLng = 35.91 + (Math.random() - 0.5) * 0.04;
+                setDropoffCoord({ latitude: altLat, longitude: altLng });
+                setAddressDesc(`${language === "ar" ? "موقع محدد على الخريطة" : "Pinned on map"}: ${altLat.toFixed(4)}, ${altLng.toFixed(4)}`);
+                showToast(language === "ar" ? "تم تحديد نقطة التوصيل على الخريطة بدقة" : "Delivery point pinned accurately");
               }} />
             </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72" }}>{addressDesc}</Text>
-              <Pressable onPress={() => {
-                const altLat = 32.556 + (Math.random() - 0.5) * 0.05;
-                const altLng = 35.85 + (Math.random() - 0.5) * 0.05;
-                setDropoffCoord({ latitude: altLat, longitude: altLng });
-                setAddressDesc(`${language === "ar" ? "موقع مدينة أخرى / منطقة مختلفة" : "Different city / custom area"}: ${altLat.toFixed(4)}, ${altLng.toFixed(4)}`);
-                showToast(language === "ar" ? "تم اختيار موقع تسليم في منطقة مختلفة" : "Selected location in different region");
-              }} style={{ backgroundColor: "#00AFC4", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10 }}>
-                <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "🗺️ اختر موقع مختلف" : "🗺️ Pick Custom"}</Text>
-              </Pressable>
+
+            <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72", textAlign: "center" }}>{addressDesc}</Text>
+
+            {/* تفاصيل المبنى والشارع */}
+            <View style={{ gap: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>{language === "ar" ? "تفاصيل العنوان الإضافية (الشارع، العمارة، الطابق):" : "Detailed Address (Street, Building, Floor):"}</Text>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <TextInput placeholder={language === "ar" ? "اسم الشارع والمنطقة" : "Street name & area"} placeholderTextColor="#8ABAC0" style={{ flex: 2, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+                <TextInput placeholder={language === "ar" ? "رقم العمارة" : "Building #"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+              </View>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <TextInput placeholder={language === "ar" ? "رقم الطابق والشقة" : "Floor & Apartment"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+                <TextInput placeholder={language === "ar" ? "علامة مميزة (قرب...)" : "Nearby landmark"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+              </View>
             </View>
           </View>
 
