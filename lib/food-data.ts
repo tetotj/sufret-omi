@@ -5,6 +5,20 @@ export type LoadCapacity = "small" | "medium" | "large";
 export type DriverVehicleType = "motorcycle" | "car" | "van";
 export type Localized = { ar: string; en: string };
 export type Coordinate = { latitude: number; longitude: number };
+export type DeliveryAddressDetails = {
+  street: string;
+  building: string;
+  floor: string;
+  apartment: string;
+  landmark: string;
+};
+export type DeliverySelection = {
+  coordinates: Coordinate;
+  address: Localized;
+  details?: DeliveryAddressDetails;
+  scheduledDay?: string;
+  scheduledHour?: string;
+};
 export type CategoryId = "mansaf" | "maqluba" | "mahshi" | "bakery" | "moona" | "desserts" | "dairy" | "cheese";
 export type RegionId = "amman" | "irbid" | "zarqa" | "balqa" | "salt" | "madaba" | "jerash" | "ajloun" | "mafraq" | "karak" | "tafila" | "maan" | "aqaba";
 
@@ -100,6 +114,8 @@ export type Order = {
   restaurantReview?: string;
   paymentMethod: "cod" | "cliq" | "wallet";
   schedule: "now" | "scheduled";
+  scheduledDay?: string;
+  scheduledHour?: string;
   status: OrderStatus;
   customerAction?: OrderCustomerAction;
   customerActionNote?: string;
@@ -111,6 +127,7 @@ export type Order = {
   driverLocationUpdatedAt?: string;
   pickupAddress: Localized;
   dropoffAddress: Localized;
+  dropoffAddressDetails?: DeliveryAddressDetails;
   driverRating?: number;
   requiredCapacity?: LoadCapacity;
   driver?: DriverDetails;

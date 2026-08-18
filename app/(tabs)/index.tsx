@@ -146,11 +146,11 @@ export default function HomeScreen() {
         {view === "discover" ? (
           <DiscoverMapScreen onBack={() => go("home")} onOpenMeals={() => go("meals")} />
         ) : view === "meals" ? (
-          <MealsScreen onBack={() => go("home")} onOpenCart={() => go("cart")} onOpenKitchen={(kitchenId) => { setView("kitchen"); setSelectedKitchenId(kitchenId); }} onRequestAdd={setCustomizingMeal} />
+          <MealsScreen onBack={() => go("home")} onOpenCart={() => go("cart")} onOpenKitchen={(kitchenId) => { setView("kitchen"); setSelectedKitchenId(kitchenId); }} />
         ) : view === "kitchen" ? (
           <KitchenProfile onBack={() => go("home")} onCart={() => go("cart")} onRequestAdd={setCustomizingMeal} />
         ) : view === "favorites" ? (
-          <FavoritesScreen onBack={() => go("home")} onOpenKitchen={(kitchenId) => { setSelectedKitchenId(kitchenId); setView("kitchen"); }} onRequestAdd={setCustomizingMeal} />
+          <FavoritesScreen onBack={() => go("home")} onOpenKitchen={(kitchenId) => { setSelectedKitchenId(kitchenId); setView("kitchen"); }} />
         ) : view === "cart" ? (
           <CartScreen onBack={() => go("home")} onCheckout={() => setCheckoutOpen(true)} />
         ) : view === "complaints" ? (
@@ -164,7 +164,7 @@ export default function HomeScreen() {
         ) : view === "profile" ? (
           <ProfileScreen onRoleChange={changeRole} onDashboard={() => go("dashboard")} onSupport={() => go("complaints")} />
         ) : (
-          <CustomerHome view={view} query={query} setQuery={setQuery} onNavigate={go} onRequestAdd={setCustomizingMeal} />
+          <CustomerHome view={view} query={query} setQuery={setQuery} onNavigate={go} />
         )}
 
         {view !== "kitchen" && view !== "favorites" && view !== "cart" && view !== "complaints" && view !== "dashboard" && view !== "delivery" && view !== "discover" && view !== "meals" && (
@@ -465,7 +465,7 @@ function DiscoverMapScreen({ onBack, onOpenMeals }: { onBack: () => void; onOpen
   );
 }
 
-function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBack: () => void; onOpenCart: () => void; onOpenKitchen: (kitchenId: string) => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
+function MealsScreen({ onBack, onOpenCart, onOpenKitchen }: { onBack: () => void; onOpenCart: () => void; onOpenKitchen: (kitchenId: string) => void }) {
   const { language, selectedRegion, selectedCategory, selectedSubcategory, setSelectedRegion, setSelectedCategory, setSelectedSubcategory, updateQuantity, cart, availableMeals } = useApp();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">(selectedRegion);
@@ -485,7 +485,7 @@ function MealsScreen({ onBack, onOpenCart, onOpenKitchen, onRequestAdd }: { onBa
   }), [activeRegion, availableMeals, regionScope, selectedCategory, selectedSubcategory, filterSort]);
 
   return (
-    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onRequestAdd(meal)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
+    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onOpenKitchen(kitchen.id)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
   );
 }
 
@@ -494,13 +494,11 @@ function CustomerHome({
   query,
   setQuery,
   onNavigate,
-  onRequestAdd,
 }: {
   view: ViewId;
   query: string;
   setQuery: (value: string) => void;
   onNavigate: (view: ViewId) => void;
-  onRequestAdd: (meal: (typeof meals)[number]) => void;
 }) {
   const {
     language,
@@ -636,7 +634,7 @@ function CustomerHome({
       <View style={styles.mealList}>
         {visibleMeals.map((meal) => {
           const quantity = cartQuantityByMeal.get(meal.id) ?? 0;
-          return <MealRow key={meal.id} meal={meal} language={language} isFavorite={favoriteMealIds.has(meal.id)} onToggleFavorite={() => void toggleFavorite("meal", meal.id)} offerBadge={offersOnly ? offerBadges.get(meal.id) : undefined} offerImage={offersOnly ? offerImages.get(meal.id) : undefined} quantity={quantity} onRemove={() => updateQuantity(meal.id, Math.max(0, quantity - 1))} onPress={() => openKitchen(meal.kitchenId)} onAdd={() => onRequestAdd(meal)} />;
+          return <MealRow key={meal.id} meal={meal} language={language} isFavorite={favoriteMealIds.has(meal.id)} onToggleFavorite={() => void toggleFavorite("meal", meal.id)} offerBadge={offersOnly ? offerBadges.get(meal.id) : undefined} offerImage={offersOnly ? offerImages.get(meal.id) : undefined} quantity={quantity} onRemove={() => updateQuantity(meal.id, Math.max(0, quantity - 1))} onPress={() => openKitchen(meal.kitchenId)} onAdd={() => openKitchen(meal.kitchenId)} />;
         })}
       </View>
       {visibleMeals.length === 0 && <EmptyState language={language} />}
@@ -645,7 +643,7 @@ function CustomerHome({
   );
 }
 
-function FavoritesScreen({ onBack, onOpenKitchen, onRequestAdd }: { onBack: () => void; onOpenKitchen: (kitchenId: string) => void; onRequestAdd: (meal: (typeof meals)[number]) => void }) {
+function FavoritesScreen({ onBack, onOpenKitchen }: { onBack: () => void; onOpenKitchen: (kitchenId: string) => void }) {
   const { language, cart, updateQuantity, availableMeals } = useApp();
   const { mealIds, kitchenIds, toggle } = useFavorites();
   const favoriteMeals = availableMeals.filter((meal) => mealIds.has(meal.id));
@@ -654,7 +652,7 @@ function FavoritesScreen({ onBack, onOpenKitchen, onRequestAdd }: { onBack: () =
     <View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View><Text style={styles.eyebrow}>{language === "ar" ? "محفوظاتك" : "YOUR SAVED TABLE"}</Text><Text style={styles.pageTitle}>{language === "ar" ? "المفضلة" : "Favorites"}</Text></View><View style={styles.favoriteHeaderIcon}><MaterialIcons name="favorite" size={19} color="#D76545" /></View></View>
     {favoriteKitchens.length > 0 && <><View style={styles.favoritesSectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? "مطابخي المفضلة" : "Saved kitchens"}</Text><Text style={styles.favoritesCount}>{favoriteKitchens.length}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kitchenRow}>{favoriteKitchens.map((kitchen) => <Pressable key={kitchen.id} onPress={() => onOpenKitchen(kitchen.id)} style={({ pressed }) => [styles.kitchenCard, pressed && styles.pressed]}><Pressable onPress={(event) => { event.stopPropagation(); void toggle("kitchen", kitchen.id); }} style={styles.favoriteFloatingButton}><MaterialIcons name="favorite" size={18} color="#D76545" /></Pressable><View style={styles.kitchenImageWrap}><Image source={{ uri: kitchen.image }} style={styles.kitchenImage} /></View><View style={styles.kitchenCardCopy}><Text style={styles.kitchenName} numberOfLines={1}>{getLocalized(kitchen.name, language)}</Text><Text style={styles.kitchenNeighborhood}>{getLocalized(kitchen.neighborhood, language)}</Text></View></Pressable>)}</ScrollView></>}
     <View style={styles.favoritesSectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? "أطباقي المفضلة" : "Saved meals"}</Text><Text style={styles.favoritesCount}>{favoriteMeals.length}</Text></View>
-    {favoriteMeals.length > 0 ? <View style={styles.mealList}>{favoriteMeals.map((meal) => <MealRow key={meal.id} meal={meal} language={language} isFavorite onToggleFavorite={() => void toggle("meal", meal.id)} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onAdd={() => onRequestAdd(meal)} onPress={() => onOpenKitchen(meal.kitchenId)} />)}</View> : <View style={styles.emptyState}><MaterialIcons name="favorite-border" size={34} color="#D76545" /><Text style={styles.emptyTitle}>{language === "ar" ? "لم تحفظي شيئاً بعد" : "Nothing saved yet"}</Text><Text style={styles.emptyBody}>{language === "ar" ? "اضغطي القلب بجانب أي طبق أو مطبخ ليظهر هنا." : "Tap the heart beside any meal or kitchen to save it here."}</Text><Pressable onPress={onBack} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{language === "ar" ? "اكتشفي الأكلات" : "Discover meals"}</Text></Pressable></View>}
+    {favoriteMeals.length > 0 ? <View style={styles.mealList}>{favoriteMeals.map((meal) => <MealRow key={meal.id} meal={meal} language={language} isFavorite onToggleFavorite={() => void toggle("meal", meal.id)} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onAdd={() => onOpenKitchen(meal.kitchenId)} onPress={() => onOpenKitchen(meal.kitchenId)} />)}</View> : <View style={styles.emptyState}><MaterialIcons name="favorite-border" size={34} color="#D76545" /><Text style={styles.emptyTitle}>{language === "ar" ? "لم تحفظي شيئاً بعد" : "Nothing saved yet"}</Text><Text style={styles.emptyBody}>{language === "ar" ? "اضغطي القلب بجانب أي طبق أو مطبخ ليظهر هنا." : "Tap the heart beside any meal or kitchen to save it here."}</Text><Pressable onPress={onBack} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{language === "ar" ? "اكتشفي الأكلات" : "Discover meals"}</Text></Pressable></View>}
   </ScrollView>;
 }
 
@@ -745,21 +743,17 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
   const [scheduledHour, setScheduledHour] = useState("02:00 ظهراً");
   const [dropoffCoord, setDropoffCoord] = useState<{ latitude: number; longitude: number }>({ latitude: 31.963, longitude: 35.91 });
   const [addressDesc, setAddressDesc] = useState(language === "ar" ? "عمّان - خلدا (موقع محدد على الخريطة)" : "Amman - Khalda (Pinned on map)");
+  const [street, setStreet] = useState("");
+  const [building, setBuilding] = useState("");
+  const [floor, setFloor] = useState("");
+  const [apartment, setApartment] = useState("");
+  const [landmark, setLandmark] = useState("");
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [tempCoord, setTempCoord] = useState<{ latitude: number; longitude: number }>({ latitude: 31.963, longitude: 35.91 });
   const [specialRequests, setSpecialRequests] = useState("");
   useEffect(() => {
     if (visible) setSpecialRequests(initialSpecialRequests);
   }, [initialSpecialRequests, visible]);
-
-  const handleMapPress = (e?: any) => {
-    const coord = e?.nativeEvent?.coordinate;
-    if (coord) {
-      setDropoffCoord({ latitude: coord.latitude, longitude: coord.longitude });
-      setAddressDesc(`${language === "ar" ? "إحداثيات" : "Coord"}: ${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`);
-      showToast(language === "ar" ? "تم تحديث موقع التوصيل على الخريطة" : "Delivery location updated on map");
-    }
-  };
 
   const locateUserOnMap = async () => {
     try {
@@ -785,7 +779,16 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
   };
 
   const confirmOrder = () => {
-    const placed = placeOrder(payment, schedule, buildSpecialRequests());
+    const addressDetails = { street: street.trim(), building: building.trim(), floor: floor.trim(), apartment: apartment.trim(), landmark: landmark.trim() };
+    const detailedAddress = [addressDesc, addressDetails.street, addressDetails.building && `${language === "ar" ? "عمارة" : "Building"} ${addressDetails.building}`, addressDetails.floor && `${language === "ar" ? "طابق" : "Floor"} ${addressDetails.floor}`, addressDetails.apartment && `${language === "ar" ? "شقة" : "Apartment"} ${addressDetails.apartment}`, addressDetails.landmark].filter(Boolean).join(" · ");
+    const deliverySelection = {
+      coordinates: dropoffCoord,
+      address: { ar: detailedAddress, en: detailedAddress },
+      details: addressDetails,
+      scheduledDay: schedule === "scheduled" ? scheduledDay.trim() : undefined,
+      scheduledHour: schedule === "scheduled" ? scheduledHour.trim() : undefined,
+    };
+    const placed = placeOrder(payment, schedule, buildSpecialRequests(), deliverySelection);
     if (placed) {
       if (customerPhone.trim()) void orderSmsMutation.mutateAsync({ phone: customerPhone.trim(), orderCount: Math.max(1, multiPricing.groups.length), total: pricing.grandTotal, language }).catch(() => undefined);
       showToast(language === "ar" ? "تم إرسال الطلب بنجاح وتحديد الموقع على الخريطة" : "Order placed with interactive map location");
@@ -869,40 +872,16 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
                     </ScrollView>
                   </View>
 
-                  {/* خريطة تفاعلية حقيقية تدعم النقر والسحب المباشر لتحريك الدبوس بدقة مطلقة */}
-                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 2, borderColor: "#00AFC4", marginVertical: 6, backgroundColor: "#E6F4F6", position: "relative" }}>
-                    <Pressable
-                      onPress={(e: any) => {
-                        const locX = e?.nativeEvent?.locationX ?? 180;
-                        const locY = e?.nativeEvent?.locationY ?? 120;
-                        const dLat = (120 - locY) * 0.0003;
-                        const dLng = (locX - 180) * 0.0003;
-                        const targetLat = Number((tempCoord.latitude + dLat).toFixed(5));
-                        const targetLng = Number((tempCoord.longitude + dLng).toFixed(5));
-                        setTempCoord({ latitude: targetLat, longitude: targetLng });
-                        showToast(language === "ar" ? `📍 تم نقل الدبوس إلى النقطة الجديدة` : `📍 Pin moved to new point`);
+                  {/* الخريطة الفعلية: النقر يغيّر النقطة، وسحب الدبوس يحفظ إحداثياته الجديدة */}
+                  <View style={{ flex: 1, borderRadius: 20, overflow: "hidden", borderWidth: 2, borderColor: "#00AFC4", marginVertical: 6, minHeight: 260 }}>
+                    <MapPreview
+                      fullScreen
+                      dropoffCoordinates={tempCoord}
+                      onSelectCoordinate={(coordinate) => {
+                        setTempCoord({ latitude: Number(coordinate.latitude.toFixed(6)), longitude: Number(coordinate.longitude.toFixed(6)) });
+                        showToast(language === "ar" ? "📍 تم تحديث موقع الدبوس" : "📍 Pin location updated");
                       }}
-                      style={{ flex: 1, width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}
-                    >
-                      {/* شبكة الطرق المرئية التفاعلية */}
-                      <View style={{ position: "absolute", width: "100%", height: "100%", backgroundColor: "#EAF9FA" }}>
-                        <View style={{ position: "absolute", width: "100%", height: 3, backgroundColor: "#C2EDF0", top: "25%" }} />
-                        <View style={{ position: "absolute", width: "100%", height: 3, backgroundColor: "#C2EDF0", top: "50%" }} />
-                        <View style={{ position: "absolute", width: "100%", height: 3, backgroundColor: "#C2EDF0", top: "75%" }} />
-                        <View style={{ position: "absolute", height: "100%", width: 3, backgroundColor: "#C2EDF0", left: "25%" }} />
-                        <View style={{ position: "absolute", height: "100%", width: 3, backgroundColor: "#C2EDF0", left: "50%" }} />
-                        <View style={{ position: "absolute", height: "100%", width: 3, backgroundColor: "#C2EDF0", left: "75%" }} />
-                        <Text style={{ fontSize: 11, fontWeight: "900", color: "#00AFC4", textAlign: "center", marginTop: 15 }}>
-                          🗺️ {language === "ar" ? "انقري في أي مكان بالخريطة لتحريك الدبوس فوراً" : "Tap anywhere on map to instantly move pin"}
-                        </Text>
-                      </View>
-
-                      {/* دبوس قابل للنقل والتوضيح */}
-                      <View style={{ position: "absolute", alignSelf: "center", top: "40%", backgroundColor: "#FF5A36", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 2, borderColor: "#FFFFFF", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 5, elevation: 8, alignItems: "center" }}>
-                        <Text style={{ fontSize: 12, fontWeight: "900", color: "#FFFFFF" }}>📍 {language === "ar" ? "📍 موقع التوصيل الحالي" : "📍 Current Drop-off"}</Text>
-                        <Text style={{ fontSize: 9, fontWeight: "800", color: "#FFEFEA" }}>{tempCoord.latitude.toFixed(4)}, {tempCoord.longitude.toFixed(4)}</Text>
-                      </View>
-                    </Pressable>
+                    />
                   </View>
 
                   <Text style={{ fontSize: 10, fontWeight: "800", color: "#2E9B72", textAlign: "center", marginBottom: 6 }}>
@@ -950,13 +929,14 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
             <View style={{ gap: 6 }}>
               <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>{language === "ar" ? "تفاصيل العنوان الإضافية (الشارع، العمارة، الطابق):" : "Detailed Address (Street, Building, Floor):"}</Text>
               <View style={{ flexDirection: "row", gap: 6 }}>
-                <TextInput placeholder={language === "ar" ? "اسم الشارع والمنطقة" : "Street name & area"} placeholderTextColor="#8ABAC0" style={{ flex: 2, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
-                <TextInput placeholder={language === "ar" ? "رقم العمارة" : "Building #"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+                <TextInput value={street} onChangeText={setStreet} placeholder={language === "ar" ? "اسم الشارع والمنطقة" : "Street name & area"} placeholderTextColor="#8ABAC0" style={{ flex: 2, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+                <TextInput value={building} onChangeText={setBuilding} placeholder={language === "ar" ? "رقم العمارة" : "Building #"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
               </View>
               <View style={{ flexDirection: "row", gap: 6 }}>
-                <TextInput placeholder={language === "ar" ? "رقم الطابق والشقة" : "Floor & Apartment"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
-                <TextInput placeholder={language === "ar" ? "علامة مميزة (قرب...)" : "Nearby landmark"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+                <TextInput value={floor} onChangeText={setFloor} placeholder={language === "ar" ? "رقم الطابق" : "Floor"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
+                <TextInput value={apartment} onChangeText={setApartment} placeholder={language === "ar" ? "رقم الشقة" : "Apartment"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
               </View>
+              <TextInput value={landmark} onChangeText={setLandmark} placeholder={language === "ar" ? "علامة مميزة (قرب...)" : "Nearby landmark"} placeholderTextColor="#8ABAC0" style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, fontSize: 11, color: "#082E34" }} textAlign={language === "ar" ? "right" : "left"} />
             </View>
           </View>
 

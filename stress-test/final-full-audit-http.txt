@@ -1,0 +1,68 @@
+=== HEALTH ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-/3ALsoAMS/31kedcQP5vz75Zuxw"
+Date: Mon, 17 Aug 2026 16:54:11 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786985651725}
+=== CORS TRUSTED ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: https://sufretapp-ed9iastw.manus.space
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-sSUP1+Fv7Zoz0caXCrXiga3dL4s"
+Date: Mon, 17 Aug 2026 16:54:11 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786985651734}
+=== CORS UNTRUSTED ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+Content-Type: application/json; charset=utf-8
+Content-Length: 37
+ETag: W/"25-LNFKHIkeANQJXs7S0sHwqgakSIc"
+Date: Mon, 17 Aug 2026 16:54:11 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"timestamp":1786985651741}
+=== TRPC PUBLIC ===
+HTTP/1.1 400 Bad Request
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+content-type: application/json
+vary: trpc-accept
+Date: Mon, 17 Aug 2026 16:54:11 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+[{"error":{"json":{"message":"[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timestamp\"\n    ],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  }\n]","code":-32600,"data":{"code":"BAD_REQUEST","httpStatus":400,"stack":"TRPCError: [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"timestamp\"\n    ],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  }\n]\n    at inputValidatorMiddleware (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:44:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async callRecursive (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:256:18)\n    at async procedure (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/initTRPC-Bq6NzC7R.cjs:281:18)\n    at async /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1948:18\n    at async Promise.all (index 0)\n    at async Object.resolveResponse (/home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:2138:20)\n    at async /home/ubuntu/sufret-omi/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"system.health"}}}}]
+=== TRPC UNAUTHENTICATED ===
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization
+content-type: application/json
+vary: trpc-accept
+Date: Mon, 17 Aug 2026 16:54:11 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+[{"result":{"data":{"json":null}}}]

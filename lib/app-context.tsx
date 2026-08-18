@@ -16,6 +16,7 @@ import {
   kitchens,
   meals,
   Order,
+  DeliverySelection,
   OrderCustomerAction,
   OrderMessage,
   RegionId,
@@ -71,6 +72,8 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
     restaurantReview: typeof value.restaurantReview === "string" ? value.restaurantReview : fallback?.restaurantReview ?? "",
     paymentMethod: value.paymentMethod ?? fallback?.paymentMethod ?? "cod",
     schedule: value.schedule ?? fallback?.schedule ?? "now",
+    scheduledDay: value.scheduledDay ?? fallback?.scheduledDay,
+    scheduledHour: value.scheduledHour ?? fallback?.scheduledHour,
     status: value.status ?? fallback?.status ?? "received",
     eta: value.eta ?? fallback?.eta ?? { ar: "خلال ٤٥ دقيقة", en: "Within 45 minutes" },
     pickupCoordinates: value.pickupCoordinates ?? fallback?.pickupCoordinates ?? { latitude: pickupRegion.latitude, longitude: pickupRegion.longitude },
@@ -79,6 +82,7 @@ function normalizeOrder(value: Partial<Order> | null | undefined, fallback: Orde
     driverLocationUpdatedAt: value.driverLocationUpdatedAt ?? fallback?.driverLocationUpdatedAt,
     pickupAddress: value.pickupAddress ?? fallback?.pickupAddress ?? { ar: `${getLocalized(kitchen.name, "ar")}، ${getLocalized(kitchen.neighborhood, "ar")}`, en: `${getLocalized(kitchen.name, "en")}, ${getLocalized(kitchen.neighborhood, "en")}` },
     dropoffAddress: value.dropoffAddress ?? fallback?.dropoffAddress ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+    dropoffAddressDetails: value.dropoffAddressDetails ?? fallback?.dropoffAddressDetails,
     driverRating: typeof value.driverRating === "number" ? value.driverRating : fallback?.driverRating ?? 4.9,
     requiredCapacity: value.requiredCapacity ?? fallback?.requiredCapacity ?? getRequiredLoadCapacity(Array.isArray(value.items) ? value.items : fallback?.items ?? []),
     customerAction: value.customerAction ?? fallback?.customerAction ?? "none",
@@ -147,7 +151,7 @@ type AppContextValue = AppState & {
   addToCart: (meal: Meal, specialRequests?: string) => void;
   updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
-  placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string) => boolean;
+  placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string, deliverySelection?: DeliverySelection) => boolean;
   reorder: (order: Order) => void;
   selectActiveOrder: (orderId: string) => void;
   rateOrder: (rating: number, review?: string) => void;
@@ -369,7 +373,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const mealDays = { ...current.weeklySchedule.mealDays, [mealId]: currentDays.includes(day) ? currentDays.filter((item) => item !== day) : [...currentDays, day] };
         return { ...current, weeklySchedule: { ...current.weeklySchedule, mealDays } };
       }),
-      placeOrder: (paymentMethod, schedule, specialRequests = "") => {
+      placeOrder: (paymentMethod, schedule, specialRequests = "", deliverySelection) => {
         if (!state.cart.length) {
           showToast(state.language === "ar" ? "السلة فارغة. أضيفي وجبة أولاً." : "Your cart is empty. Add a meal first.");
           return false;
@@ -390,6 +394,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const driver = verifiedDriver && canCarryLoad(verifiedDriver.cargoCapacity, requiredCapacity) ? verifiedDriver : fallbackDrivers.find((candidate) => canCarryLoad(candidate.cargoCapacity, requiredCapacity)) ?? fallbackDrivers[fallbackDrivers.length - 1];
             const cartInstructions = group.items.filter((item) => item.specialRequests?.trim()).map((item) => `${item.meal.name.ar}: ${item.specialRequests?.trim()}`).join(" · ");
             const mergedSpecialRequests = [cartInstructions, generalRequest].filter(Boolean).join(" · ");
+            const scheduledLabel = [deliverySelection?.scheduledDay, deliverySelection?.scheduledHour].filter(Boolean).join(" - ");
             return {
               id: `${batchId}-${index + 1}`,
               kitchen,
@@ -400,13 +405,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               specialRequests: mergedSpecialRequests,
               paymentMethod,
               schedule,
+              scheduledDay: deliverySelection?.scheduledDay,
+              scheduledHour: deliverySelection?.scheduledHour,
               status: "received",
-              eta: schedule === "scheduled" ? { ar: "الجمعة، ١:٣٠ م", en: "Friday, 1:30 PM" } : { ar: `خلال ${Math.max(...group.items.map((item) => item.meal.prepMinutes), 30)} دقيقة`, en: `Within ${Math.max(...group.items.map((item) => item.meal.prepMinutes), 30)} minutes` },
+              eta: schedule === "scheduled" && scheduledLabel ? { ar: scheduledLabel, en: scheduledLabel } : { ar: `خلال ${Math.max(...group.items.map((item) => item.meal.prepMinutes), 30)} دقيقة`, en: `Within ${Math.max(...group.items.map((item) => item.meal.prepMinutes), 30)} minutes` },
               pickupCoordinates: { latitude: kitchenRegion.latitude, longitude: kitchenRegion.longitude },
-              dropoffCoordinates: DEFAULT_DROPOFF,
+              dropoffCoordinates: deliverySelection?.coordinates ?? DEFAULT_DROPOFF,
               driverCoordinates: { latitude: kitchenRegion.latitude + 0.012, longitude: kitchenRegion.longitude + 0.008 },
               pickupAddress: { ar: `${getLocalized(kitchen.name, "ar")}، ${getLocalized(kitchen.neighborhood, "ar")}`, en: `${getLocalized(kitchen.name, "en")}, ${getLocalized(kitchen.neighborhood, "en")}` },
-              dropoffAddress: { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+              dropoffAddress: deliverySelection?.address ?? { ar: "عبدون، شارع الأمير هاشم", en: "Abdoun, Prince Hashem St." },
+              dropoffAddressDetails: deliverySelection?.details,
               driverRating: 4.9,
               requiredCapacity,
               driver,

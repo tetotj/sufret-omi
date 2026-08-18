@@ -1,0 +1,145 @@
+
+{
+  name: [32m'Sufret Omi'[39m,
+  slug: [32m'sufret-omi'[39m,
+  version: [32m'1.0.0'[39m,
+  orientation: [32m'portrait'[39m,
+  icon: [32m'./assets/images/icon.png'[39m,
+  scheme: [32m'manussufretomi'[39m,
+  userInterfaceStyle: [32m'automatic'[39m,
+  newArchEnabled: [33mtrue[39m,
+  plugins: [
+    [32m'expo-router'[39m,
+    [32m'expo-notifications'[39m,
+    [
+      [32m'expo-location'[39m,
+      {
+        locationWhenInUsePermission: [32m'Allow Sufret Omi to use your location to show nearby home kitchens.'[39m
+      }
+    ],
+    [
+      [32m'expo-image-picker'[39m,
+      {
+        photosPermission: [32m'Allow Sufret Omi to access photos for identity and compliance documents.'[39m,
+        cameraPermission: [32m'Allow Sufret Omi to use the camera for identity and compliance documents.'[39m
+      }
+    ],
+    [
+      [32m'expo-camera'[39m,
+      {
+        cameraPermission: [32m'Allow Sufret Omi to photograph identity and compliance documents.'[39m,
+        microphonePermission: [33mfalse[39m
+      }
+    ],
+    [
+      [32m'expo-audio'[39m,
+      {
+        microphonePermission: [32m'Allow $(PRODUCT_NAME) to access your microphone.'[39m
+      }
+    ],
+    [
+      [32m'expo-video'[39m,
+      {
+        supportsBackgroundPlayback: [33mtrue[39m,
+        supportsPictureInPicture: [33mtrue[39m
+      }
+    ],
+    [
+      [32m'expo-splash-screen'[39m,
+      {
+        image: [32m'./assets/images/splash-icon.png'[39m,
+        imageWidth: [33m200[39m,
+        resizeMode: [32m'contain'[39m,
+        backgroundColor: [32m'#F2FEFF'[39m,
+        dark: {
+          backgroundColor: [32m'#061A1E'[39m
+        }
+      }
+    ],
+    [
+      [32m'expo-build-properties'[39m,
+      {
+        android: {
+          buildArchs: [
+            [32m'armeabi-v7a'[39m,
+            [32m'arm64-v8a'[39m
+          ],
+          minSdkVersion: [33m24[39m
+        }
+      }
+    ]
+  ],
+  description: [90mundefined[39m,
+  sdkVersion: [32m'54.0.0'[39m,
+  platforms: [
+    [32m'ios'[39m,
+    [32m'android'[39m,
+    [32m'web'[39m
+  ],
+  ios: {
+    supportsTablet: [33mtrue[39m,
+    bundleIdentifier: [32m'com.app.sufretomi'[39m,
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: [33mfalse[39m
+    }
+  },
+  android: {
+    edgeToEdgeEnabled: [33mtrue[39m,
+    predictiveBackGestureEnabled: [33mfalse[39m,
+    package: [32m'com.app.sufretomi'[39m,
+    permissions: [
+      [32m'android.permission.POST_NOTIFICATIONS'[39m,
+      [32m'android.permission.ACCESS_COARSE_LOCATION'[39m,
+      [32m'android.permission.ACCESS_FINE_LOCATION'[39m,
+      [32m'android.permission.RECORD_AUDIO'[39m,
+      [32m'android.permission.CAMERA'[39m,
+      [32m'android.permission.MODIFY_AUDIO_SETTINGS'[39m
+    ],
+    intentFilters: [
+      {
+        action: [32m'VIEW'[39m,
+        autoVerify: [33mtrue[39m,
+        data: [
+          {
+            scheme: [32m'manussufretomi'[39m,
+            host: [32m'*'[39m
+          }
+        ],
+        category: [
+          [32m'BROWSABLE'[39m,
+          [32m'DEFAULT'[39m
+        ]
+      }
+    ],
+    adaptiveIcon: {
+      backgroundColor: [32m'#061A1E'[39m,
+      foregroundImage: [32m'./assets/images/android-icon-foreground.png'[39m,
+      backgroundImage: [32m'./assets/images/android-icon-background.png'[39m,
+      monochromeImage: [32m'./assets/images/android-icon-monochrome.png'[39m
+    }
+  },
+  web: {
+    bundler: [32m'metro'[39m,
+    output: [32m'static'[39m,
+    favicon: [32m'./assets/images/favicon.png'[39m
+  },
+  extra: {
+    eas: {
+      projectId: [32m''[39m
+    },
+    router: {}
+  },
+  experiments: {
+    typedRoutes: [33mtrue[39m,
+    reactCompiler: [33mtrue[39m
+  },
+  androidStatusBar: {
+    backgroundColor: [32m'#F2FEFF'[39m
+  }
+}
+
+npm notice
+npm notice New major version of npm available! 10.9.2 -> 12.0.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+npm notice To update run: npm install -g npm@12.0.2
+npm notice

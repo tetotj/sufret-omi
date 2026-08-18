@@ -1,6 +1,6 @@
 import * as Location from "expo-location";
-import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View, type DimensionValue } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { PanResponder, Pressable, StyleSheet, Text, View, type DimensionValue } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Svg, { Polyline } from "react-native-svg";
 
@@ -12,13 +12,15 @@ type MapPreviewProps = {
   fullScreen?: boolean;
   onSelectRegion?: (regionId: (typeof regions)[number]["id"]) => void;
   onPressMap?: () => void;
+  onSelectCoordinate?: (coordinate: Coordinate) => void;
   pickupCoordinates?: Coordinate;
   dropoffCoordinates?: Coordinate;
   driverCoordinates?: Coordinate;
 };
 
-export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, onPressMap, pickupCoordinates, dropoffCoordinates, driverCoordinates }: MapPreviewProps) {
+export function MapPreview({ compact = false, fullScreen = false, onSelectRegion, onPressMap, onSelectCoordinate, pickupCoordinates, dropoffCoordinates, driverCoordinates }: MapPreviewProps) {
   const { language, selectedRegion, showToast } = useApp();
+  const [mapSize, setMapSize] = useState({ width: 360, height: 220 });
   const [locating, setLocating] = useState(false);
   const [routeGeometry, setRouteGeometry] = useState<[number, number][]>([]);
   const [routeStatus, setRouteStatus] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
@@ -100,10 +102,37 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
     };
   }, [routeGeometry]);
   const projectedRoute = routeProjection?.points ?? "";
+  const mapCenter = dropoffCoordinates ?? pickupCoordinates ?? selected;
+  const mapLatitudeDelta = fullScreen ? 0.18 : 0.28;
+  const mapLongitudeDelta = fullScreen ? 0.24 : 0.36;
+  const projectInteractiveCoordinate = useCallback((coordinate: Coordinate) => ({
+    left: Math.max(4, Math.min(96, 50 + ((coordinate.longitude - mapCenter.longitude) / mapLongitudeDelta) * 100)),
+    top: Math.max(8, Math.min(92, 50 - ((coordinate.latitude - mapCenter.latitude) / mapLatitudeDelta) * 100)),
+  }), [mapCenter.latitude, mapCenter.longitude, mapLatitudeDelta, mapLongitudeDelta]);
   const pinPosition = (coordinate: Coordinate, fallback: { left: DimensionValue; top: DimensionValue }) => {
-    const projected = routeProjection?.project(coordinate);
+    const projected = routeProjection?.project(coordinate) ?? projectInteractiveCoordinate(coordinate);
     return projected ? { left: `${projected.left}%` as DimensionValue, top: `${projected.top}%` as DimensionValue } : fallback;
   };
+  const coordinateFromMapPoint = useCallback((locationX: number, locationY: number): Coordinate => ({
+    latitude: Number((mapCenter.latitude - ((locationY / Math.max(mapSize.height, 1)) - 0.5) * mapLatitudeDelta).toFixed(6)),
+    longitude: Number((mapCenter.longitude + ((locationX / Math.max(mapSize.width, 1)) - 0.5) * mapLongitudeDelta).toFixed(6)),
+  }), [mapCenter.latitude, mapCenter.longitude, mapLatitudeDelta, mapLongitudeDelta, mapSize.height, mapSize.width]);
+  const selectMapPoint = (locationX: number, locationY: number) => {
+    onSelectCoordinate?.(coordinateFromMapPoint(locationX, locationY));
+    onPressMap?.();
+  };
+  const dropoffPinProjection = dropoffCoordinates ? projectInteractiveCoordinate(dropoffCoordinates) : null;
+  const pinPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => Boolean(dropoffCoordinates && onSelectCoordinate),
+    onMoveShouldSetPanResponder: () => Boolean(dropoffCoordinates && onSelectCoordinate),
+    onPanResponderMove: (_event, gestureState) => {
+      if (!dropoffCoordinates || !onSelectCoordinate) return;
+      const base = projectInteractiveCoordinate(dropoffCoordinates);
+      const nextLeft = Math.max(2, Math.min(98, base.left + (gestureState.dx / Math.max(mapSize.width, 1)) * 100));
+      const nextTop = Math.max(2, Math.min(98, base.top + (gestureState.dy / Math.max(mapSize.height, 1)) * 100));
+      onSelectCoordinate(coordinateFromMapPoint((nextLeft / 100) * mapSize.width, (nextTop / 100) * mapSize.height));
+    },
+  }), [coordinateFromMapPoint, dropoffCoordinates, mapSize.height, mapSize.width, onSelectCoordinate, projectInteractiveCoordinate]);
 
   const locateMe = async () => {
     setLocating(true);
@@ -129,12 +158,13 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
 
   return (
     <View style={[styles.webMap, compact && styles.compactWrap, fullScreen && styles.fullScreenMap]}>
-      <View style={styles.mapWash} />
-      <View style={[styles.road, styles.roadOne]} />
-      <View style={[styles.road, styles.roadTwo]} />
-      <View style={[styles.road, styles.roadThree]} />
+      <View style={styles.mapWash} onLayout={(event) => setMapSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })} />
+      <Pressable accessibilityRole="button" accessibilityLabel={language === "ar" ? "اختيار نقطة على الخريطة" : "Choose a point on the map"} onPress={(event) => selectMapPoint(event.nativeEvent.locationX, event.nativeEvent.locationY)} style={StyleSheet.absoluteFill} />
+      <View style={[styles.road, styles.roadOne]} pointerEvents="none" />
+      <View style={[styles.road, styles.roadTwo]} pointerEvents="none" />
+      <View style={[styles.road, styles.roadThree]} pointerEvents="none" />
       {projectedRoute && <Svg pointerEvents="none" viewBox="0 0 100 100" preserveAspectRatio="none" style={styles.routeLayer}><Polyline points={projectedRoute} fill="none" stroke="#D76545" strokeWidth="1.8" strokeOpacity="0.92" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
-      <View style={styles.mapLabelTop}>
+      <View style={styles.mapLabelTop} pointerEvents="none">
         <Text style={styles.mapMicro}>{language === "ar" ? "مطابخ بيتية حولك" : "Home kitchens around you"}</Text>
         <Text style={styles.mapTitle}>{getLocalized(selected.label, language)}</Text>
       </View>
@@ -145,7 +175,7 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
       ))}
       {pickupCoordinates && <View style={[styles.driverPin, styles.driverPickupPin, pinPosition(pickupCoordinates, { left: "28%", top: "45%" })]}><MaterialIcons name="storefront" size={13} color="#FFFFFF" /></View>}
       {driverCoordinates && <View style={[styles.driverPin, styles.driverCurrentPin, pinPosition(driverCoordinates, { left: "47%", top: "38%" })]}><MaterialIcons name="two-wheeler" size={13} color="#FFFFFF" /></View>}
-      {dropoffCoordinates && <View style={[styles.driverPin, styles.driverDropoffPin, pinPosition(dropoffCoordinates, { left: "67%", top: "30%" })]}><MaterialIcons name="location-on" size={13} color="#FFFFFF" /></View>}
+      {dropoffCoordinates && <View {...pinPanResponder.panHandlers} accessibilityRole="adjustable" accessibilityLabel={language === "ar" ? "اسحب دبوس موقع التوصيل" : "Drag delivery pin"} style={[styles.driverPin, styles.driverDropoffPin, dropoffPinProjection ? { left: `${dropoffPinProjection.left}%` as DimensionValue, top: `${dropoffPinProjection.top}%` as DimensionValue } : pinPosition(dropoffCoordinates, { left: "67%", top: "30%" })]}><MaterialIcons name="location-on" size={15} color="#FFFFFF" /></View>}
       <View style={styles.mapLegend}><View style={styles.legendDot} /><Text style={styles.legendText}>{language === "ar" ? "متاح الآن" : "Open now"}</Text></View>
       {pickupCoordinates && dropoffCoordinates && <View style={styles.coordinateBadge}><Text style={styles.coordinateBadgeTitle}>{routeStatus === "loading" ? (language === "ar" ? "جارٍ حساب مسار القيادة" : "Calculating driving route") : routeStatus === "ready" ? (language === "ar" ? "مسار قيادة فعلي" : "Live driving route") : (language === "ar" ? "مسار التوصيل" : "Delivery route")}</Text><Text style={styles.coordinateBadgeText}>{dropoffCoordinates.latitude.toFixed(5)}, {dropoffCoordinates.longitude.toFixed(5)}</Text></View>}
       {!compact && !dropoffCoordinates && <View style={styles.regionBadge}><MaterialIcons name="location-on" size={16} color="#236B45" /><View><Text style={styles.regionCaption}>{language === "ar" ? "توصيل إلى" : "Delivering to"}</Text><Text style={styles.regionName}>{getLocalized(selected.label, language)}</Text></View></View>}
