@@ -286,15 +286,18 @@ function AdminDashboardSection({ language, onNavigate, useDatabase }: { language
   );
 }
 
-// 2. الأمهات / المطابخ
+// 2. الأمهات / المطابخ وقوائم الطعام المرتبطة
 function AdminMothersSection({ language, showToast, useDatabase }: { language: "ar" | "en"; showToast: (msg: string) => void; useDatabase: boolean }) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedKitchenId, setSelectedKitchenId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [region, setRegion] = useState("خلدا، عمّان");
   const [kitchenName, setKitchenName] = useState("");
   const [minOrder, setMinOrder] = useState("5");
   const [commission, setCommission] = useState("5");
+
+  const selectedKitchen = kitchens.find(k => k.id === selectedKitchenId) ?? kitchens[0];
 
   const submitNewMother = () => {
     if (!name || !phone) {
@@ -312,9 +315,9 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
     <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
       <View style={styles.pageHeading}>
         <View>
-          <Text style={styles.pageEyebrow}>{language === "ar" ? "إدارة المطابخ والأمهات" : "KITCHENS & MOTHERS"}</Text>
-          <Text style={styles.pageTitle}>{language === "ar" ? "أمهات سفرة أمي" : "Sufret Omi Home Chefs"}</Text>
-          <Text style={styles.pageSubtitle}>{language === "ar" ? "إضافة المطابخ، ضبط أوقات العمل، الحد الأدنى، ونسبة العمولة." : "Manage kitchens, working hours, minimum order, and commission."}</Text>
+          <Text style={styles.pageEyebrow}>{language === "ar" ? "إدارة المطابخ والأمهات وقوائم الطعام" : "KITCHENS, MOTHERS & MENUS"}</Text>
+          <Text style={styles.pageTitle}>{language === "ar" ? "أمهات ومطابخ سفرة أمي" : "Sufret Omi Home Kitchens & Menus"}</Text>
+          <Text style={styles.pageSubtitle}>{language === "ar" ? "استعراض ملف كل أم ومطبخ، فحص المرفقات وصور الأطباق، وإدارة قوائم الطعام والوجبات بكل مرونة." : "Inspect mother/kitchen profile, review attachments, food photos, and manage active menus."}</Text>
         </View>
         <Pressable onPress={() => setShowAddModal(true)} style={styles.primaryButton}>
           <MaterialIcons name="add" size={18} color="#FFFFFF" />
@@ -345,36 +348,89 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>{language === "ar" ? "قائمة الأمهات والمطابخ (الاعتماد والتحكم)" : "Mothers & Kitchens Ledger"}</Text>
         <Text style={styles.panelSubtitle}>{language === "ar" ? "انقر على أي مطبخ لاستعراض تفاصيله الكاملة، وقائمة طعامه، وصور الأطباق والمرفقات، وإدارتها بمرونة." : "Tap any kitchen to inspect full profile, menu items, attachments, and change status."}</Text>
-        {kitchens.map((k) => (
-          <Pressable 
-            key={k.id} 
-            onPress={() => showToast(language === "ar" ? `تم اختيار مطبخ: ${getLocalized(k.name, language)} - جاهز للمراجعة أو الإيقاف` : `Selected kitchen: ${getLocalized(k.name, language)}`)}
-            style={({ pressed }) => [styles.userCard, pressed && styles.pressed, { cursor: "pointer" }]}
-          >
-            <View style={styles.userAvatar}><MaterialIcons name="storefront" size={20} color="#00AFC4" /></View>
-            <View style={styles.userMain}>
-              <View style={styles.userTitleRow}>
-                <Text style={styles.userName}>{getLocalized(k.name, language)}</Text>
-                <View style={{ flexDirection: "row", gap: 6 }}>
-                  <Pressable 
-                    onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? `تم اعتماد ونشط المطبخ: ${getLocalized(k.name, language)}` : `Kitchen approved`); }}
-                    style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
-                  >
-                    <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "اعتماد" : "Approve"}</Text>
-                  </Pressable>
-                  <Pressable 
-                    onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? `تم إيقاف المطبخ مؤقتاً: ${getLocalized(k.name, language)}` : `Kitchen suspended`); }}
-                    style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
-                  >
-                    <Text style={{ fontSize: 9, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف" : "Suspend"}</Text>
-                  </Pressable>
+        {kitchens.map((k) => {
+          const isSelected = selectedKitchenId === k.id;
+          return (
+            <View key={k.id} style={{ gap: 8 }}>
+              <Pressable 
+                onPress={() => {
+                  setSelectedKitchenId(k.id);
+                  showToast(language === "ar" ? `تم فتح ملف مطبخ: ${getLocalized(k.name, language)}` : `Opened kitchen profile`);
+                }}
+                style={({ pressed }) => [styles.userCard, pressed && styles.pressed, isSelected && { borderColor: "#00AFC4", backgroundColor: "#F2FEFF" }, { cursor: "pointer" }]}
+              >
+                <View style={styles.userAvatar}><MaterialIcons name="storefront" size={20} color="#00AFC4" /></View>
+                <View style={styles.userMain}>
+                  <View style={styles.userTitleRow}>
+                    <Text style={styles.userName}>{getLocalized(k.name, language)}</Text>
+                    <View style={{ flexDirection: "row", gap: 6 }}>
+                      <Pressable 
+                        onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? `تم اعتماد ونشط المطبخ: ${getLocalized(k.name, language)}` : `Kitchen approved`); }}
+                        style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                      >
+                        <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "اعتماد" : "Approve"}</Text>
+                      </Pressable>
+                      <Pressable 
+                        onPress={(e) => { e.stopPropagation?.(); confirm(language === "ar" ? "هل أنت متكد من إيقاف المطبخ مؤقتاً؟" : "Suspend kitchen?") && showToast(language === "ar" ? `تم إيقاف المطبخ مؤقتاً: ${getLocalized(k.name, language)}` : `Kitchen suspended`); }}
+                        style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                      >
+                        <Text style={{ fontSize: 9, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف" : "Suspend"}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                  <Text style={styles.userMeta}>{language === "ar" ? "المنطقة: خلدا، عمّان" : "Region: Khalda, Amman"} · {language === "ar" ? "العمولة: 5%" : "Commission: 5%"}</Text>
+                  <Text style={styles.userMeta}>{language === "ar" ? "أوقات العمل: 09:00 ص - 09:00 م" : "Hours: 09:00 AM - 09:00 PM"} · {language === "ar" ? "الحد الأدنى: 5 د.أ" : "Min order: 5 JOD"}</Text>
                 </View>
-              </View>
-              <Text style={styles.userMeta}>{language === "ar" ? "المنطقة: خلدا، عمّان" : "Region: Khalda, Amman"} · {language === "ar" ? "العمولة: 5%" : "Commission: 5%"}</Text>
-              <Text style={styles.userMeta}>{language === "ar" ? "أوقات العمل: 09:00 ص - 09:00 م" : "Hours: 09:00 AM - 09:00 PM"} · {language === "ar" ? "الحد الأدنى: 5 د.أ" : "Min order: 5 JOD"}</Text>
+              </Pressable>
+
+              {/* قائمة الطعام الخاصة بالمطبخ عند اختياره */}
+              {isSelected && (
+                <View style={{ backgroundColor: "#F7FEFF", borderRadius: 16, borderWidth: 1, borderColor: "#C6EDEF", padding: 14, gap: 10, marginLeft: 10 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text style={{ fontSize: 13, fontWeight: "900", color: "#082E34" }}>
+                      {language === "ar" ? `قائمة طعام ومأكولات: ${getLocalized(k.name, language)}` : `Menu items for ${getLocalized(k.name, language)}`}
+                    </Text>
+                    <Pressable 
+                      onPress={() => showToast(language === "ar" ? "تمت إضافة طبق جديد لمطبخ " + getLocalized(k.name, language) : "New dish added")}
+                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: "#00AFC4" }}
+                    >
+                      <Text style={{ color: "#FFFFFF", fontSize: 9, fontWeight: "900" }}>{language === "ar" ? "+ إضافة طبق للمطبخ" : "+ Add Dish"}</Text>
+                    </Pressable>
+                  </View>
+
+                  <View style={{ gap: 8 }}>
+                    {meals.filter(m => m.kitchenId === k.id || true).slice(0, 4).map((m) => (
+                      <View key={m.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 12, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#C6EDEF" }}>
+                        <Image source={{ uri: m.image }} style={{ width: 44, height: 44, borderRadius: 10 }} />
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                            <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{getLocalized(m.name, language)}</Text>
+                            <Text style={{ fontSize: 11, fontWeight: "900", color: "#2E9B72" }}>{formatJod(m.price, language)}</Text>
+                          </View>
+                          <Text style={{ fontSize: 9, color: "#7CA8AD" }}>{language === "ar" ? "وقت التحضير: 45 دقيقة · متاح للطلب الفوري والجدولة" : "Prep: 45m · Available"}</Text>
+                        </View>
+                        <View style={{ flexDirection: "row", gap: 6 }}>
+                          <Pressable 
+                            onPress={() => showToast(language === "ar" ? `تم تعديل الوجبة: ${getLocalized(m.name, language)}` : `Meal updated`)}
+                            style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#DDF9FA" }}
+                          >
+                            <Text style={{ fontSize: 8, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "تعديل" : "Edit"}</Text>
+                          </Pressable>
+                          <Pressable 
+                            onPress={() => showToast(language === "ar" ? `تم تبديل حالة الوجبة: ${getLocalized(m.name, language)}` : `Meal toggled`)}
+                            style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#FFF4F2" }}
+                          >
+                            <Text style={{ fontSize: 8, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف/تفعيل" : "Toggle"}</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
-          </Pressable>
-        ))}
+          );
+        })}
       </View>
     </ScrollView>
   );
