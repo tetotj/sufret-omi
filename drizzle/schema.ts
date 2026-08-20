@@ -282,3 +282,15 @@ export type AnnouncementDb = typeof announcements.$inferSelect;
 export type OfferDb = typeof offers.$inferSelect;
 export type PushTokenDb = typeof pushTokens.$inferSelect;
 export type FavoriteDb = typeof favorites.$inferSelect;
+
+export const mealCustomizationOptions = mysqlTable("mealCustomizationOptions", {
+  id: int("id").autoincrement().primaryKey(),
+  mealId: varchar("mealId", { length: 64 }).notNull(),
+  type: mysqlEnum("type", ["addition", "removal"]).notNull(),
+  titleAr: text("titleAr").notNull(),
+  titleEn: text("titleEn").notNull(),
+  price: decimal("price", { precision: 6, scale: 2 }).default("0.00").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  mealTypeIdx: index("meal_customization_meal_type_idx").on(table.mealId, table.type),
+}));
