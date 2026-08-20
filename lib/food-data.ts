@@ -56,6 +56,10 @@ export type Meal = {
   image: string;
   portionSize: MealSize;
   subcategory?: string;
+  customizationOptions?: {
+    additions?: { id: string; label: Localized; price?: number }[];
+    removals?: { id: string; label: Localized }[];
+  };
 };
 
 export type Kitchen = {
@@ -228,6 +232,16 @@ export const meals: Meal[] = [
     dailyLimit: 18,
     available: true,
     image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=84", portionSize: "medium",
+    customizationOptions: {
+      additions: [
+        { id: "extra-jameed", label: { ar: "مرق جميد إضافي", en: "Extra Jameed broth" }, price: 1.00 },
+        { id: "extra-ghee", label: { ar: "سمنة بلدية عالعين", en: "Country ghee drizzle" }, price: 0.50 }
+      ],
+      removals: [
+        { id: "no-nuts", label: { ar: "بدون لوز", en: "Without almonds" } },
+        { id: "no-parsley", label: { ar: "بدون بقدونس", en: "Without parsley" } }
+      ]
+    }
   },
   {
     id: "maqluba-chicken",
@@ -240,6 +254,16 @@ export const meals: Meal[] = [
     dailyLimit: 12,
     available: true,
     image: "https://images.unsplash.com/photo-1601050690117-94f5f6fa8bd7?auto=format&fit=crop&w=900&q=84", portionSize: "medium",
+    customizationOptions: {
+      additions: [
+        { id: "extra-chicken", label: { ar: "قطعة دجاج إضافية", en: "Extra chicken piece" }, price: 2.00 },
+        { id: "fried-nuts", label: { ar: "مكسرات مقلية", en: "Fried nuts" }, price: 0.75 }
+      ],
+      removals: [
+        { id: "no-cauliflower", label: { ar: "بدون زهرة", en: "Without cauliflower" } },
+        { id: "no-eggplant", label: { ar: "بدون باذنجان", en: "Without eggplant" } }
+      ]
+    }
   },
   {
     id: "grape-leaves",

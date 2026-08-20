@@ -729,7 +729,48 @@ function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof me
     onConfirm(meal, request);
   };
 
-  return <Modal visible={Boolean(meal)} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalBackdrop}><View style={styles.customizationSheet}><View style={styles.sheetHandle} /><View style={styles.sheetHeader}><View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تخصيص الصنف" : "CUSTOMIZE MEAL"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "اختاري قبل الإضافة للسلة" : "Choose before adding to cart"}</Text></View><Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable></View>{meal && <ScrollView style={styles.customizationScroll} contentContainerStyle={styles.customizationContent} showsVerticalScrollIndicator={false}><View style={styles.customizationMealHeader}><Image source={{ uri: meal.image }} style={styles.customizationMealImage} /><View style={styles.customizationMealCopy}><Text style={styles.customizationMealName}>{getLocalized(meal.name, language)}</Text><Text style={styles.customizationMealPrice}>{formatJod(meal.price, language)}</Text><Text style={styles.customizationHint}>{language === "ar" ? "اختياراتك ستُحفظ مع هذا الصنف في السلة" : "Your choices will be saved with this meal in the cart"}</Text></View></View><Text style={styles.ingredientGroupLabel}>{language === "ar" ? "إضافة مكونات" : "Add ingredients"}</Text><View style={styles.ingredientOptionGrid}>{addIngredientOptions.map((option) => { const selected = selectedAdditions.includes(option.id); return <Pressable key={`add-${option.id}`} onPress={() => toggle(option.id, "add")} style={[styles.ingredientOption, selected && styles.ingredientOptionSelected]}><MaterialIcons name={option.icon} size={17} color={selected ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionTextSelected]}>{getLocalized(option.label, language)}</Text><MaterialIcons name={selected ? "check-circle" : "add-circle-outline"} size={16} color={selected ? "#F6D889" : "#8ABAC0"} /></Pressable>; })}</View><Text style={styles.ingredientGroupLabel}>{language === "ar" ? "إزالة مكونات" : "Remove ingredients"}</Text><View style={styles.ingredientOptionGrid}>{removeIngredientOptions.map((option) => { const selected = selectedRemovals.includes(option.id); return <Pressable key={`remove-${option.id}`} onPress={() => toggle(option.id, "remove")} style={[styles.ingredientOption, selected && styles.ingredientOptionRemoveSelected]}><MaterialIcons name={option.icon} size={17} color={selected ? "#8A6516" : "#00AFC4"} /><Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionRemoveTextSelected]}>{getLocalized(option.label, language)}</Text><MaterialIcons name={selected ? "check-circle" : "remove-circle-outline"} size={16} color={selected ? "#C98A2E" : "#8ABAC0"} /></Pressable>; })}</View><Text style={styles.ingredientGroupLabel}>{language === "ar" ? "ملاحظات إضافية" : "Extra notes"}</Text><View style={styles.specialRequestInputWrap}><MaterialIcons name="edit-note" size={20} color="#00AFC4" /><TextInput value={notes} onChangeText={setNotes} placeholder={language === "ar" ? "مثال: الصلصة على الجانب..." : "Example: sauce on the side..."} placeholderTextColor="#8ABAC0" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View></ScrollView>}<Pressable onPress={submit} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أضف للسلة" : "Add to cart"}</Text><MaterialIcons name="shopping-cart" size={18} color="#FFFFFF" /></Pressable></View></View></Modal>;
+  return <Modal visible={Boolean(meal)} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalBackdrop}><View style={styles.customizationSheet}><View style={styles.sheetHandle} /><View style={styles.sheetHeader}><View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تخصيص الصنف" : "CUSTOMIZE MEAL"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "اختاري قبل الإضافة للسلة" : "Choose before adding to cart"}</Text></View><Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable></View>{meal && <ScrollView style={styles.customizationScroll} contentContainerStyle={styles.customizationContent} showsVerticalScrollIndicator={false}><View style={styles.customizationMealHeader}><Image source={{ uri: meal.image }} style={styles.customizationMealImage} /><View style={styles.customizationMealCopy}><Text style={styles.customizationMealName}>{getLocalized(meal.name, language)}</Text><Text style={styles.customizationMealPrice}>{formatJod(meal.price, language)}</Text><Text style={styles.customizationHint}>{language === "ar" ? "اختياراتك ستُحفظ مع هذا الصنف في السلة" : "Your choices will be saved with this meal in the cart"}</Text></View></View>{(() => {
+  const customAdditions = meal.customizationOptions?.additions ?? addIngredientOptions.map(opt => ({ id: opt.id, label: opt.label, price: undefined }));
+  const customRemovals = meal.customizationOptions?.removals ?? removeIngredientOptions.map(opt => ({ id: opt.id, label: opt.label }));
+  return (
+    <>
+      {customAdditions.length > 0 && (
+        <>
+          <Text style={styles.ingredientGroupLabel}>{language === "ar" ? "إضافات اختيارية مقترحة من المطبخ" : "Optional kitchen additions"}</Text>
+          <View style={styles.ingredientOptionGrid}>
+            {customAdditions.map((option) => {
+              const selected = selectedAdditions.includes(option.id);
+              return (
+                <Pressable key={`add-${option.id}`} onPress={() => toggle(option.id, "add")} style={[styles.ingredientOption, selected && styles.ingredientOptionSelected]}>
+                  <MaterialIcons name="add-circle-outline" size={17} color={selected ? "#FFFFFF" : "#00AFC4"} />
+                  <Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionTextSelected]}>{getLocalized(option.label, language)}{typeof option.price === "number" ? ` (${formatJod(option.price, language)})` : ""}</Text>
+                  <MaterialIcons name={selected ? "check-circle" : "radio-button-unchecked"} size={16} color={selected ? "#F6D889" : "#8ABAC0"} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      )}
+      {customRemovals.length > 0 && (
+        <>
+          <Text style={styles.ingredientGroupLabel}>{language === "ar" ? "إزالة مكونات (اختياري حسب رغبتك)" : "Remove ingredients (optional)"}</Text>
+          <View style={styles.ingredientOptionGrid}>
+            {customRemovals.map((option) => {
+              const selected = selectedRemovals.includes(option.id);
+              return (
+                <Pressable key={`remove-${option.id}`} onPress={() => toggle(option.id, "remove")} style={[styles.ingredientOption, selected && styles.ingredientOptionRemoveSelected]}>
+                  <MaterialIcons name="remove-circle-outline" size={17} color={selected ? "#8A6516" : "#00AFC4"} />
+                  <Text style={[styles.ingredientOptionText, selected && styles.ingredientOptionRemoveTextSelected]}>{getLocalized(option.label, language)}</Text>
+                  <MaterialIcons name={selected ? "check-circle" : "radio-button-unchecked"} size={16} color={selected ? "#C98A2E" : "#8ABAC0"} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      )}
+    </>
+  );
+})()}<Text style={styles.ingredientGroupLabel}>{language === "ar" ? "ملاحظات إضافية" : "Extra notes"}</Text><View style={styles.specialRequestInputWrap}><MaterialIcons name="edit-note" size={20} color="#00AFC4" /><TextInput value={notes} onChangeText={setNotes} placeholder={language === "ar" ? "مثال: الصلصة على الجانب..." : "Example: sauce on the side..."} placeholderTextColor="#8ABAC0" multiline maxLength={180} style={styles.specialRequestInput} textAlign={language === "ar" ? "right" : "left"} /></View></ScrollView>}<Pressable onPress={submit} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{language === "ar" ? "أضف للسلة" : "Add to cart"}</Text><MaterialIcons name="shopping-cart" size={18} color="#FFFFFF" /></Pressable></View></View></Modal>;
 }
 
 function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }: { visible: boolean; initialSpecialRequests: string; onClose: () => void; onComplete: () => void }) {
