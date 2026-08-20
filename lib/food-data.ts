@@ -82,6 +82,8 @@ export type CartItem = {
   meal: Meal;
   quantity: number;
   specialRequests?: string;
+  selectedAdditions?: { id: string; label: Localized; price?: number }[];
+  selectedRemovals?: { id: string; label: Localized }[];
 };
 
 export type OrderStatus = "received" | "preparing" | "ready" | "on_the_way" | "delivered";
@@ -364,7 +366,10 @@ export const distanceKm = (from: Coordinate, to: Coordinate) => {
 
 export const getKitchenDistanceKm = (kitchen: Kitchen, origin: Region) => distanceKm(origin, getRegion(kitchen.region));
 
-export const totalCart = (items: CartItem[]) => items.reduce((sum, item) => sum + item.meal.price * item.quantity, 0);
+export const totalCart = (items: CartItem[]) => items.reduce((sum, item) => {
+  const additionsSum = (item.selectedAdditions ?? []).reduce((sub, add) => sub + (typeof add.price === "number" ? add.price : 0), 0);
+  return sum + (item.meal.price + additionsSum) * item.quantity;
+}, 0);
 
 const roundCurrency = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
 

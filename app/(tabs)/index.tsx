@@ -105,13 +105,13 @@ export default function HomeScreen() {
   const [customizingMeal, setCustomizingMeal] = useState<(typeof meals)[number] | null>(null);
   const [query, setQuery] = useState("");
 
-  const confirmMealCustomization = (meal: (typeof meals)[number], specialRequests: string) => {
+  const confirmMealCustomization = (meal: (typeof meals)[number], specialRequests: string, selectedAdditions: { id: string; label: Localized; price?: number }[] = [], selectedRemovals: { id: string; label: Localized }[] = []) => {
     if (!isKitchenAvailable) {
       showToast(language === "ar" ? "المطبخ مغلق اليوم. جرّبي الطلب في يوم متاح." : "This kitchen is closed today. Please order on an available day.");
       setCustomizingMeal(null);
       return;
     }
-    addToCart(meal, specialRequests);
+    addToCart(meal, specialRequests, selectedAdditions, selectedRemovals);
     setCustomizingMeal(null);
   };
 
@@ -704,7 +704,7 @@ function CartScreen({ onBack, onCheckout }: { onBack: () => void; onCheckout: ()
   );
 }
 
-function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof meals)[number] | null; onClose: () => void; onConfirm: (meal: (typeof meals)[number], specialRequests: string) => void }) {
+function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof meals)[number] | null; onClose: () => void; onConfirm: (meal: (typeof meals)[number], specialRequests: string, additions: { id: string; label: Localized; price?: number }[], removals: { id: string; label: Localized }[]) => void }) {
   const { language } = useApp();
   const [selectedAdditions, setSelectedAdditions] = useState<string[]>([]);
   const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
@@ -723,10 +723,16 @@ function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof me
 
   const submit = () => {
     if (!meal) return;
-    const additions = selectedAdditions.map((id) => addIngredientOptions.find((option) => option.id === id)).filter(Boolean).map((option) => getLocalized(option!.label, language));
-    const removals = selectedRemovals.map((id) => removeIngredientOptions.find((option) => option.id === id)).filter(Boolean).map((option) => getLocalized(option!.label, language));
-    const request = [additions.length ? `${language === "ar" ? "إضافة" : "Add"}: ${additions.join(language === "ar" ? "، " : ", ")}` : "", removals.length ? `${language === "ar" ? "إزالة" : "Remove"}: ${removals.join(language === "ar" ? "، " : ", ")}` : "", notes.trim()].filter(Boolean).join(" · ");
-    onConfirm(meal, request);
+    const customAdditions = meal.customizationOptions?.additions ?? addIngredientOptions.map(opt => ({ id: opt.id, label: opt.label, price: undefined }));
+    const customRemovals = meal.customizationOptions?.removals ?? removeIngredientOptions.map(opt => ({ id: opt.id, label: opt.label }));
+    const chosenAdditions = selectedAdditions.map(id => customAdditions.find(item => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+    const chosenRemovals = selectedRemovals.map(id => customRemovals.find(item => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+    
+    const additionsText = chosenAdditions.map(a => getLocalized(a.label, language)).join(language === "ar" ? "، " : ", ");
+    const removalsText = chosenRemovals.map(r => getLocalized(r.label, language)).join(language === "ar" ? "، " : ", ");
+    const request = [additionsText ? `${language === "ar" ? "إضافة" : "Add"}: ${additionsText}` : "", removalsText ? `${language === "ar" ? "إزالة" : "Remove"}: ${removalsText}` : "", notes.trim()].filter(Boolean).join(" · ");
+    
+    onConfirm(meal, request, chosenAdditions, chosenRemovals);
   };
 
   return <Modal visible={Boolean(meal)} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalBackdrop}><View style={styles.customizationSheet}><View style={styles.sheetHandle} /><View style={styles.sheetHeader}><View><Text style={styles.sheetEyebrow}>{language === "ar" ? "تخصيص الصنف" : "CUSTOMIZE MEAL"}</Text><Text style={styles.sheetTitle}>{language === "ar" ? "اختاري قبل الإضافة للسلة" : "Choose before adding to cart"}</Text></View><Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable></View>{meal && <ScrollView style={styles.customizationScroll} contentContainerStyle={styles.customizationContent} showsVerticalScrollIndicator={false}><View style={styles.customizationMealHeader}><Image source={{ uri: meal.image }} style={styles.customizationMealImage} /><View style={styles.customizationMealCopy}><Text style={styles.customizationMealName}>{getLocalized(meal.name, language)}</Text><Text style={styles.customizationMealPrice}>{formatJod(meal.price, language)}</Text><Text style={styles.customizationHint}>{language === "ar" ? "اختياراتك ستُحفظ مع هذا الصنف في السلة" : "Your choices will be saved with this meal in the cart"}</Text></View></View>{(() => {

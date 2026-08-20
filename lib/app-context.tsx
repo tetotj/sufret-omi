@@ -13,6 +13,7 @@ import {
   Language,
   Meal,
   Kitchen,
+  Localized,
   kitchens,
   meals,
   Order,
@@ -148,7 +149,7 @@ type AppContextValue = AppState & {
   setCartSpecialRequests: (value: string) => void;
   addComplaint: (input: NewComplaint) => void;
   updateComplaintStatus: (id: string, status: ComplaintStatus, response?: string) => void;
-  addToCart: (meal: Meal, specialRequests?: string) => void;
+  addToCart: (meal: Meal, specialRequests?: string, selectedAdditions?: { id: string; label: Localized; price?: number }[], selectedRemovals?: { id: string; label: Localized }[]) => void;
   updateQuantity: (mealId: string, nextQuantity: number, specialRequests?: string) => void;
   clearCart: () => void;
   placeOrder: (paymentMethod: Order["paymentMethod"], schedule: Order["schedule"], specialRequests?: string, deliverySelection?: DeliverySelection) => boolean;
@@ -334,18 +335,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCartSpecialRequests: (cartSpecialRequests) => setState((current) => ({ ...current, cartSpecialRequests })),
       addComplaint: (input) => setState((current) => ({ ...current, complaints: [{ ...input, id: `CMP-${Date.now().toString().slice(-6)}`, status: "new", createdAt: new Date().toISOString() }, ...current.complaints] })),
       updateComplaintStatus: (id, status, response = "") => setState((current) => ({ ...current, complaints: current.complaints.map((complaint) => complaint.id === id ? { ...complaint, status, response: response.trim() || complaint.response } : complaint) })),
-      addToCart: (meal, specialRequests = "") => {
+      addToCart: (meal, specialRequests = "", selectedAdditions = [], selectedRemovals = []) => {
         if (state.isGuest) {
           setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, cart: [], cartSpecialRequests: "" }));
           return;
         }
         setState((current) => {
           const normalizedRequests = specialRequests.trim();
-          const existing = current.cart.find((item) => item.meal.id === meal.id && (item.specialRequests ?? "") === normalizedRequests);
-          const cart = existing ? current.cart.map((item) => item.meal.id === meal.id && (item.specialRequests ?? "") === normalizedRequests ? { ...item, quantity: item.quantity + 1 } : item) : [...current.cart, { meal, quantity: 1, specialRequests: normalizedRequests }];
+          const additionsKey = (selectedAdditions ?? []).map(a => a.id).sort().join(",");
+          const removalsKey = (selectedRemovals ?? []).map(r => r.id).sort().join(",");
+          const existing = current.cart.find((item) => item.meal.id === meal.id && (item.specialRequests ?? "") === normalizedRequests && (item.selectedAdditions ?? []).map(a => a.id).sort().join(",") === additionsKey && (item.selectedRemovals ?? []).map(r => r.id).sort().join(",") === removalsKey);
+          const cart = existing ? current.cart.map((item) => item === existing ? { ...item, quantity: item.quantity + 1 } : item) : [...current.cart, { meal, quantity: 1, specialRequests: normalizedRequests, selectedAdditions, selectedRemovals }];
           return { ...current, cart };
         });
-        showToast(state.language === "ar" ? `انضافت للسفرة · ${unitCount(state.cart) + 1} وجبة` : `Added to your table · ${unitCount(state.cart) + 1} meals`);
+        showToast(state.language === "ar" ? `انضافت للسفرة · مع التخصيص` : `Added to your table with customizations`);
       },
       updateQuantity: (mealId, nextQuantity, specialRequests = "") => setState((current) => ({ ...current, cart: nextQuantity <= 0 ? current.cart.filter((item) => !(item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests)) : current.cart.map((item) => item.meal.id === mealId && (item.specialRequests ?? "") === specialRequests ? { ...item, quantity: nextQuantity } : item) })),
       reorder: (order) => {
