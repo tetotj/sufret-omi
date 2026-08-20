@@ -343,19 +343,37 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
       )}
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>{language === "ar" ? "قائمة الأمهات والمطابخ النشطة" : "Active Mothers & Kitchens List"}</Text>
+        <Text style={styles.panelTitle}>{language === "ar" ? "قائمة الأمهات والمطابخ (الاعتماد والتحكم)" : "Mothers & Kitchens Ledger"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "انقر على أي مطبخ لاستعراض تفاصيله الكاملة، وقائمة طعامه، وصور الأطباق والمرفقات، وإدارتها بمرونة." : "Tap any kitchen to inspect full profile, menu items, attachments, and change status."}</Text>
         {kitchens.map((k) => (
-          <View key={k.id} style={styles.userCard}>
+          <Pressable 
+            key={k.id} 
+            onPress={() => showToast(language === "ar" ? `تم اختيار مطبخ: ${getLocalized(k.name, language)} - جاهز للمراجعة أو الإيقاف` : `Selected kitchen: ${getLocalized(k.name, language)}`)}
+            style={({ pressed }) => [styles.userCard, pressed && styles.pressed, { cursor: "pointer" }]}
+          >
             <View style={styles.userAvatar}><MaterialIcons name="storefront" size={20} color="#00AFC4" /></View>
             <View style={styles.userMain}>
               <View style={styles.userTitleRow}>
                 <Text style={styles.userName}>{getLocalized(k.name, language)}</Text>
-                <View style={[styles.statusBadge, styles.statusBadgeActive]}><Text style={styles.statusBadgeText}>{language === "ar" ? "فعال" : "Active"}</Text></View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  <Pressable 
+                    onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? `تم اعتماد ونشط المطبخ: ${getLocalized(k.name, language)}` : `Kitchen approved`); }}
+                    style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                  >
+                    <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "اعتماد" : "Approve"}</Text>
+                  </Pressable>
+                  <Pressable 
+                    onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? `تم إيقاف المطبخ مؤقتاً: ${getLocalized(k.name, language)}` : `Kitchen suspended`); }}
+                    style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                  >
+                    <Text style={{ fontSize: 9, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف" : "Suspend"}</Text>
+                  </Pressable>
+                </View>
               </View>
               <Text style={styles.userMeta}>{language === "ar" ? "المنطقة: خلدا، عمّان" : "Region: Khalda, Amman"} · {language === "ar" ? "العمولة: 5%" : "Commission: 5%"}</Text>
               <Text style={styles.userMeta}>{language === "ar" ? "أوقات العمل: 09:00 ص - 09:00 م" : "Hours: 09:00 AM - 09:00 PM"} · {language === "ar" ? "الحد الأدنى: 5 د.أ" : "Min order: 5 JOD"}</Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </View>
     </ScrollView>
@@ -480,29 +498,64 @@ function AdminDriversSection({ language, showToast, useDatabase }: { language: "
       )}
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>{language === "ar" ? "أسطول السائقين النشطين" : "Active Driver Fleet"}</Text>
-        <View style={styles.userCard}>
+        <Text style={styles.panelTitle}>{language === "ar" ? "إدارة أسطول السائقين (الاعتماد والإيقاف)" : "Driver Fleet Ledger & Approvals"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "اضغط على أي سائق للموافقة على طلبه، أو إيقاف حسابه، أو مراجعة رخصة القيادة وصورة المركبة وعدم المحكومية." : "Tap any driver to approve enrolment, suspend account, or inspect driving license and vehicle."}</Text>
+        
+        <Pressable 
+          onPress={() => showToast(language === "ar" ? "تم قبول طلب انضمام السائق: محمد العبدالله للأسطول" : "Driver Mohammed approved")}
+          style={({ pressed }) => [styles.userCard, pressed && styles.pressed, { cursor: "pointer" }]}
+        >
           <View style={styles.userAvatar}><MaterialIcons name="two-wheeler" size={20} color="#00AFC4" /></View>
           <View style={styles.userMain}>
             <View style={styles.userTitleRow}>
               <Text style={styles.userName}>محمد العبدالله</Text>
-              <View style={[styles.statusBadge, styles.statusBadgeActive]}><Text style={styles.statusBadgeText}>{language === "ar" ? "متصل Online" : "Online"}</Text></View>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <Pressable 
+                  onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? "تم قبول وانضمام السائق محمد العبدالله للأسطول" : "Driver approved"); }}
+                  style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "قبول الطلب" : "Approve"}</Text>
+                </Pressable>
+                <Pressable 
+                  onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? "تم إيقاف حساب السائق محمد العبدالله" : "Driver suspended"); }}
+                  style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف" : "Suspend"}</Text>
+                </Pressable>
+              </View>
             </View>
             <Text style={styles.userMeta}>{language === "ar" ? "المركبة: دراجة نارية · مناطق التوصيل: عمان الغربية" : "Vehicle: Scooter · Zones: West Amman"}</Text>
             <Text style={styles.userMeta}>{language === "ar" ? "الطلب الحالي: #SO-8102 (قيد التوصيل)" : "Active order: #SO-8102"} · {language === "ar" ? "التقييم: 4.8" : "Rating: 4.8"}</Text>
           </View>
-        </View>
-        <View style={styles.userCard}>
+        </Pressable>
+
+        <Pressable 
+          onPress={() => showToast(language === "ar" ? "تم قبول طلب انضمام السائق: أحمد التميمي للأسطول" : "Driver Ahmed approved")}
+          style={({ pressed }) => [styles.userCard, pressed && styles.pressed, { cursor: "pointer" }]}
+        >
           <View style={styles.userAvatar}><MaterialIcons name="directions-car" size={20} color="#00AFC4" /></View>
           <View style={styles.userMain}>
             <View style={styles.userTitleRow}>
               <Text style={styles.userName}>أحمد التميمي</Text>
-              <View style={[styles.statusBadge, styles.statusBadgeSuspended]}><Text style={styles.statusBadgeText}>{language === "ar" ? "غير متصل Offline" : "Offline"}</Text></View>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <Pressable 
+                  onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? "تم قبول وانضمام السائق أحمد التميمي للأسطول" : "Driver approved"); }}
+                  style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "قبول الطلب" : "Approve"}</Text>
+                </Pressable>
+                <Pressable 
+                  onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? "تم إيقاف حساب السائق أحمد التميمي" : "Driver suspended"); }}
+                  style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
+                >
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف" : "Suspend"}</Text>
+                </Pressable>
+              </View>
             </View>
             <Text style={styles.userMeta}>{language === "ar" ? "المركبة: سيارة سيدان · مناطق التوصيل: إربد الكبرى" : "Vehicle: Sedan · Zones: Greater Irbid"}</Text>
             <Text style={styles.userMeta}>{language === "ar" ? "الطلبات المسندة: 0 · إجمالي التوصيلات: 142" : "Assigned orders: 0 · Total deliveries: 142"}</Text>
           </View>
-        </View>
+        </Pressable>
       </View>
     </ScrollView>
   );
