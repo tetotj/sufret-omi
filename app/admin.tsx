@@ -570,21 +570,57 @@ function AdminOrdersSection({ language, useDatabase }: { language: "ar" | "en"; 
 
 // 6. العملاء
 function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en"; useDatabase: boolean }) {
+  const [timeFilter, setTimeFilter] = useState<"day" | "week" | "month" | "year">("month");
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const remoteUsers = trpc.admin.listUsers.useQuery(undefined, { enabled: useDatabase });
   const customers = (remoteUsers.data ?? []).filter((u: any) => u.role === "customer");
   const totalCustomers = Math.max(customers.length, 1284);
   const activeThisWeek = Math.round(totalCustomers * 0.76);
-  const newThisMonth = 142;
+  const newThisMonth = timeFilter === "day" ? 12 : timeFilter === "week" ? 48 : timeFilter === "month" ? 142 : 1150;
   const avgOrderValue = 14.80;
 
   return (
     <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
       <View style={styles.pageHeading}>
-        <View>
-          <Text style={styles.pageEyebrow}>{language === "ar" ? "كشوفات وتحليلات العملاء الشاملة" : "COMPREHENSIVE CUSTOMER ANALYTICS & LEDGER"}</Text>
-          <Text style={styles.pageTitle}>{language === "ar" ? "تحليلات طلبات وأعداد مستخدمي سفرة أمي" : "Customer Growth, Orders & Payment Analytics"}</Text>
-          <Text style={styles.pageSubtitle}>{language === "ar" ? "إجمالي المستخدمين، معدلات النمو، طرق الدفع المفضلة، التوزيع الجغرافي، ومتوسط حجم الطلب." : "Total users, growth rates, payment distributions, regions, and average basket size."}</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pageEyebrow}>{language === "ar" ? "كشوفات وتحليلات العملاء الشاملة" : "COMPREHENSIVE CUSTOMER ANALYTICS & LEDGER"}</Text>
+            <Text style={styles.pageTitle}>{language === "ar" ? "تحليلات طلبات وأعداد مستخدمي سفرة أمي" : "Customer Growth, Orders & Payment Analytics"}</Text>
+            <Text style={styles.pageSubtitle}>{language === "ar" ? "إجمالي المستخدمين، معدلات النمو، طرق الدفع المفضلة، التوزيع الجغرافي، ومتوسط حجم الطلب." : "Total users, growth rates, payment distributions, regions, and average basket size."}</Text>
+          </View>
+          <View style={{ flexDirection: "row", gap: 6, backgroundColor: "#E6FBF2", padding: 4, borderRadius: 12, borderWidth: 1, borderColor: "#C5EAD8" }}>
+            {(["day", "week", "month", "year"] as const).map((f) => (
+              <Pressable key={f} onPress={() => setTimeFilter(f)} style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: timeFilter === f ? "#2E9B72" : "transparent" }}>
+                <Text style={{ fontSize: 10, fontWeight: "900", color: timeFilter === f ? "#FFFFFF" : "#082E34" }}>
+                  {f === "day" ? (language === "ar" ? "اليوم" : "Day") : f === "week" ? (language === "ar" ? "الأسبوع" : "Week") : f === "month" ? (language === "ar" ? "الشهر" : "Month") : (language === "ar" ? "السنة" : "Year")}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
+      </View>
+
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+        <Pressable onPress={() => {
+          const ws = XLSX.utils.json_to_sheet([{ Customer: "Sarah Khaled", Orders: 18, Spend: 265, Payment: "CliQ", Region: "Amman" }, { Customer: "Tariq Ahmad", Orders: 7, Spend: 98.5, Payment: "COD", Region: "Amman" }]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "CustomersReport");
+          XLSX.writeFile(wb, "sufret-omi-customers-report.xlsx");
+        }} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#2E9B72", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <MaterialIcons name="table-chart" size={16} color="#FFFFFF" />
+          <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "تصدير كشوفات العملاء Excel" : "Export Customers Excel"}</Text>
+        </Pressable>
+        <Pressable onPress={() => {
+          const w = window.open("", "_blank");
+          if (w) {
+            w.document.write("<html><head><title>Customer Report</title></head><body style='font-family:Arial;padding:20px;'><h2>Sufret Omi - Customers & Payment Report</h2><p>Filter: " + timeFilter.toUpperCase() + " | Generated: " + new Date().toLocaleString() + "</p><hr/><table border='1' cellpadding='8' cellspacing='0'><tr><th>Customer</th><th>Orders</th><th>Total Spend</th><th>Preferred Payment</th></tr><tr><td>Sarah Khaled</td><td>18</td><td>265 JOD</td><td>CliQ</td></tr><tr><td>Tariq Ahmad</td><td>7</td><td>98.5 JOD</td><td>COD</td></tr></table></body></html>");
+            w.document.close();
+            w.print();
+          }
+        }} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#00AFC4", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <MaterialIcons name="picture-as-pdf" size={16} color="#FFFFFF" />
+          <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "طباعة / تصدير تقرير PDF" : "Print / PDF Report"}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.metricGrid}>
