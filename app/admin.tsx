@@ -715,6 +715,50 @@ function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en
       </View>
 
       <View style={styles.panel}>
+        <Text style={styles.panelTitle}>{language === "ar" ? "برنامج نقاط الولاء ومكافآت التكرار" : "Customer Loyalty Points & Rewards"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "يكتسب العملاء نقاطاً مع كل طلب طعام لاستبدالها بوجبات مجانية." : "Customers earn points per food order redeemable for free meals."}</Text>
+        
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+          <View style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", gap: 4 }}>
+            <Text style={{ fontSize: 10, fontWeight: "900", color: "#4C747A" }}>{language === "ar" ? "إجمالي النقاط المكتسبة" : "Total Points Earned"}</Text>
+            <Text style={{ fontSize: 14, fontWeight: "900", color: "#00AFC4" }}>48,520 pts</Text>
+          </View>
+          <View style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: "#FEF3C7", borderWidth: 1, borderColor: "#FCD34D", gap: 4 }}>
+            <Text style={{ fontSize: 10, fontWeight: "900", color: "#92400E" }}>{language === "ar" ? "النقاط المستبدلة" : "Points Redeemed"}</Text>
+            <Text style={{ fontSize: 14, fontWeight: "900", color: "#D97706" }}>14,200 pts</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>{language === "ar" ? "عروض ورسائل مخصصة لعملاء VIP" : "Targeted VIP Messages & Offers"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "إرسال عروض ترويجية حصرية لعملاء VIP لزيادة الولاء والتكرار." : "Send exclusive promotional offers to VIP members."}</Text>
+        
+        <Pressable onPress={() => alert(language === "ar" ? "تم إرسال عرض VIP الحصري بنجاح لجميع أعضاء VIP!" : "Exclusive VIP offer sent successfully!")} style={{ minHeight: 42, borderRadius: 12, backgroundColor: "#D97706", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
+          <MaterialIcons name="local-offer" size={16} color="#FFFFFF" />
+          <Text style={{ color: "#FFFFFF", fontSize: 11, fontWeight: "900" }}>{language === "ar" ? "إرسال قسيمة خصم VIP (15٪) لجميع أعضاء VIP" : "Send VIP 15% Discount Voucher"}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>{language === "ar" ? "معدل الاحتفاظ بالعملاء (Customer Retention)" : "Monthly Customer Retention Rate"}</Text>
+        <Text style={{ fontSize: 12, fontWeight: "900", color: "#2E9B72", marginVertical: 6 }}>82.4% {language === "ar" ? "معدل تكرار الطلب الشهري" : "Monthly repeat order rate"}</Text>
+        <View style={{ gap: 6 }}>
+          {[
+            { month: language === "ar" ? "مايو" : "May", rate: "78.2%" },
+            { month: language === "ar" ? "يونيو" : "Jun", rate: "79.8%" },
+            { month: language === "ar" ? "يوليو" : "Jul", rate: "81.5%" },
+            { month: language === "ar" ? "أغسطس" : "Aug", rate: "82.4%" },
+          ].map((r, i) => (
+            <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", padding: 8, borderRadius: 8, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }}>
+              <Text style={{ fontSize: 10, fontWeight: "800", color: "#082E34" }}>{r.month}</Text>
+              <Text style={{ fontSize: 10, fontWeight: "900", color: "#00AFC4" }}>{r.rate}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.panel}>
         <Text style={styles.panelTitle}>{language === "ar" ? "قائمة العملاء وتصنيفهم التلقائي (VIP / Regular)" : "Customer Ledger & Auto-Tiering (VIP / Regular)"}</Text>
         <View style={styles.userCard}>
           <View style={styles.userAvatar}><MaterialIcons name="verified" size={20} color="#F59E0B" /></View>
@@ -727,7 +771,7 @@ function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en
               </View>
             </View>
             <Text style={styles.userMeta}>0788889900 · {language === "ar" ? "المنطقة: دابوق، عمّان" : "Region: Dabouq, Amman"}</Text>
-            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات: 18 طلب · إجمالي الإنفاق: 265.00 د.أ · ترحيب تلقائي: مفعل" : "Orders: 18 · Total: 265 JOD · Welcome notification sent"}</Text>
+            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات: 18 طلب · الإنفاق: 265 د.أ · الولاء: 1,325 نقطة" : "Orders: 18 · Spend: 265 JOD · Loyalty: 1,325 pts"}</Text>
           </View>
         </View>
         <View style={styles.userCard}>
@@ -741,7 +785,7 @@ function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en
               </View>
             </View>
             <Text style={styles.userMeta}>0791112233 · {language === "ar" ? "المنطقة: خلدا، عمّان" : "Region: Khalda, Amman"}</Text>
-            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات: 7 طلبات · إجمالي الإنفاق: 98.50 د.أ · ترحيب تلقائي: مفعل" : "Orders: 7 · Total: 98.5 JOD · Welcome notification sent"}</Text>
+            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات: 7 طلبات · الإنفاق: 98.5 د.أ · الولاء: 490 نقطة" : "Orders: 7 · Spend: 98.5 JOD · Loyalty: 490 pts"}</Text>
           </View>
         </View>
       </View>
