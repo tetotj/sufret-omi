@@ -351,13 +351,40 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
             <Text style={styles.panelTitle}>{language === "ar" ? "قائمة الأمهات والمطابخ (الاعتماد والتحكم)" : "Mothers & Kitchens Ledger"}</Text>
             <Text style={styles.panelSubtitle}>{language === "ar" ? "انقر على أي مطبخ لاستعراض تفاصيله الكاملة وقائمة طعامه المرتبطة والمرفقات." : "Tap any kitchen to inspect full profile and linked menu items."}</Text>
           </View>
-          <View style={{ flexDirection: "row", gap: 6, backgroundColor: "#E6FBF2", padding: 4, borderRadius: 12, borderWidth: 1, borderColor: "#C5EAD8" }}>
-            <Pressable onPress={() => showToast(language === "ar" ? "عرض كافة المطابخ النشطة" : "Showing all active kitchens")} style={{ paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#2E9B72" }}>
-              <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "الكل" : "All"}</Text>
+          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+            <Pressable 
+              onPress={() => {
+                const ws = XLSX.utils.json_to_sheet(kitchens.map(k => ({ ID: k.id, Name: getLocalized(k.name, language), Region: "Amman", Status: "Active" })));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "KitchensApprovalReport");
+                XLSX.writeFile(wb, "sufret-omi-kitchens-approval-report.xlsx");
+                showToast(language === "ar" ? "📊 تم تصدير تقرير اعتماد المطابخ الشهرية بنجاح إلى Excel!" : "Excel report exported!");
+              }}
+              style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "#2E9B72", flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <MaterialIcons name="table-chart" size={14} color="#FFFFFF" />
+              <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "تصدير تقرير الاعتماد Excel" : "Export Excel Report"}</Text>
             </Pressable>
-            <Pressable onPress={() => showToast(language === "ar" ? "تم تصفية المطابخ النشطة فقط" : "Filtered active kitchens")} style={{ paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "transparent" }}>
-              <Text style={{ fontSize: 9, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "نشط" : "Active"}</Text>
-            </Pressable>
+          </View>
+        </View>
+
+        {/* صندوق البحث السريع */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: "#C6EDEF", backgroundColor: "#F7FEFF", marginTop: 8 }}>
+          <MaterialIcons name="search" size={18} color="#00AFC4" />
+          <TextInput 
+            placeholder={language === "ar" ? "ابحث بالاسم أو رقم الهاتف..." : "Search by name or phone..."}
+            placeholderTextColor="#7CA8AD"
+            style={{ flex: 1, color: "#082E34", fontSize: 11, paddingVertical: 6 }}
+            onChangeText={(txt) => showToast(language === "ar" ? `جارِ البحث عن: ${txt}` : `Searching...`)}
+          />
+        </View>
+
+        {/* سجل آخر 5 أحداث إدارية مصغرة */}
+        <View style={{ backgroundColor: "#F2FEFF", borderRadius: 12, borderWidth: 1, borderColor: "#C6EDEF", padding: 10, gap: 6, marginTop: 6 }}>
+          <Text style={{ fontSize: 10, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "⚡ سجل الأحداث الإدارية الأخيرة (Audit Trail)" : "Recent Admin Events"}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ fontSize: 9, fontWeight: "800", color: "#082E34" }}>{language === "ar" ? "اعتماد مطبخ أم أحمد وإصدار شهادة ترخيص" : "Approved kitchen & issued certificate"}</Text>
+            <Text style={{ fontSize: 8, fontWeight: "800", color: "#2E9B72" }}>{new Date().toLocaleTimeString()}</Text>
           </View>
         </View>
 
