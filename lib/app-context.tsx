@@ -6,6 +6,7 @@ import { sampleManagedUsers, type ManagedUser, type UserAccountStatus } from "@/
 import {
   CartItem,
   CategoryId,
+  Coordinate,
   canCarryLoad,
   getRequiredLoadCapacity,
   getOrderPricing,
@@ -46,6 +47,20 @@ import { isLocalAdminPreviewAllowed } from "@/lib/admin-access";
 
 const STORAGE_KEY = "sufret-omi-session-v1";
 const DEFAULT_DROPOFF = { latitude: 31.951, longitude: 35.884 };
+
+export type SavedLocation = {
+  id: string;
+  name: string;
+  icon: string;
+  coordinate: Coordinate;
+  address: string;
+};
+
+const defaultSavedLocations: SavedLocation[] = [
+  { id: "loc-1", name: "المنزل", icon: "home", coordinate: { latitude: 31.98, longitude: 35.84 }, address: "خلدا، شارع أحمد الطراونة" },
+  { id: "loc-2", name: "العمل", icon: "work", coordinate: { latitude: 31.95, longitude: 35.91 }, address: "عبدون، الدوار الخامس" },
+  { id: "loc-3", name: "بيت العيلة", icon: "favorite", coordinate: { latitude: 31.96, longitude: 35.89 }, address: "دابوق، قرب الملك حسين للبيولوجيا" },
+];
 
 const fallbackDrivers: Array<NonNullable<Order["driver"]>> = [
   { name: { ar: "محمد العبدالله", en: "Mohammad Al-Abdallah" }, phone: "0791234567", vehicle: { ar: "دراجة نارية سوداء", en: "Black motorcycle" }, plate: "32-9184", vehicleType: "motorcycle", cargoCapacity: "small" },
@@ -135,6 +150,7 @@ type AppState = {
   hiddenMealIds: string[];
   kitchenDescriptions: Record<string, KitchenDescriptionState>;
   adminAuthenticated: boolean;
+  savedLocations: SavedLocation[];
 };
 
 type AppContextValue = AppState & {
@@ -181,6 +197,8 @@ type AppContextValue = AppState & {
   updateUserStatus: (userId: string, status: UserAccountStatus) => void;
   updateKitchenDescription: (kitchenId: string, description: { ar: string; en: string; showDescription: boolean }) => void;
   removeMeal: (mealId: string) => void;
+  saveFavoriteLocation: (name: string, icon: string, coordinate: Coordinate, address: string) => void;
+  deleteFavoriteLocation: (id: string) => void;
   showToast: (message: string) => void;
   dismissToast: () => void;
   cartTotal: number;
@@ -224,6 +242,7 @@ const initialState: AppState = {
   hiddenMealIds: [],
   kitchenDescriptions: Object.fromEntries(kitchens.filter((kitchen) => kitchen.description).map((kitchen) => [kitchen.id, { ...kitchen.description!, showDescription: false }])),
   adminAuthenticated: false,
+  savedLocations: defaultSavedLocations,
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -534,6 +553,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((current) => role === "mother" ? { ...current, motherVerification: { ...current.motherVerification, approvalStatus: status } } : { ...current, driverVerification: { ...current.driverVerification, approvalStatus: status } });
         showToast(status === "approved" ? (state.language === "ar" ? "تم اعتماد الملف وفتح اللوحة" : "Profile approved and dashboard unlocked") : (state.language === "ar" ? "تم طلب تعديلات على الملف" : "Changes requested on the profile"));
       },
+      saveFavoriteLocation: (name: string, icon: string, coordinate: Coordinate, address: string) => setState((current) => ({
+        ...current,
+        savedLocations: [{ id: `loc-${Date.now()}`, name, icon, coordinate, address }, ...current.savedLocations],
+      })),
+      deleteFavoriteLocation: (id: string) => setState((current) => ({
+        ...current,
+        savedLocations: current.savedLocations.filter((item: SavedLocation) => item.id !== id),
+      })),
       canAccessRoleDashboard,
       adminSignIn,
       adminSignOut,

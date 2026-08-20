@@ -780,7 +780,7 @@ function MealCustomizationModal({ meal, onClose, onConfirm }: { meal: (typeof me
 }
 
 function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }: { visible: boolean; initialSpecialRequests: string; onClose: () => void; onComplete: () => void }) {
-  const { language, customerPhone, placeOrder, cart, showToast } = useApp();
+  const { language, customerPhone, placeOrder, cart, showToast, savedLocations, saveFavoriteLocation, deleteFavoriteLocation } = useApp();
   const orderSmsMutation = trpc.notifications.sendOrderConfirmationSms.useMutation();
   const multiPricing = getMultiOrderPricing(cart, 1.25);
   const pricing = multiPricing;
@@ -852,15 +852,39 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
             <Pressable onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={20} color="#082E34" /></Pressable>
           </View>
           
-          {/* تفاصيل عنوان التوصيل والخريطة الدقيقة */}
-          <View style={{ gap: 10, backgroundColor: "#F7FFF0", padding: 12, borderRadius: 18, borderWidth: 1, borderColor: "#C7E8C8" }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={styles.optionLabel}>{language === "ar" ? "📍 تحديد موقع التوصيل على الخريطة والشارع:" : "📍 Exact Delivery Location & Street:"}</Text>
-              <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#E5FCFF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 11, borderWidth: 1, borderColor: "#00AFC4" }}>
-                <MaterialIcons name="my-location" size={13} color="#00AFC4" />
-                <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي الحالي" : "My GPS"}</Text>
-              </Pressable>
-            </View>
+            {/* تفاصيل عنوان التوصيل والخريطة الدقيقة */}
+            <View style={{ gap: 10, backgroundColor: "#F7FFF0", padding: 12, borderRadius: 18, borderWidth: 1, borderColor: "#C7E8C8" }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={styles.optionLabel}>{language === "ar" ? "📍 تحديد موقع التوصيل على الخريطة والشارع:" : "📍 Exact Delivery Location & Street:"}</Text>
+                <Pressable onPress={locateUserOnMap} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#E5FCFF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 11, borderWidth: 1, borderColor: "#00AFC4" }}>
+                  <MaterialIcons name="my-location" size={13} color="#00AFC4" />
+                  <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "موقعي الحالي" : "My GPS"}</Text>
+                </Pressable>
+              </View>
+
+              {/* المواقع المفضلة المحفوظة للعميل */}
+              {savedLocations.length > 0 && (
+                <View style={{ gap: 4 }}>
+                  <Text style={{ fontSize: 9, fontWeight: "800", color: "#4C747A" }}>{language === "ar" ? "⭐ مواقعك المفضلة المحفوظة:" : "⭐ Saved Favorite Locations:"}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    {savedLocations.map((loc) => (
+                      <Pressable
+                        key={loc.id}
+                        onPress={() => {
+                          setDropoffCoord(loc.coordinate);
+                          setAddressDesc(`${loc.name} - ${loc.address}`);
+                          setStreet(loc.address);
+                          showToast(language === "ar" ? `تم اختيار الموقع المحفوظ: ${loc.name}` : `Selected saved location: ${loc.name}`);
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FFFFFF", paddingHorizontal: 9, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: "#00AFC4" }}
+                      >
+                        <MaterialIcons name={(loc.icon as any) || "place"} size={14} color="#00AFC4" />
+                        <Text style={{ fontSize: 10, fontWeight: "900", color: "#082E34" }}>{loc.name}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
             {/* الخريطة المصغرة - النقر يفتح شاشة خريطة مستقلة بالكامل */}
             <Pressable onPress={() => { setTempCoord(dropoffCoord); setMapPickerOpen(true); }} style={{ height: 160, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#C6EDEF" }}>
@@ -952,6 +976,17 @@ function CheckoutModal({ visible, initialSpecialRequests, onClose, onComplete }:
                       </Pressable>
                     </View>
                   </View>
+
+                  <Pressable
+                    onPress={() => {
+                      const label = language === "ar" ? `موقع مفضل (${tempCoord.latitude.toFixed(2)}, ${tempCoord.longitude.toFixed(2)})` : `Favorite (${tempCoord.latitude.toFixed(2)}, ${tempCoord.longitude.toFixed(2)})`;
+                      saveFavoriteLocation(label, "place", tempCoord, addressDesc);
+                      showToast(language === "ar" ? "⭐ تم حفظ الموقع في المواقع المفضلة بنجاح" : "⭐ Location saved to favorites");
+                    }}
+                    style={{ backgroundColor: "#FEF3C7", paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: "#FCD34D", alignItems: "center", marginBottom: 6 }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: "900", color: "#D97706" }}>{language === "ar" ? "⭐ حفظ هذا الموقع في المواقع المفضلة" : "⭐ Save this location to favorites"}</Text>
+                  </Pressable>
 
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <Pressable onPress={() => setMapPickerOpen(false)} style={{ flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: "#E5ECEB", alignItems: "center" }}>

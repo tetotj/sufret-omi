@@ -137,20 +137,17 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
   const locateMe = async () => {
     setLocating(true);
     try {
-      if (!globalThis.navigator?.geolocation) {
-        showToast(language === "ar" ? "الموقع غير متاح على هذا المتصفح" : "Location is unavailable in this browser");
-        return;
-      }
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        showToast(language === "ar" ? "نحتاج إذن الموقع لعرض المطابخ القريبة" : "Location permission is needed for nearby kitchens");
+        showToast(language === "ar" ? "نحتاج إذن الموقع لتحديد مكانك بدقة" : "Location permission needed");
         return;
       }
-      await Location.getCurrentPositionAsync({});
-      onSelectRegion?.("amman");
-      showToast(language === "ar" ? "حدّدنا المطابخ الأقرب لموقعك" : "We found kitchens closest to you");
+      const loc = await Location.getCurrentPositionAsync({});
+      const coord = { latitude: Number(loc.coords.latitude.toFixed(6)), longitude: Number(loc.coords.longitude.toFixed(6)) };
+      onSelectCoordinate?.(coord);
+      showToast(language === "ar" ? "📍 تم تحديد موقعك الحالي بدقة على الخريطة" : "📍 Current GPS location pinned");
     } catch {
-      showToast(language === "ar" ? "تعذّر تحديد موقعك الآن" : "We could not find your location right now");
+      showToast(language === "ar" ? "تعذّر جلب موقعك الحالي" : "Could not fetch current location");
     } finally {
       setLocating(false);
     }
