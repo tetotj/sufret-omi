@@ -157,8 +157,8 @@ function AdminShell({ language, onSignOut, showToast, useDatabase }: { language:
         </View>
 
         <View style={styles.adminBody}>
-          {(sidebarOpen || true) && (
-            <View style={[styles.sidebar, sidebarOpen && styles.sidebarMobile]}>
+          {(sidebarOpen || Platform.OS === "web") && (
+            <ScrollView style={[styles.sidebar, sidebarOpen && styles.sidebarMobile]} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
               <View style={styles.sidebarHeader}>
                 <Text style={styles.sidebarEyebrow}>{language === "ar" ? "إدارة المنصة" : "MANAGEMENT"}</Text>
                 <Text style={styles.sidebarTitle}>{language === "ar" ? "الأقسام" : "Sections"}</Text>
@@ -186,7 +186,7 @@ function AdminShell({ language, onSignOut, showToast, useDatabase }: { language:
                   </View>
                 </View>
               </View>
-            </View>
+            </ScrollView>
           )}
 
           <View style={styles.adminContent}>
