@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, announcements, complaintsDb, complaintImages, driverLocations, favorites, kitchens, meals, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, adminAuditLogs, announcements, complaintsDb, complaintImages, driverLocations, favorites, kitchens, meals, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -830,4 +830,21 @@ export async function listWeeklyReportRecipients() {
   if (!db) return [];
   const rows = await db.select({ kitchenId: kitchens.id, kitchenName: kitchens.nameAr, email: users.email }).from(kitchens).leftJoin(users, eq(kitchens.userId, users.id));
   return rows.filter((row): row is { kitchenId: string; kitchenName: string; email: string } => Boolean(row.email));
+}
+
+export async function recordAuditLog(adminId: number | null, action: string, details?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(adminAuditLogs).values({ adminId: adminId ?? null, action, details: details?.trim() || null });
+  } catch (err) {
+    console.warn("[AuditLog] Failed to record:", err);
+  }
+}
+
+export async function listAuditLogs(limit = 100): Promise<Array<{ id: number; adminId: number | null; action: string; details: string | null; createdAt: string }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(limit);
+  return rows.map((r) => ({ id: r.id, adminId: r.adminId, action: r.action, details: r.details, createdAt: r.createdAt.toISOString() }));
 }
