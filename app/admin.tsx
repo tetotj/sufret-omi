@@ -346,16 +346,29 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
       )}
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>{language === "ar" ? "قائمة الأمهات والمطابخ (الاعتماد والتحكم)" : "Mothers & Kitchens Ledger"}</Text>
-        <Text style={styles.panelSubtitle}>{language === "ar" ? "انقر على أي مطبخ لاستعراض تفاصيله الكاملة، وقائمة طعامه، وصور الأطباق والمرفقات، وإدارتها بمرونة." : "Tap any kitchen to inspect full profile, menu items, attachments, and change status."}</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.panelTitle}>{language === "ar" ? "قائمة الأمهات والمطابخ (الاعتماد والتحكم)" : "Mothers & Kitchens Ledger"}</Text>
+            <Text style={styles.panelSubtitle}>{language === "ar" ? "انقر على أي مطبخ لاستعراض تفاصيله الكاملة وقائمة طعامه المرتبطة والمرفقات." : "Tap any kitchen to inspect full profile and linked menu items."}</Text>
+          </View>
+          <View style={{ flexDirection: "row", gap: 6, backgroundColor: "#E6FBF2", padding: 4, borderRadius: 12, borderWidth: 1, borderColor: "#C5EAD8" }}>
+            <Pressable onPress={() => showToast(language === "ar" ? "عرض كافة المطابخ النشطة" : "Showing all active kitchens")} style={{ paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#2E9B72" }}>
+              <Text style={{ fontSize: 9, fontWeight: "900", color: "#FFFFFF" }}>{language === "ar" ? "الكل" : "All"}</Text>
+            </Pressable>
+            <Pressable onPress={() => showToast(language === "ar" ? "تم تصفية المطابخ النشطة فقط" : "Filtered active kitchens")} style={{ paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "transparent" }}>
+              <Text style={{ fontSize: 9, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "نشط" : "Active"}</Text>
+            </Pressable>
+          </View>
+        </View>
+
         {kitchens.map((k) => {
           const isSelected = selectedKitchenId === k.id;
           return (
-            <View key={k.id} style={{ gap: 8 }}>
+            <View key={k.id} style={{ gap: 8, marginTop: 8 }}>
               <Pressable 
                 onPress={() => {
                   setSelectedKitchenId(k.id);
-                  showToast(language === "ar" ? `تم فتح ملف مطبخ: ${getLocalized(k.name, language)}` : `Opened kitchen profile`);
+                  showToast(language === "ar" ? `✨ تم فتح ملف مطبخ: ${getLocalized(k.name, language)} بنجاح` : `Opened kitchen profile`);
                 }}
                 style={({ pressed }) => [styles.userCard, pressed && styles.pressed, isSelected && { borderColor: "#00AFC4", backgroundColor: "#F2FEFF" }, { cursor: "pointer" }]}
               >
@@ -365,13 +378,23 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
                     <Text style={styles.userName}>{getLocalized(k.name, language)}</Text>
                     <View style={{ flexDirection: "row", gap: 6 }}>
                       <Pressable 
-                        onPress={(e) => { e.stopPropagation?.(); showToast(language === "ar" ? `تم اعتماد ونشط المطبخ: ${getLocalized(k.name, language)}` : `Kitchen approved`); }}
+                        onPress={(e) => { 
+                          e.stopPropagation?.(); 
+                          if (confirm(language === "ar" ? `هل ترغب حقاً في اعتماد مطبخ ${getLocalized(k.name, language)}؟` : `Approve kitchen?`)) {
+                            showToast(language === "ar" ? `✅ تم اعتماد مطبخ ${getLocalized(k.name, language)} بنجاح تام!` : `Kitchen approved successfully!`); 
+                          }
+                        }}
                         style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
                       >
                         <Text style={{ fontSize: 9, fontWeight: "900", color: "#00AFC4" }}>{language === "ar" ? "اعتماد" : "Approve"}</Text>
                       </Pressable>
                       <Pressable 
-                        onPress={(e) => { e.stopPropagation?.(); confirm(language === "ar" ? "هل أنت متكد من إيقاف المطبخ مؤقتاً؟" : "Suspend kitchen?") && showToast(language === "ar" ? `تم إيقاف المطبخ مؤقتاً: ${getLocalized(k.name, language)}` : `Kitchen suspended`); }}
+                        onPress={(e) => { 
+                          e.stopPropagation?.(); 
+                          if (confirm(language === "ar" ? `⚠️ تحذير: هل أنت متأكد من إيقاف مطبخ ${getLocalized(k.name, language)} مؤقتاً؟` : `Warning: Suspend kitchen?`)) {
+                            showToast(language === "ar" ? `🚫 تم إيقاف مطبخ ${getLocalized(k.name, language)} بنجاح` : `Kitchen suspended`); 
+                          }
+                        }}
                         style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
                       >
                         <Text style={{ fontSize: 9, fontWeight: "900", color: "#C4555D" }}>{language === "ar" ? "إيقاف" : "Suspend"}</Text>
