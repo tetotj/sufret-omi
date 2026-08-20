@@ -294,3 +294,19 @@ export const mealCustomizationOptions = mysqlTable("mealCustomizationOptions", {
 }, (table) => ({
   mealTypeIdx: index("meal_customization_meal_type_idx").on(table.mealId, table.type),
 }));
+
+export const systemSettings = mysqlTable("systemSettings", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const adminAuditLogs = mysqlTable("adminAuditLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  adminId: int("adminId"),
+  action: varchar("action", { length: 128 }).notNull(),
+  details: text("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  createdIdx: index("audit_created_idx").on(table.createdAt),
+}));
