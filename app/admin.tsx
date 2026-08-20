@@ -684,16 +684,50 @@ function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>{language === "ar" ? "قائمة أبرز العملاء المسجلين" : "Registered Customers Ledger"}</Text>
+        <Text style={styles.panelTitle}>{language === "ar" ? "الرسوم البيانية التفاعلية لنمو العملاء والإنفاق" : "Customer Growth & Spend Interactive Charts"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "معدلات نمو الاشتراكات وحجم الإنفاق الشهري للعملاء عبر المنصة." : "Monthly subscription growth and customer spend trends."}</Text>
+        
+        <View style={{ backgroundColor: "#F7FEFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 12, gap: 10, marginTop: 8 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "نمو العملاء والإنفاق (آخر 4 أشهر)" : "Growth & Spend Trend (Last 4 Mos)"}</Text>
+            <Text style={{ fontSize: 9, fontWeight: "900", color: "#2E9B72" }}>+18% {language === "ar" ? "نمو شهري" : "MoM"}</Text>
+          </View>
+
+          <View style={{ gap: 6 }}>
+            {[
+              { label: language === "ar" ? "مايو" : "May", count: 820, spend: 11200 },
+              { label: language === "ar" ? "يونيو" : "Jun", count: 960, spend: 14100 },
+              { label: language === "ar" ? "يوليو" : "Jul", count: 1120, spend: 17800 },
+              { label: language === "ar" ? "أغسطس" : "Aug", count: totalCustomers, spend: 21400 },
+            ].map((m, idx) => (
+              <View key={idx} style={{ gap: 2 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#4C747A" }}>{m.label}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: "900", color: "#082E34" }}>{m.count} {language === "ar" ? "عميل" : "users"} · {m.spend} د.أ</Text>
+                </View>
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: "#E2E8F0", overflow: "hidden" }}>
+                  <View style={{ height: "100%", width: `${(m.count / Math.max(totalCustomers, 1500)) * 100}%`, backgroundColor: "#00AFC4", borderRadius: 3 }} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>{language === "ar" ? "قائمة العملاء وتصنيفهم التلقائي (VIP / Regular)" : "Customer Ledger & Auto-Tiering (VIP / Regular)"}</Text>
         <View style={styles.userCard}>
-          <View style={styles.userAvatar}><MaterialIcons name="person" size={20} color="#00AFC4" /></View>
+          <View style={styles.userAvatar}><MaterialIcons name="verified" size={20} color="#F59E0B" /></View>
           <View style={styles.userMain}>
             <View style={styles.userTitleRow}>
               <Text style={styles.userName}>سارة خالد</Text>
-              <View style={[styles.statusBadge, styles.statusBadgeActive]}><Text style={styles.statusBadgeText}>{language === "ar" ? "نشط" : "Active"}</Text></View>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <View style={{ backgroundColor: "#FEF3C7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: "#FCD34D" }}><Text style={{ fontSize: 9, fontWeight: "900", color: "#D97706" }}>VIP</Text></View>
+                <View style={[styles.statusBadge, styles.statusBadgeActive]}><Text style={styles.statusBadgeText}>{language === "ar" ? "نشط" : "Active"}</Text></View>
+              </View>
             </View>
             <Text style={styles.userMeta}>0788889900 · {language === "ar" ? "المنطقة: دابوق، عمّان" : "Region: Dabouq, Amman"}</Text>
-            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات السابقة: 18 طلب · إجمالي الإنفاق: 265.00 د.أ" : "Past orders: 18 · Total spend: 265.00 JOD"}</Text>
+            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات: 18 طلب · إجمالي الإنفاق: 265.00 د.أ · ترحيب تلقائي: مفعل" : "Orders: 18 · Total: 265 JOD · Welcome notification sent"}</Text>
           </View>
         </View>
         <View style={styles.userCard}>
@@ -701,10 +735,13 @@ function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en
           <View style={styles.userMain}>
             <View style={styles.userTitleRow}>
               <Text style={styles.userName}>طارق أحمد</Text>
-              <View style={[styles.statusBadge, styles.statusBadgeActive]}><Text style={styles.statusBadgeText}>{language === "ar" ? "نشط" : "Active"}</Text></View>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <View style={{ backgroundColor: "#E6FBF2", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: "#C5EAD8" }}><Text style={{ fontSize: 9, fontWeight: "900", color: "#2E9B72" }}>Regular</Text></View>
+                <View style={[styles.statusBadge, styles.statusBadgeActive]}><Text style={styles.statusBadgeText}>{language === "ar" ? "نشط" : "Active"}</Text></View>
+              </View>
             </View>
             <Text style={styles.userMeta}>0791112233 · {language === "ar" ? "المنطقة: خلدا، عمّان" : "Region: Khalda, Amman"}</Text>
-            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات السابقة: 7 طلبات · إجمالي الإنفاق: 98.50 د.أ" : "Past orders: 7 · Total spend: 98.50 JOD"}</Text>
+            <Text style={styles.userMeta}>{language === "ar" ? "الطلبات: 7 طلبات · إجمالي الإنفاق: 98.50 د.أ · ترحيب تلقائي: مفعل" : "Orders: 7 · Total: 98.5 JOD · Welcome notification sent"}</Text>
           </View>
         </View>
       </View>
