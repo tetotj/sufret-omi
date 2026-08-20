@@ -125,6 +125,8 @@ function AdminLogin({ language, onSignIn }: { language: "ar" | "en"; onSignIn: (
 function AdminShell({ language, onSignOut, showToast, useDatabase }: { language: "ar" | "en"; onSignOut: () => void; showToast: (message: string) => void; useDatabase: boolean }) {
   const [section, setSection] = useState<AdminSection>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [allowMotherRegistration, setAllowMotherRegistration] = useState(true);
+  const [allowDriverRegistration, setAllowDriverRegistration] = useState(true);
   const router = useRouter();
 
   return (
@@ -668,13 +670,43 @@ function AdminPaymentsSection({ language, useDatabase }: { language: "ar" | "en"
 
 // 8. Settings
 function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"; useDatabase: boolean }) {
+  const [allowMothers, setAllowMothers] = useState(true);
+  const [allowDrivers, setAllowDrivers] = useState(true);
+
   return (
     <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
       <View style={styles.pageHeading}>
         <View>
-          <Text style={styles.pageEyebrow}>{language === "ar" ? "إعدادات المنصة" : "PLATFORM SETTINGS"}</Text>
-          <Text style={styles.pageTitle}>{language === "ar" ? "الإعدادات العامة والتكوين" : "Settings & Configuration"}</Text>
-          <Text style={styles.pageSubtitle}>{language === "ar" ? "مناطق العمل، رسوم التوصيل، نسبة العمولة، طرق الدفع، والإشعارات." : "Working zones, delivery fees, commission rate, payment methods, and notifications."}</Text>
+          <Text style={styles.pageEyebrow}>{language === "ar" ? "إعدادات المنصة والصلاحيات" : "PLATFORM SETTINGS & CONTROLS"}</Text>
+          <Text style={styles.pageTitle}>{language === "ar" ? "الإعدادات العامة والتحكم بالتسجيل" : "Settings & Registration Control"}</Text>
+          <Text style={styles.pageSubtitle}>{language === "ar" ? "إدارة تسجيل المطابخ والسائقين، مناطق العمل، نسب العمولة، والإشعارات الفورية." : "Manage kitchen and driver registrations, zones, commissions, and notifications."}</Text>
+        </View>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>{language === "ar" ? "التحكم بإنشاء حسابات المطابخ والسائقين" : "Kitchen & Driver Registration Control"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "يمكنك إيقاف أو تفعيل استقبال حسابات جديدة للأمهات أو السائقين بضغطة زر." : "Easily enable or disable new mother or driver account creation."}</Text>
+        
+        <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
+          <View style={{ flex: 1, padding: 14, borderRadius: 14, backgroundColor: allowMothers ? "#E6FBF2" : "#FFF4F2", borderWidth: 1, borderColor: allowMothers ? "#C5EAD8" : "#F1C4BF", gap: 8 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ fontSize: 12, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "تسجيل المطابخ (الأمهات)" : "Kitchen Registration"}</Text>
+              <Text style={{ fontSize: 9, fontWeight: "900", color: allowMothers ? "#2E9B72" : "#C4555D" }}>{allowMothers ? (language === "ar" ? "مفتوح" : "Open") : (language === "ar" ? "مغلق" : "Closed")}</Text>
+            </View>
+            <Pressable onPress={() => setAllowMothers(!allowMothers)} style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: allowMothers ? "#2E9B72" : "#C4555D", alignItems: "center" }}>
+              <Text style={{ fontSize: 10, fontWeight: "900", color: "#FFFFFF" }}>{allowMothers ? (language === "ar" ? "إيقاف تسجيل المطابخ" : "Disable Kitchens") : (language === "ar" ? "فتح تسجيل المطابخ" : "Enable Kitchens")}</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ flex: 1, padding: 14, borderRadius: 14, backgroundColor: allowDrivers ? "#E6FBF2" : "#FFF4F2", borderWidth: 1, borderColor: allowDrivers ? "#C5EAD8" : "#F1C4BF", gap: 8 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ fontSize: 12, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "تسجيل السائقين" : "Driver Registration"}</Text>
+              <Text style={{ fontSize: 9, fontWeight: "900", color: allowDrivers ? "#2E9B72" : "#C4555D" }}>{allowDrivers ? (language === "ar" ? "مفتوح" : "Open") : (language === "ar" ? "مغلق" : "Closed")}</Text>
+            </View>
+            <Pressable onPress={() => setAllowDrivers(!allowDrivers)} style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: allowDrivers ? "#2E9B72" : "#C4555D", alignItems: "center" }}>
+              <Text style={{ fontSize: 10, fontWeight: "900", color: "#FFFFFF" }}>{allowDrivers ? (language === "ar" ? "إيقاف تسجيل السائقين" : "Disable Drivers") : (language === "ar" ? "فتح تسجيل السائقين" : "Enable Drivers")}</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
