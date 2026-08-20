@@ -711,8 +711,33 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>{language === "ar" ? "تصدير سجل التدقيق والعمليات" : "Export Audit & Activity Logs"}</Text>
-        <Text style={styles.panelSubtitle}>{language === "ar" ? "تصدير كافة عمليات المشرفين وتعديلات الصلاحيات إلى ملفات Excel أو PDF معتمدة." : "Export all supervisor actions and permission changes into Excel or PDF."}</Text>
+        <Text style={styles.panelTitle}>{language === "ar" ? "سجل التدقيق التفاعلي والبحث المتقدم" : "Interactive Audit Logs & Search"}</Text>
+        <Text style={styles.panelSubtitle}>{language === "ar" ? "ابحث وفلتر في سجل العمليات والصلاحيات وتصديرها فوراً." : "Search and filter supervisor actions and audit trails instantly."}</Text>
+        
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F2FEFF", borderRadius: 12, borderWidth: 1, borderColor: "#C6EDEF", paddingHorizontal: 10, marginVertical: 8 }}>
+          <MaterialIcons name="search" size={18} color="#00AFC4" />
+          <TextInput
+            placeholder={language === "ar" ? "ابحث في السجل (مثل: مطبخ، سائق، صلاحية...)" : "Search audit logs..."}
+            placeholderTextColor="#8ABAC0"
+            style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, fontSize: 12, color: "#082E34" }}
+            textAlign={language === "ar" ? "right" : "left"}
+          />
+        </View>
+
+        <View style={{ backgroundColor: "#F7FEFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 10, gap: 8 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "#DDF9FA" }}>
+            <Text style={{ fontSize: 10, fontWeight: "900", color: "#4C747A", flex: 1 }}>{language === "ar" ? "الحدث / الإجراء" : "Action"}</Text>
+            <Text style={{ fontSize: 10, fontWeight: "900", color: "#4C747A", width: 110, textAlign: "center" }}>{language === "ar" ? "الوقت والتاريخ" : "Timestamp"}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "تعديل إعدادات تسجيل المطابخ والسائقين" : "Toggle Kitchen/Driver Registration"}</Text>
+              <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72" }}>{language === "ar" ? "بواسطة المشرف الرئيسي (Admin)" : "By Master Admin"}</Text>
+            </View>
+            <Text style={{ fontSize: 9, fontWeight: "800", color: "#7CA8AD", width: 110, textAlign: "center" }}>{new Date().toLocaleDateString()}</Text>
+          </View>
+        </View>
+
         <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
           <Pressable onPress={() => {
             const ws = XLSX.utils.json_to_sheet([{ Action: "Admin Toggle Kitchen Registration", Time: new Date().toISOString() }, { Action: "Admin Toggle Driver Registration", Time: new Date().toISOString() }]);
