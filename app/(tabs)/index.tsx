@@ -1502,10 +1502,89 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
 function ProfileScreen({ onRoleChange, onDashboard, onSupport }: { onRoleChange: () => void; onDashboard: () => void; onSupport: () => void }) {
   const router = useRouter();
   const { language, setLanguage, selectedRegion, setSelectedRegion, signOut } = useApp();
-  const nextRegion = () => { const index = regions.findIndex((item) => item.id === selectedRegion); setSelectedRegion(regions[(index + 1) % regions.length].id); };
-  return <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.profileHeader}><Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} /><View><Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text><Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان" : "Khalda, Amman"}</Text></View><Pressable onPress={onRoleChange} style={styles.switchRoleButton}><MaterialIcons name="swap-horiz" size={16} color="#00AFC4" /><Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text></Pressable></View><Pressable onPress={onDashboard} style={styles.profileDashboardCard}><View style={styles.profileDashboardIcon}><MaterialIcons name="grid-view" size={20} color="#FFFFFF" /></View><View style={styles.profileDashboardCopy}><Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text><Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text></View><MaterialIcons name="chevron-right" size={20} color="#FFFFFF" /></Pressable><View style={styles.settingsCard}><SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} /><SettingRow icon="location-on" label={language === "ar" ? "منطقتي" : "My area"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={nextRegion} /><SettingRow icon="notifications-none" label={language === "ar" ? "الإشعارات" : "Notifications"} value={language === "ar" ? "مفعّلة" : "On"} onPress={() => undefined} />
-<SettingRow icon="admin-panel-settings" label={language === "ar" ? "لوحة المشرف المركزية (Admin)" : "Master Admin Control"} value={language === "ar" ? "الإدارة الشاملة" : "Full management"} onPress={() => router.push("/admin")} />
-<SettingRow icon="help-outline" label={language === "ar" ? "شكاوى ومساعدة" : "Complaints & help"} value={language === "ar" ? "إرسال ومتابعة شكوى" : "Send and track a complaint"} onPress={onSupport} /><SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} /></View><View style={styles.aboutCard}><Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text><Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text></View></ScrollView>;
+  const [regionModalOpen, setRegionModalOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.profileHeader}>
+        <Image source={require("@/assets/images/icon.png")} style={styles.profileAvatar} />
+        <View>
+          <Text style={styles.profileGreeting}>{language === "ar" ? "أهلاً سارة" : "Hi Sara"}</Text>
+          <Text style={styles.profileMuted}>{language === "ar" ? "خلدا، عمّان (الموقع الحالي مفعل)" : "Khalda, Amman (GPS active)"}</Text>
+        </View>
+        <Pressable onPress={onRoleChange} style={styles.switchRoleButton}>
+          <MaterialIcons name="swap-horiz" size={16} color="#00AFC4" />
+          <Text style={styles.switchRoleText}>{language === "ar" ? "وضع الأم" : "Mother mode"}</Text>
+        </Pressable>
+      </View>
+
+      <Pressable onPress={onDashboard} style={styles.profileDashboardCard}>
+        <View style={styles.profileDashboardIcon}>
+          <MaterialIcons name="grid-view" size={20} color="#FFFFFF" />
+        </View>
+        <View style={styles.profileDashboardCopy}>
+          <Text style={styles.profileDashboardTitle}>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</Text>
+          <Text style={styles.profileDashboardBody}>{language === "ar" ? "تابعي طلباتك ومطابخك وعناوينك" : "Manage orders, kitchens, and addresses"}</Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={20} color="#FFFFFF" />
+      </Pressable>
+
+      <View style={styles.settingsCard}>
+        <SettingRow icon="language" label={language === "ar" ? "اللغة" : "Language"} value={language === "ar" ? "العربية" : "English"} onPress={() => setLanguage(language === "ar" ? "en" : "ar")} />
+        <SettingRow icon="location-on" label={language === "ar" ? "منطقتي (اختر من القائمة أو الخريطة)" : "My area (Select region)"} value={getLocalized(getRegion(selectedRegion).label, language)} onPress={() => setRegionModalOpen(true)} />
+        <SettingRow icon={notificationsEnabled ? "notifications-active" : "notifications-off"} label={language === "ar" ? "الإشعارات والتنبيهات" : "Notifications"} value={notificationsEnabled ? (language === "ar" ? "مفعّلة" : "Enabled") : (language === "ar" ? "موقوفة" : "Disabled")} onPress={() => setNotificationsEnabled(!notificationsEnabled)} />
+        <SettingRow icon="admin-panel-settings" label={language === "ar" ? "لوحة المشرف المركزية (Admin)" : "Master Admin Control"} value={language === "ar" ? "الإدارة الشاملة" : "Full management"} onPress={() => router.push("/admin")} />
+        <SettingRow icon="help-outline" label={language === "ar" ? "شكاوى ومساعدة" : "Complaints & help"} value={language === "ar" ? "إرسال ومتابعة شكوى" : "Send and track a complaint"} onPress={onSupport} />
+        <SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} />
+      </View>
+
+      <View style={styles.aboutCard}>
+        <Text style={styles.aboutTitle}>{language === "ar" ? "من بيت أردني لكل بيت" : "From a Jordanian home to every home"}</Text>
+        <Text style={styles.aboutBody}>{language === "ar" ? "سفرة أمي تجمعك بأمهات يطبخوا بحب، عشان تضلّ لَمّة البيت على أحلى سفرة." : "Sufret Omi connects you with mothers who cook with care, keeping family time around a generous table."}</Text>
+      </View>
+
+      <Modal visible={regionModalOpen} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: "70%" }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#11181C" }}>{language === "ar" ? "اختر منطقتك المفضلة" : "Select your region"}</Text>
+              <Pressable onPress={() => setRegionModalOpen(false)}>
+                <MaterialIcons name="close" size={24} color="#687076" />
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {regions.map((reg) => (
+                <Pressable
+                  key={reg.id}
+                  onPress={() => {
+                    setSelectedRegion(reg.id);
+                    setRegionModalOpen(false);
+                  }}
+                  style={{
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "#E5E7EB",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    backgroundColor: selectedRegion === reg.id ? "#E6F4FE" : "transparent",
+                    borderRadius: 8,
+                    marginBottom: 4,
+                  }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: selectedRegion === reg.id ? "bold" : "normal", color: selectedRegion === reg.id ? "#00AFC4" : "#11181C" }}>
+                    {getLocalized(reg.label, language)}
+                  </Text>
+                  {selectedRegion === reg.id && <MaterialIcons name="check" size={20} color="#00AFC4" />}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
 }
 
 function BottomNav({ active, onNavigate, role, language }: { active: ViewId; onNavigate: (view: ViewId) => void; role: Role; language: "ar" | "en" }) {
