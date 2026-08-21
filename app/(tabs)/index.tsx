@@ -88,9 +88,13 @@ function resolveRemoteAssetUrl(url?: string | null): string | undefined {
 }
 
 type AnnouncementSlide = { id: string; icon: IconName; eyebrowAr: string; eyebrowEn: string; titleAr: string; titleEn: string; bodyAr: string; bodyEn: string; ctaAr: string; ctaEn: string; target: "meals" | "orders"; imageUrl?: string | null };
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({ shouldShowAlert: true, shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }),
+  });
+} catch {
+  // Expo Go remote notifications safeguard
+}
 
 const FALLBACK_ANNOUNCEMENTS: AnnouncementSlide[] = [
   { id: "fallback-multi-kitchen", icon: "restaurant-menu", eyebrowAr: "تحديث جديد من سفرة أمي", eyebrowEn: "A new Sufret Omi update", titleAr: "اطلبي من أكثر من مطعم", titleEn: "Order from multiple kitchens", bodyAr: "قسّمنا السلة تلقائياً لكل مطبخ حتى توصلك طلباتك بسهولة.", bodyEn: "Your cart is split for each kitchen for an easier delivery.", ctaAr: "اكتشفي الأكلات", ctaEn: "Discover meals", target: "meals" },
@@ -374,6 +378,10 @@ function DriverDashboard({ onBack }: { onBack: () => void }) {
     let cancelled = false;
     const registerDriverPushToken = async () => {
       try {
+        if (Constants.appOwnership === "expo") {
+          // Push notifications (remote notifications) are not supported in Expo Go on SDK 53+
+          return;
+        }
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         const finalStatus = existingStatus === "granted" ? existingStatus : (await Notifications.requestPermissionsAsync()).status;
         if (finalStatus !== "granted") return;
