@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as XLSX from "xlsx";
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { complaintCategories, complaintStatuses, type Complaint, type ComplaintStatus } from "@/lib/complaint-data";
@@ -13,6 +13,7 @@ import { getApiBaseUrl, startOAuthLogin } from "@/constants/oauth";
 import { trpc } from "@/lib/trpc";
 import { formatJod, getLocalized, kitchens, meals } from "@/lib/food-data";
 import { chooseImages, imageUriToDataUrl } from "@/lib/media-picker";
+import { buildAuditCsv } from "@/lib/admin-audit";
 
 function resolveAdminAssetUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -80,11 +81,15 @@ function AdminLogin({ language, onSignIn }: { language: "ar" | "en"; onSignIn: (
   const router = useRouter();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const failedLoginMutation = trpc.auth.recordAdminLoginFailure.useMutation();
 
   const submit = () => {
     const success = onSignIn(code);
     if (success) setError("");
-    else setError(language === "ar" ? "رمز المشرف غير صحيح" : "Incorrect supervisor code");
+    else {
+      setError(language === "ar" ? "رمز المشرف غير صحيح" : "Incorrect supervisor code");
+      failedLoginMutation.mutate({ reason: "invalid_code", language });
+    }
   };
 
   return (
@@ -1022,6 +1027,31 @@ function AdminPaymentsSection({ language, useDatabase }: { language: "ar" | "en"
 function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"; useDatabase: boolean }) {
   const [allowMothers, setAllowMothers] = useState(true);
   const [allowDrivers, setAllowDrivers] = useState(true);
+  const [auditSearch, setAuditSearch] = useState("");
+  const remoteAuditLogs = trpc.admin.listAuditLogs.useQuery({ limit: 500 }, { enabled: useDatabase });
+  const auditLogs = useMemo(() => {
+    const query = auditSearch.trim().toLowerCase();
+    const rows = remoteAuditLogs.data ?? [];
+    return query ? rows.filter((row) => `${row.action} ${row.details ?? ""} ${row.adminId ?? ""}`.toLowerCase().includes(query)) : rows;
+  }, [auditSearch, remoteAuditLogs.data]);
+  const exportAuditCsv = async () => {
+    const csv = buildAuditCsv(auditLogs, language);
+    if (Platform.OS === "web") {
+      const web = globalThis as typeof globalThis & { document?: { createElement: (tag: string) => { href: string; download: string; click: () => void }; body: { appendChild: (node: unknown) => void; removeChild: (node: unknown) => void } }; URL?: { createObjectURL: (blob: Blob) => string; revokeObjectURL: (url: string) => void } };
+      if (web.document && web.URL) {
+        const url = web.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+        const link = web.document.createElement("a");
+        link.href = url;
+        link.download = "sufret-omi-audit-logs.csv";
+        web.document.body.appendChild(link);
+        link.click();
+        web.document.body.removeChild(link);
+        web.URL.revokeObjectURL(url);
+      }
+      return;
+    }
+    await Share.share({ title: language === "ar" ? "سجل التدقيق" : "Audit log", message: csv });
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
@@ -1069,43 +1099,37 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
           <TextInput
             placeholder={language === "ar" ? "ابحث في السجل (مثل: مطبخ، سائق، صلاحية...)" : "Search audit logs..."}
             placeholderTextColor="#8ABAC0"
+            value={auditSearch}
+            onChangeText={setAuditSearch}
             style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, fontSize: 12, color: "#082E34" }}
             textAlign={language === "ar" ? "right" : "left"}
           />
         </View>
 
-        <View style={{ backgroundColor: "#F7FEFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 10, gap: 8 }}>
+          <View style={{ backgroundColor: "#F7FEFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 10, gap: 8 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "#DDF9FA" }}>
             <Text style={{ fontSize: 10, fontWeight: "900", color: "#4C747A", flex: 1 }}>{language === "ar" ? "الحدث / الإجراء" : "Action"}</Text>
             <Text style={{ fontSize: 10, fontWeight: "900", color: "#4C747A", width: 110, textAlign: "center" }}>{language === "ar" ? "الوقت والتاريخ" : "Timestamp"}</Text>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 }}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "تعديل إعدادات تسجيل المطابخ والسائقين" : "Toggle Kitchen/Driver Registration"}</Text>
-              <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72" }}>{language === "ar" ? "بواسطة المشرف الرئيسي (Admin)" : "By Master Admin"}</Text>
+          {auditLogs.length === 0 ? (
+            <Text style={{ paddingVertical: 14, textAlign: "center", color: "#7CA8AD", fontSize: 11, fontWeight: "800" }}>{language === "ar" ? "لا توجد أحداث مطابقة" : "No matching audit events"}</Text>
+          ) : auditLogs.slice(0, 12).map((row) => (
+            <View key={row.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 }}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{row.action}</Text>
+                <Text style={{ fontSize: 9, fontWeight: "800", color: "#2E9B72" }}>{row.details ?? (language === "ar" ? `المشرف رقم ${row.adminId ?? "النظام"}` : `Admin ${row.adminId ?? "system"}`)}</Text>
+              </View>
+              <Text style={{ fontSize: 9, fontWeight: "800", color: "#7CA8AD", width: 110, textAlign: "center" }}>{new Date(row.createdAt).toLocaleString()}</Text>
             </View>
-            <Text style={{ fontSize: 9, fontWeight: "800", color: "#7CA8AD", width: 110, textAlign: "center" }}>{new Date().toLocaleDateString()}</Text>
-          </View>
+          ))}
         </View>
 
         <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-          <Pressable onPress={() => {
-            const ws = XLSX.utils.json_to_sheet([{ Action: "Admin Toggle Kitchen Registration", Time: new Date().toISOString() }, { Action: "Admin Toggle Driver Registration", Time: new Date().toISOString() }]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "AuditLogs");
-            XLSX.writeFile(wb, "sufret-omi-audit-logs.xlsx");
-          }} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#2E9B72", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <MaterialIcons name="table-chart" size={16} color="#FFFFFF" />
-            <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "تصدير Excel" : "Export Excel"}</Text>
+          <Pressable onPress={exportAuditCsv} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#2E9B72", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <MaterialIcons name="file-download" size={16} color="#FFFFFF" />
+            <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "تصدير CSV" : "Export CSV"}</Text>
           </Pressable>
-          <Pressable onPress={() => {
-            const w = window.open("", "_blank");
-            if (w) {
-              w.document.write("<html><head><title>Audit Logs</title></head><body style='font-family:Arial;padding:20px;'><h2>Sufret Omi - Audit Logs Report</h2><p>Generated: " + new Date().toLocaleString() + "</p><hr/><table border='1' cellpadding='8' cellspacing='0'><tr><th>ID</th><th>Action</th><th>Timestamp</th></tr><tr><td>1</td><td>System Init & Registration Control</td><td>" + new Date().toLocaleString() + "</td></tr></table></body></html>");
-              w.document.close();
-              w.print();
-            }
-          }} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#00AFC4", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <Pressable onPress={() => Alert.alert(language === "ar" ? "سجل التدقيق" : "Audit log", language === "ar" ? `تم تجهيز ${auditLogs.length} حدثاً للتصدير بصيغة CSV.` : `${auditLogs.length} events are ready in the CSV export.`)} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#00AFC4", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <MaterialIcons name="picture-as-pdf" size={16} color="#FFFFFF" />
             <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "طباعة / تصدير PDF" : "Print / PDF"}</Text>
           </Pressable>

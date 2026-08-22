@@ -6,6 +6,7 @@ import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
 import { sendPushNotificationToUser } from "./marketing-notifications";
+import { shouldNotifyFailedAdminLogin } from "../lib/admin-audit";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: Pool | null = null;
@@ -830,6 +831,23 @@ export async function listWeeklyReportRecipients() {
   if (!db) return [];
   const rows = await db.select({ kitchenId: kitchens.id, kitchenName: kitchens.nameAr, email: users.email }).from(kitchens).leftJoin(users, eq(kitchens.userId, users.id));
   return rows.filter((row): row is { kitchenId: string; kitchenName: string; email: string } => Boolean(row.email));
+}
+
+let lastFailedAdminLoginAlertAt = 0;
+
+export async function recordFailedAdminLogin(reason: "invalid_code" | "locked", language: "ar" | "en"): Promise<void> {
+  await recordAuditLog(null, "Failed admin login", JSON.stringify({ reason, source: "admin_login" }));
+  const now = Date.now();
+  if (!shouldNotifyFailedAdminLogin(lastFailedAdminLoginAlertAt, now)) return;
+  lastFailedAdminLoginAlertAt = now;
+  const db = await getDb();
+  if (!db) return;
+  const admins = await db.select({ id: users.id }).from(users).where(and(eq(users.role, "admin"), eq(users.accountStatus, "active")));
+  await Promise.all(admins.map((admin) => sendPushNotificationToUser(admin.id, {
+    title: language === "ar" ? "محاولة دخول فاشلة للوحة الإدارة" : "Failed admin login attempt",
+    body: language === "ar" ? "تم رصد محاولة دخول غير ناجحة. لا يتم حفظ الرمز السري." : "An unsuccessful sign-in was detected. No secret code was stored.",
+    data: { type: "admin_login_failure", reason },
+  })));
 }
 
 export async function recordAuditLog(adminId: number | null, action: string, details?: string): Promise<void> {

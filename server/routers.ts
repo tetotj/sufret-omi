@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -94,12 +94,19 @@ export const appRouter = router({
         const user = await upsertLocalUser(input);
         return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role };
       }),
+    recordAdminLoginFailure: publicProcedure
+      .input(z.object({ reason: z.enum(["invalid_code", "locked"]), language: z.enum(["ar", "en"]) }))
+      .mutation(({ input }) => recordFailedAdminLogin(input.reason, input.language)),
   }),
   admin: router({
     listUsers: adminProcedure.query(() => listUserProfiles()),
     updateUserStatus: adminProcedure
       .input(z.object({ userId: z.string().min(1), status: userStatusSchema }))
-      .mutation(({ input }) => updateUserProfileStatus(input.userId, input.status)),
+      .mutation(async ({ ctx, input }) => {
+        await updateUserProfileStatus(input.userId, input.status);
+        await recordAuditLog(ctx.user.id, `Updated user ${input.userId} status`, JSON.stringify({ status: input.status }));
+        return { success: true as const };
+      }),
     listPendingKitchenDescriptions: adminProcedure.query(() => listPendingKitchenDescriptions()),
     decideKitchenDescription: adminProcedure.input(kitchenDescriptionDecisionInput).mutation(({ input }) => decideKitchenDescription(input.kitchenId, input.status)),
     listPendingMealApprovals: adminProcedure.query(() => listPendingMealApprovals()),
