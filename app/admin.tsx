@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as XLSX from "xlsx";
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { complaintCategories, complaintStatuses, type Complaint, type ComplaintStatus } from "@/lib/complaint-data";
@@ -407,9 +407,14 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
                       <Pressable 
                         onPress={(e) => { 
                           e.stopPropagation?.(); 
-                          if (confirm(language === "ar" ? `هل ترغب حقاً في اعتماد مطبخ ${getLocalized(k.name, language)}؟` : `Approve kitchen?`)) {
-                            showToast(language === "ar" ? `✅ تم اعتماد مطبخ ${getLocalized(k.name, language)} بنجاح تام!` : `Kitchen approved successfully!`); 
-                          }
+                          Alert.alert(
+                            language === "ar" ? "تأكيد اعتماد المطبخ" : "Approve kitchen",
+                            language === "ar" ? `هل ترغب حقاً في اعتماد مطبخ ${getLocalized(k.name, language)}؟` : `Approve ${getLocalized(k.name, language)}?`,
+                            [
+                              { text: language === "ar" ? "إلغاء" : "Cancel", style: "cancel" },
+                              { text: language === "ar" ? "اعتماد" : "Approve", onPress: () => showToast(language === "ar" ? `✅ تم اعتماد مطبخ ${getLocalized(k.name, language)} بنجاح تام!` : `Kitchen approved successfully!`) },
+                            ],
+                          );
                         }}
                         style={{ backgroundColor: "#DDF9FA", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
                       >
@@ -418,9 +423,14 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
                       <Pressable 
                         onPress={(e) => { 
                           e.stopPropagation?.(); 
-                          if (confirm(language === "ar" ? `⚠️ تحذير: هل أنت متأكد من إيقاف مطبخ ${getLocalized(k.name, language)} مؤقتاً؟` : `Warning: Suspend kitchen?`)) {
-                            showToast(language === "ar" ? `🚫 تم إيقاف مطبخ ${getLocalized(k.name, language)} بنجاح` : `Kitchen suspended`); 
-                          }
+                          Alert.alert(
+                            language === "ar" ? "تأكيد إيقاف المطبخ" : "Suspend kitchen",
+                            language === "ar" ? `⚠️ هل أنت متأكد من إيقاف مطبخ ${getLocalized(k.name, language)} مؤقتاً؟` : `Suspend ${getLocalized(k.name, language)}?`,
+                            [
+                              { text: language === "ar" ? "إلغاء" : "Cancel", style: "cancel" },
+                              { text: language === "ar" ? "إيقاف" : "Suspend", style: "destructive", onPress: () => showToast(language === "ar" ? `🚫 تم إيقاف مطبخ ${getLocalized(k.name, language)} بنجاح` : `Kitchen suspended`) },
+                            ],
+                          );
                         }}
                         style={{ backgroundColor: "#FFF4F2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}
                       >
@@ -893,7 +903,7 @@ function AdminCustomersSection({ language, useDatabase }: { language: "ar" | "en
         <Text style={styles.panelTitle}>{language === "ar" ? "عروض ورسائل مخصصة لعملاء VIP" : "Targeted VIP Messages & Offers"}</Text>
         <Text style={styles.panelSubtitle}>{language === "ar" ? "إرسال عروض ترويجية حصرية لعملاء VIP لزيادة الولاء والتكرار." : "Send exclusive promotional offers to VIP members."}</Text>
         
-        <Pressable onPress={() => alert(language === "ar" ? "تم إرسال عرض VIP الحصري بنجاح لجميع أعضاء VIP!" : "Exclusive VIP offer sent successfully!")} style={{ minHeight: 42, borderRadius: 12, backgroundColor: "#D97706", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
+        <Pressable onPress={() => Alert.alert(language === "ar" ? "تم إرسال العرض" : "Offer sent", language === "ar" ? "تم إرسال عرض VIP الحصري بنجاح لجميع أعضاء VIP!" : "Exclusive VIP offer sent successfully!", [{ text: language === "ar" ? "حسناً" : "OK" }])} style={{ minHeight: 42, borderRadius: 12, backgroundColor: "#D97706", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
           <MaterialIcons name="local-offer" size={16} color="#FFFFFF" />
           <Text style={{ color: "#FFFFFF", fontSize: 11, fontWeight: "900" }}>{language === "ar" ? "إرسال قسيمة خصم VIP (15٪) لجميع أعضاء VIP" : "Send VIP 15% Discount Voucher"}</Text>
         </Pressable>
