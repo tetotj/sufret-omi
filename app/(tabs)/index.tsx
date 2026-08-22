@@ -147,7 +147,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1">
-      <View style={[styles.root, language === "ar" ? styles.rtl : styles.ltr]}>
+      <View style={styles.root}>
         {view === "discover" ? (
           <DiscoverMapScreen onBack={() => go("home")} onOpenMeals={() => go("meals")} />
         ) : view === "meals" ? (
@@ -1807,8 +1807,6 @@ const styles = StyleSheet.create({
   dashboardFootnote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: 3 },
   dashboardFootnoteText: { color: "#4C747A", fontSize: 10, fontWeight: "800" },
   root: { flex: 1, backgroundColor: "#F2FEFF" },
-  rtl: { direction: "rtl" },
-  ltr: { direction: "ltr" },
   scrollContent: { padding: 18, paddingBottom: 116, gap: 18 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   brandCluster: { flexDirection: "row", alignItems: "center", gap: 10 },
