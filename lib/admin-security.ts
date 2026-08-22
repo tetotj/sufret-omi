@@ -2,6 +2,8 @@ export type AdminAuditFilter = {
   device?: string;
   ip?: string;
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export type AdminAuditRow = {
@@ -18,6 +20,8 @@ export function filterAdminAuditRows(rows: AdminAuditRow[], filter: AdminAuditFi
   const date = filter.date?.trim();
   return rows.filter((row) => {
     if (date && !row.createdAt.startsWith(date)) return false;
+    if (filter.dateFrom && row.createdAt.slice(0, 10) < filter.dateFrom) return false;
+    if (filter.dateTo && row.createdAt.slice(0, 10) > filter.dateTo) return false;
     const details = (row.details ?? "").toLowerCase();
     if (device && !details.includes(device)) return false;
     if (ip && !details.includes(ip)) return false;

@@ -1036,14 +1036,17 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
   const [auditDevice, setAuditDevice] = useState("");
   const [auditIp, setAuditIp] = useState("");
   const [auditDate, setAuditDate] = useState("");
+  const [auditDateFrom, setAuditDateFrom] = useState("");
+  const [auditDateTo, setAuditDateTo] = useState("");
   const [pushReadiness, setPushReadiness] = useState<PushReadiness | null>(null);
+  const testPushMutation = trpc.notifications.sendTestPush.useMutation({ onSuccess: () => Alert.alert(language === "ar" ? "تم الإرسال" : "Sent", language === "ar" ? "تم إرسال الإشعار التجريبي إلى حساب المشرف." : "The test notification was sent to the supervisor account."), onError: () => Alert.alert(language === "ar" ? "تعذر الإرسال" : "Send failed", language === "ar" ? "تحقق من صلاحية الإشعارات وتسجيل Push Token." : "Check notification permission and Push Token registration.") });
   const remoteAuditLogs = trpc.admin.listAuditLogs.useQuery({ limit: 500 }, { enabled: useDatabase });
   const auditLogs = useMemo(() => {
     const query = auditSearch.trim().toLowerCase();
     const rows = remoteAuditLogs.data ?? [];
     const searched = query ? rows.filter((row) => `${row.action} ${row.details ?? ""} ${row.adminId ?? ""}`.toLowerCase().includes(query)) : rows;
-    return filterAdminAuditRows(searched, { device: auditDevice, ip: auditIp, date: auditDate });
-  }, [auditDate, auditDevice, auditIp, auditSearch, remoteAuditLogs.data]);
+    return filterAdminAuditRows(searched, { device: auditDevice, ip: auditIp, date: auditDate, dateFrom: auditDateFrom, dateTo: auditDateTo });
+  }, [auditDate, auditDateFrom, auditDateTo, auditDevice, auditIp, auditSearch, remoteAuditLogs.data]);
 
   useEffect(() => {
     let active = true;
@@ -1144,7 +1147,8 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
           <TextInput value={auditDevice} onChangeText={setAuditDevice} placeholder={language === "ar" ? "الجهاز" : "Device"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} />
           <TextInput value={auditIp} onChangeText={setAuditIp} placeholder="IP" placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} autoCapitalize="none" />
-          <TextInput value={auditDate} onChangeText={setAuditDate} placeholder={language === "ar" ? "YYYY-MM-DD" : "Date"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} autoCapitalize="none" />
+          <TextInput value={auditDateFrom} onChangeText={setAuditDateFrom} placeholder={language === "ar" ? "من YYYY-MM-DD" : "From YYYY-MM-DD"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} autoCapitalize="none" />
+          <TextInput value={auditDateTo} onChangeText={setAuditDateTo} placeholder={language === "ar" ? "إلى YYYY-MM-DD" : "To YYYY-MM-DD"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} autoCapitalize="none" />
         </View>
 
           <View style={{ backgroundColor: "#F7FEFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 10, gap: 8 }}>
@@ -1181,6 +1185,7 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
         <View style={{ padding: 12, borderRadius: 14, backgroundColor: pushReadiness?.ready ? "#E6FBF2" : "#FFF8E8", borderWidth: 1, borderColor: pushReadiness?.ready ? "#C5EAD8" : "#F1D99C", marginBottom: 10 }}>
           <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "جاهزية إشعارات Push" : "Push readiness"}</Text>
           <Text style={{ marginTop: 4, fontSize: 10, color: "#4C747A" }}>{pushReadiness?.ready ? (language === "ar" ? "جاهز للإرسال على الجهاز" : "Ready on this device") : (language === "ar" ? "تحتاج صلاحية الإشعارات ومعرّف EAS لاختبار iPhone فعلي" : "Notification permission and an EAS project ID are required for a physical iPhone test")}</Text>
+          <Pressable disabled={testPushMutation.isPending} onPress={() => testPushMutation.mutate({ language })} style={{ marginTop: 8, paddingVertical: 9, borderRadius: 10, backgroundColor: testPushMutation.isPending ? "#B5D9DC" : "#00AFC4", alignItems: "center" }}><Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "إرسال إشعار تجريبي" : "Send test notification"}</Text></Pressable>
         </View>
         <SettingStatus icon="map" title={language === "ar" ? "مناطق العمل" : "Working Zones"} body={language === "ar" ? "تغطية كافة محافظات المملكة (عمان، إربد، الزرقاء، السلط، مادبا، العقبة)." : "Coverage across Jordan governorates (Amman, Irbid, Zarqa, etc.)."} state={language === "ar" ? "مفعل" : "Active"} />
         <SettingStatus icon="local-shipping" title={language === "ar" ? "رسوم التوصيل" : "Delivery Fees"} body={language === "ar" ? "محسوبة آلياً حسب المسافة والمنطقة (يبدأ من 1.50 د.أ)." : "Calculated by distance & zone (starts at 1.50 JOD)." } state={language === "ar" ? "2.00 د.أ" : "2.00 JOD"} />

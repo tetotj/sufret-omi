@@ -12,6 +12,8 @@ describe("admin audit filters and push readiness", () => {
     expect(filterAdminAuditRows(rows, { device: "iphone" })).toHaveLength(1);
     expect(filterAdminAuditRows(rows, { ip: "10.0.0." })).toHaveLength(1);
     expect(filterAdminAuditRows(rows, { date: "2026-08-21" })).toHaveLength(1);
+    expect(filterAdminAuditRows(rows, { dateFrom: "2026-08-21", dateTo: "2026-08-22" })).toHaveLength(2);
+    expect(filterAdminAuditRows(rows, { dateFrom: "2026-08-22", dateTo: "2026-08-22" })).toHaveLength(1);
     expect(filterAdminAuditRows(rows, { device: "android" })).toHaveLength(0);
   });
 
