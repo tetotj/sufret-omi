@@ -1,11 +1,12 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as XLSX from "xlsx";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Alert, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { complaintCategories, complaintStatuses, type Complaint, type ComplaintStatus } from "@/lib/complaint-data";
@@ -17,6 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { formatJod, getLocalized, kitchens, meals } from "@/lib/food-data";
 import { chooseImages, imageUriToDataUrl } from "@/lib/media-picker";
 import { buildAuditCsv, buildAuditHtml } from "@/lib/admin-audit";
+import { filterAdminAuditRows, getPushReadiness, type PushReadiness } from "@/lib/admin-security";
 
 function resolveAdminAssetUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -1031,12 +1033,32 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
   const [allowMothers, setAllowMothers] = useState(true);
   const [allowDrivers, setAllowDrivers] = useState(true);
   const [auditSearch, setAuditSearch] = useState("");
+  const [auditDevice, setAuditDevice] = useState("");
+  const [auditIp, setAuditIp] = useState("");
+  const [auditDate, setAuditDate] = useState("");
+  const [pushReadiness, setPushReadiness] = useState<PushReadiness | null>(null);
   const remoteAuditLogs = trpc.admin.listAuditLogs.useQuery({ limit: 500 }, { enabled: useDatabase });
   const auditLogs = useMemo(() => {
     const query = auditSearch.trim().toLowerCase();
     const rows = remoteAuditLogs.data ?? [];
-    return query ? rows.filter((row) => `${row.action} ${row.details ?? ""} ${row.adminId ?? ""}`.toLowerCase().includes(query)) : rows;
-  }, [auditSearch, remoteAuditLogs.data]);
+    const searched = query ? rows.filter((row) => `${row.action} ${row.details ?? ""} ${row.adminId ?? ""}`.toLowerCase().includes(query)) : rows;
+    return filterAdminAuditRows(searched, { device: auditDevice, ip: auditIp, date: auditDate });
+  }, [auditDate, auditDevice, auditIp, auditSearch, remoteAuditLogs.data]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const permission = Platform.OS === "web" ? "unsupported" : (await Notifications.getPermissionsAsync()).status;
+        const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web";
+        const result = getPushReadiness(platform, permission, Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId);
+        if (active) setPushReadiness(result);
+      } catch {
+        if (active) setPushReadiness(getPushReadiness(Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web", "unsupported"));
+      }
+    })();
+    return () => { active = false; };
+  }, []);
   const exportAuditPdf = async () => {
     const html = buildAuditHtml(auditLogs, language);
     if (Platform.OS === "web") {
@@ -1119,6 +1141,11 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
             textAlign={language === "ar" ? "right" : "left"}
           />
         </View>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+          <TextInput value={auditDevice} onChangeText={setAuditDevice} placeholder={language === "ar" ? "الجهاز" : "Device"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} />
+          <TextInput value={auditIp} onChangeText={setAuditIp} placeholder="IP" placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} autoCapitalize="none" />
+          <TextInput value={auditDate} onChangeText={setAuditDate} placeholder={language === "ar" ? "YYYY-MM-DD" : "Date"} placeholderTextColor="#8ABAC0" style={{ flex: 1, backgroundColor: "#F2FEFF", borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 10, padding: 8, fontSize: 11, color: "#082E34" }} autoCapitalize="none" />
+        </View>
 
           <View style={{ backgroundColor: "#F7FEFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 10, gap: 8 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "#DDF9FA" }}>
@@ -1151,6 +1178,10 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
       </View>
 
       <View style={styles.settingsPanel}>
+        <View style={{ padding: 12, borderRadius: 14, backgroundColor: pushReadiness?.ready ? "#E6FBF2" : "#FFF8E8", borderWidth: 1, borderColor: pushReadiness?.ready ? "#C5EAD8" : "#F1D99C", marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? "جاهزية إشعارات Push" : "Push readiness"}</Text>
+          <Text style={{ marginTop: 4, fontSize: 10, color: "#4C747A" }}>{pushReadiness?.ready ? (language === "ar" ? "جاهز للإرسال على الجهاز" : "Ready on this device") : (language === "ar" ? "تحتاج صلاحية الإشعارات ومعرّف EAS لاختبار iPhone فعلي" : "Notification permission and an EAS project ID are required for a physical iPhone test")}</Text>
+        </View>
         <SettingStatus icon="map" title={language === "ar" ? "مناطق العمل" : "Working Zones"} body={language === "ar" ? "تغطية كافة محافظات المملكة (عمان، إربد، الزرقاء، السلط، مادبا، العقبة)." : "Coverage across Jordan governorates (Amman, Irbid, Zarqa, etc.)."} state={language === "ar" ? "مفعل" : "Active"} />
         <SettingStatus icon="local-shipping" title={language === "ar" ? "رسوم التوصيل" : "Delivery Fees"} body={language === "ar" ? "محسوبة آلياً حسب المسافة والمنطقة (يبدأ من 1.50 د.أ)." : "Calculated by distance & zone (starts at 1.50 JOD)." } state={language === "ar" ? "2.00 د.أ" : "2.00 JOD"} />
         <SettingStatus icon="percent" title={language === "ar" ? "نسبة العمولة" : "Commission Rate"} body={language === "ar" ? "عمولة المنصة الثابتة على كل طلب." : "Fixed platform commission on every order."} state="5%" />
