@@ -2,7 +2,10 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as XLSX from "xlsx";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import { Alert, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import Constants from "expo-constants";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { complaintCategories, complaintStatuses, type Complaint, type ComplaintStatus } from "@/lib/complaint-data";
@@ -13,7 +16,7 @@ import { getApiBaseUrl, startOAuthLogin } from "@/constants/oauth";
 import { trpc } from "@/lib/trpc";
 import { formatJod, getLocalized, kitchens, meals } from "@/lib/food-data";
 import { chooseImages, imageUriToDataUrl } from "@/lib/media-picker";
-import { buildAuditCsv } from "@/lib/admin-audit";
+import { buildAuditCsv, buildAuditHtml } from "@/lib/admin-audit";
 
 function resolveAdminAssetUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -88,7 +91,7 @@ function AdminLogin({ language, onSignIn }: { language: "ar" | "en"; onSignIn: (
     if (success) setError("");
     else {
       setError(language === "ar" ? "رمز المشرف غير صحيح" : "Incorrect supervisor code");
-      failedLoginMutation.mutate({ reason: "invalid_code", language });
+      failedLoginMutation.mutate({ reason: "invalid_code", language, device: `${Platform.OS}:${Constants.deviceName ?? "unknown"}` });
     }
   };
 
@@ -1034,6 +1037,17 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
     const rows = remoteAuditLogs.data ?? [];
     return query ? rows.filter((row) => `${row.action} ${row.details ?? ""} ${row.adminId ?? ""}`.toLowerCase().includes(query)) : rows;
   }, [auditSearch, remoteAuditLogs.data]);
+  const exportAuditPdf = async () => {
+    const html = buildAuditHtml(auditLogs, language);
+    if (Platform.OS === "web") {
+      await Print.printAsync({ html });
+      return;
+    }
+    const file = await Print.printToFileAsync({ html });
+    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(file.uri, { mimeType: "application/pdf", dialogTitle: language === "ar" ? "مشاركة سجل التدقيق" : "Share audit log" });
+    else await Share.share({ title: language === "ar" ? "سجل التدقيق PDF" : "Audit log PDF", message: file.uri });
+  };
+
   const exportAuditCsv = async () => {
     const csv = buildAuditCsv(auditLogs, language);
     if (Platform.OS === "web") {
@@ -1129,7 +1143,7 @@ function AdminSettingsSection({ language, useDatabase }: { language: "ar" | "en"
             <MaterialIcons name="file-download" size={16} color="#FFFFFF" />
             <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "تصدير CSV" : "Export CSV"}</Text>
           </Pressable>
-          <Pressable onPress={() => Alert.alert(language === "ar" ? "سجل التدقيق" : "Audit log", language === "ar" ? `تم تجهيز ${auditLogs.length} حدثاً للتصدير بصيغة CSV.` : `${auditLogs.length} events are ready in the CSV export.`)} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#00AFC4", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <Pressable onPress={exportAuditPdf} style={{ flex: 1, minHeight: 40, borderRadius: 12, backgroundColor: "#00AFC4", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <MaterialIcons name="picture-as-pdf" size={16} color="#FFFFFF" />
             <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "900" }}>{language === "ar" ? "طباعة / تصدير PDF" : "Print / PDF"}</Text>
           </Pressable>

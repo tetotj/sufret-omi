@@ -95,8 +95,12 @@ export const appRouter = router({
         return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role };
       }),
     recordAdminLoginFailure: publicProcedure
-      .input(z.object({ reason: z.enum(["invalid_code", "locked"]), language: z.enum(["ar", "en"]) }))
-      .mutation(({ input }) => recordFailedAdminLogin(input.reason, input.language)),
+      .input(z.object({ reason: z.enum(["invalid_code", "locked"]), language: z.enum(["ar", "en"]), device: z.string().max(160).optional() }))
+      .mutation(({ ctx, input }) => {
+        const forwarded = ctx.req.headers["x-forwarded-for"];
+        const ip = typeof forwarded === "string" ? forwarded.split(",")[0]?.trim() : ctx.req.socket.remoteAddress;
+        return recordFailedAdminLogin(input.reason, input.language, { device: input.device, ip });
+      }),
   }),
   admin: router({
     listUsers: adminProcedure.query(() => listUserProfiles()),

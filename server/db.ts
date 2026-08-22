@@ -835,8 +835,10 @@ export async function listWeeklyReportRecipients() {
 
 let lastFailedAdminLoginAlertAt = 0;
 
-export async function recordFailedAdminLogin(reason: "invalid_code" | "locked", language: "ar" | "en"): Promise<void> {
-  await recordAuditLog(null, "Failed admin login", JSON.stringify({ reason, source: "admin_login" }));
+export async function recordFailedAdminLogin(reason: "invalid_code" | "locked", language: "ar" | "en", metadata?: { device?: string; ip?: string }): Promise<void> {
+  const safeIp = metadata?.ip?.replace(/(\\d+\\.\\d+\\.)\\d+(\\.\\d+)/, "$1***$2").slice(0, 64) || "unknown";
+  const safeDevice = metadata?.device?.replace(/[\\r\\n]/g, " ").slice(0, 160) || "unknown";
+  await recordAuditLog(null, "Failed admin login", JSON.stringify({ reason, source: "admin_login", device: safeDevice, ip: safeIp }));
   const now = Date.now();
   if (!shouldNotifyFailedAdminLogin(lastFailedAdminLoginAlertAt, now)) return;
   lastFailedAdminLoginAlertAt = now;
