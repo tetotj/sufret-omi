@@ -868,3 +868,50 @@ export async function listAuditLogs(limit = 100): Promise<Array<{ id: number; ad
   const rows = await db.select().from(adminAuditLogs).orderBy(desc(adminAuditLogs.createdAt)).limit(limit);
   return rows.map((r) => ({ id: r.id, adminId: r.adminId, action: r.action, details: r.details, createdAt: r.createdAt.toISOString() }));
 }
+
+
+export type VerificationSubmission = {
+  role: "mother" | "driver";
+  fullName: string;
+  phone: string;
+  address: string;
+  region: string;
+  foodTypes?: string[];
+  mealSize?: string | null;
+  deliveryCapacity?: string | null;
+  vehicleType?: string | null;
+  cargoCapacity?: string | null;
+  hasPets?: "yes" | "no" | "unknown";
+  allergyPrecautions?: string;
+  termsAccepted: boolean;
+  documents: Array<{ type: string; labelAr: string; labelEn: string; uri: string }>;
+};
+
+export async function submitVerificationProfile(input: VerificationSubmission): Promise<{ profileId: string; status: "pending_approval" }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const normalizedPhone = input.phone.replace(/\D/g, "");
+  const profileRows = await db.select().from(userProfiles).where(eq(userProfiles.phone, input.phone.trim())).limit(1);
+  const fallbackRows = profileRows.length ? profileRows : await db.select().from(userProfiles).where(eq(userProfiles.phone, normalizedPhone)).limit(1);
+  const profile = fallbackRows[0];
+  if (!profile || profile.role !== input.role) throw new Error("Verification profile was not found");
+  if (!input.termsAccepted || input.documents.length === 0 || input.documents.some((document) => !document.uri.trim())) throw new Error("Complete the required verification details first");
+
+  const detailRecord = {
+    source: "verification_submission",
+    address: input.address.trim(),
+    foodTypes: (input.foodTypes ?? []).join(","),
+    mealSize: input.mealSize ?? "",
+    deliveryCapacity: input.deliveryCapacity ?? "",
+    vehicleType: input.vehicleType ?? "",
+    cargoCapacity: input.cargoCapacity ?? "",
+    hasPets: input.hasPets ?? "unknown",
+    allergyPrecautions: input.allergyPrecautions?.trim() ?? "",
+    termsAccepted: "true",
+  };
+  await db.update(userProfiles).set({ name: input.fullName.trim(), phone: input.phone.trim(), region: input.region, details: JSON.stringify(detailRecord), status: "pending_approval" }).where(eq(userProfiles.id, profile.id));
+  await db.delete(userDocuments).where(eq(userDocuments.userProfileId, profile.id));
+  await db.insert(userDocuments).values(input.documents.map((document) => ({ userProfileId: profile.id, labelAr: document.labelAr, labelEn: document.labelEn, uri: document.uri })));
+  if (profile.userId) await db.update(users).set({ accountStatus: "pending_approval" }).where(eq(users.id, profile.userId));
+  return { profileId: profile.id, status: "pending_approval" };
+}

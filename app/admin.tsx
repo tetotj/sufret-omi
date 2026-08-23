@@ -308,6 +308,9 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
   const [commission, setCommission] = useState("5");
 
   const selectedKitchen = kitchens.find(k => k.id === selectedKitchenId) ?? kitchens[0];
+  const usersQuery = trpc.admin.listUsers.useQuery(undefined, { enabled: useDatabase, staleTime: 0 });
+  const updateUserStatus = trpc.admin.updateUserStatus.useMutation({ onSuccess: () => void usersQuery.refetch() });
+  const pendingMothers = (usersQuery.data ?? []).filter((user) => user.role === "mother" && user.status === "pending_approval");
 
   const submitNewMother = () => {
     if (!name || !phone) {
@@ -397,6 +400,23 @@ function AdminMothersSection({ language, showToast, useDatabase }: { language: "
             <Text style={{ fontSize: 8, fontWeight: "800", color: "#2E9B72" }}>{new Date().toLocaleTimeString()}</Text>
           </View>
         </View>
+
+        {useDatabase && (
+          <View style={{ marginTop: 10, gap: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: "900", color: "#082E34" }}>{language === "ar" ? `طلبات الأم والمطبخ المعلقة (${pendingMothers.length})` : `Pending mother & kitchen applications (${pendingMothers.length})`}</Text>
+            {usersQuery.isLoading ? <Text style={styles.panelSubtitle}>{language === "ar" ? "جاري تحميل ملفات المتقدمات..." : "Loading applicant profiles..."}</Text> : pendingMothers.length === 0 ? <Text style={styles.panelSubtitle}>{language === "ar" ? "لا توجد طلبات معلقة حالياً." : "No pending applications."}</Text> : pendingMothers.map((applicant) => {
+              const details = applicant.details ?? {};
+              return <View key={applicant.id} style={{ backgroundColor: "#FFFFFF", borderRadius: 14, borderWidth: 1, borderColor: "#C6EDEF", padding: 12, gap: 7 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}><View style={{ flex: 1 }}><Text style={styles.userName}>{applicant.name}</Text><Text style={styles.userMeta}>{applicant.phone} · {applicant.region}</Text></View><View style={{ backgroundColor: "#FFF4D9", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}><Text style={{ fontSize: 9, fontWeight: "900", color: "#9B6A16" }}>{language === "ar" ? "بانتظار التدقيق" : "Pending review"}</Text></View></View>
+                <Text style={styles.userMeta}>{language === "ar" ? `العنوان: ${details.address || "غير مضاف"}` : `Address: ${details.address || "Not provided"}`}</Text>
+                <Text style={styles.userMeta}>{language === "ar" ? `الأكلات: ${details.foodTypes || "غير مضافة"} · الحساسية: ${details.allergyPrecautions || "لا توجد ملاحظات"}` : `Food types: ${details.foodTypes || "Not provided"} · Allergens: ${details.allergyPrecautions || "None noted"}`}</Text>
+                <Text style={styles.userMeta}>{language === "ar" ? `حجم الوجبات: ${details.mealSize || "—"} · الحمولة: ${details.deliveryCapacity || "—"} · الحيوانات: ${details.hasPets || "—"}` : `Meal size: ${details.mealSize || "—"} · Capacity: ${details.deliveryCapacity || "—"} · Pets: ${details.hasPets || "—"}`}</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>{(applicant.documents ?? []).map((document) => <View key={`${applicant.id}-${document.label.en}`} style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#F2FEFF", borderRadius: 8, padding: 5 }}><MaterialIcons name="description" size={14} color="#00AFC4" /><Text style={{ fontSize: 8, color: "#236B45", maxWidth: 150 }}>{getLocalized(document.label, language)}</Text>{resolveAdminAssetUrl(document.uri) ? <Image source={{ uri: resolveAdminAssetUrl(document.uri) }} style={{ width: 28, height: 28, borderRadius: 5 }} /> : null}</View>)}</View>
+                <View style={{ flexDirection: "row", gap: 8, marginTop: 2 }}><Pressable disabled={updateUserStatus.isPending} onPress={() => updateUserStatus.mutate({ userId: String(applicant.userId ?? applicant.id), status: "active" })} style={styles.approveButton}><Text style={styles.approveButtonText}>{language === "ar" ? "موافقة وتفعيل" : "Approve & activate"}</Text></Pressable><Pressable disabled={updateUserStatus.isPending} onPress={() => updateUserStatus.mutate({ userId: String(applicant.userId ?? applicant.id), status: "rejected" })} style={styles.rejectButton}><Text style={styles.rejectButtonText}>{language === "ar" ? "رفض الطلب" : "Reject"}</Text></Pressable></View>
+              </View>;
+            })}
+          </View>
+        )}
 
         {kitchens.map((k) => {
           const isSelected = selectedKitchenId === k.id;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, submitVerificationProfile, updateUserProfileStatus, upsertLocalUser } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -94,6 +94,24 @@ export const appRouter = router({
         const user = await upsertLocalUser(input);
         return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role };
       }),
+    submitVerification: publicProcedure
+      .input(z.object({
+        role: z.enum(["mother", "driver"]),
+        fullName: z.string().trim().min(2).max(160),
+        phone: z.string().trim().min(7).max(32),
+        address: z.string().trim().min(2).max(500),
+        region: z.string().trim().min(1).max(64),
+        foodTypes: z.array(z.string().max(64)).max(20).optional(),
+        mealSize: z.string().max(32).nullable().optional(),
+        deliveryCapacity: z.string().max(32).nullable().optional(),
+        vehicleType: z.string().max(32).nullable().optional(),
+        cargoCapacity: z.string().max(32).nullable().optional(),
+        hasPets: z.enum(["yes", "no", "unknown"]).optional(),
+        allergyPrecautions: z.string().max(1000).optional(),
+        termsAccepted: z.boolean().refine((value) => value, { message: "Terms must be accepted" }),
+        documents: z.array(z.object({ type: z.string().min(1).max(64), labelAr: z.string().min(1).max(240), labelEn: z.string().min(1).max(240), uri: z.string().trim().min(1).max(2_000_000) })).min(1).max(10),
+      }))
+      .mutation(({ input }) => submitVerificationProfile(input)),
     recordAdminLoginFailure: publicProcedure
       .input(z.object({ reason: z.enum(["invalid_code", "locked"]), language: z.enum(["ar", "en"]), device: z.string().max(160).optional() }))
       .mutation(({ ctx, input }) => {

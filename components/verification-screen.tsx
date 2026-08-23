@@ -6,8 +6,9 @@ import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextIn
 import { ScreenContainer } from "@/components/screen-container";
 import { categories, getLocalized, regions, type CategoryId, type Role } from "@/lib/food-data";
 import { useApp } from "@/lib/app-context";
-import { driverVehicleLabels, loadCapacityLabels, mealSizeLabels, verificationStatusLabel, type VerificationDocumentType } from "@/lib/verification-data";
+import { driverVehicleLabels, isDriverVerificationReady, isMotherVerificationReady, loadCapacityLabels, mealSizeLabels, verificationStatusLabel, type VerificationDocumentType } from "@/lib/verification-data";
 import { pickVerificationImage, takeVerificationPhoto } from "@/lib/verification-image-picker";
+import { trpc } from "@/lib/trpc";
 
 type VerificationScreenProps = { role: Extract<Role, "mother" | "driver"> };
 
@@ -28,6 +29,7 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
   } = useApp();
   const isMother = role === "mother";
   const profile = isMother ? motherVerification : driverVerification;
+  const submitVerificationMutation = trpc.auth.submitVerification.useMutation();
   const status = getLocalized(verificationStatusLabel(profile.approvalStatus), language);
   const documentTypes = profile.documents;
   const selectedFoodTypes = isMother ? motherVerification.foodTypes : [];
@@ -39,6 +41,36 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
   const updateProfile = (patch: Partial<typeof profile>) => {
     if (isMother) updateMotherVerification(patch);
     else updateDriverVerification(patch);
+  };
+
+  const handleSubmitVerification = async () => {
+    const ready = isMother ? isMotherVerificationReady(motherVerification) : isDriverVerificationReady(driverVerification);
+    if (!ready) {
+      submitVerification(role);
+      return;
+    }
+    try {
+      await submitVerificationMutation.mutateAsync({
+        role,
+        fullName: profile.fullName,
+        phone: profile.phone,
+        address: profile.address,
+        region: profile.region,
+        foodTypes: isMother ? motherVerification.foodTypes : undefined,
+        mealSize: isMother ? motherVerification.mealSize : undefined,
+        deliveryCapacity: isMother ? motherVerification.deliveryCapacity : undefined,
+        vehicleType: !isMother ? driverVerification.vehicleType : undefined,
+        cargoCapacity: !isMother ? driverVerification.cargoCapacity : undefined,
+        hasPets: isMother ? motherVerification.hasPets : undefined,
+        allergyPrecautions: isMother ? motherVerification.allergyPrecautions : undefined,
+        termsAccepted: profile.termsAccepted,
+        documents: profile.documents.map((document) => ({ type: document.type, labelAr: document.label.ar, labelEn: document.label.en, uri: document.uri ?? "" })),
+      });
+      submitVerification(role);
+      showToast(language === "ar" ? "تم إرسال ملفك للمشرف بنجاح" : "Your profile was sent to the supervisor successfully");
+    } catch {
+      showToast(language === "ar" ? "تعذر إرسال الملف، تحققي من الاتصال وحاولي مرة أخرى" : "Could not submit the profile. Check the connection and try again.");
+    }
   };
 
   const attachSelectedDocument = (documentType: VerificationDocumentType, uri: string | null) => {
@@ -98,14 +130,14 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
     updateMotherVerification({ foodTypes: next });
   };
 
-  const statusStyle = profile.approvalStatus === "pending" ? styles.statusPending : profile.approvalStatus === "approved" ? styles.statusApproved : profile.approvalStatus === "rejected" ? styles.statusRejected : styles.statusDraft;
+  const statusStyle = profile.approvalStatus === "pending" || submitVerificationMutation.isPending ? styles.statusPending : profile.approvalStatus === "approved" ? styles.statusApproved : profile.approvalStatus === "rejected" ? styles.statusRejected : styles.statusDraft;
 
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}><View style={styles.brandLockup}><Image source={require("@/assets/images/icon.png")} style={styles.logo} /><View><Text style={styles.eyebrow}>{language === "ar" ? "سفرة أمي" : "SUFRET OMI"}</Text><Text style={styles.screenTitle}>{title}</Text></View></View><Pressable onPress={signOut} style={styles.signOut}><MaterialIcons name="logout" size={16} color="#236B45" /><Text style={styles.signOutText}>{language === "ar" ? "خروج" : "Log out"}</Text></Pressable></View>
         <View style={styles.intro}><Text style={styles.introTitle}>{language === "ar" ? "قبل ما نفتح لك اللوحة" : "Before we open your dashboard"}</Text><Text style={styles.introBody}>{subtitle}</Text></View>
-        <View style={[styles.statusCard, statusStyle]}><MaterialIcons name={profile.approvalStatus === "pending" ? "hourglass-top" : profile.approvalStatus === "approved" ? "verified" : profile.approvalStatus === "rejected" ? "edit-document" : "shield"} size={20} color={profile.approvalStatus === "pending" ? "#C88A16" : profile.approvalStatus === "approved" ? "#4F8F3B" : profile.approvalStatus === "rejected" ? "#C44545" : "#236B45"} /><View style={styles.statusCopy}><Text style={styles.statusLabel}>{language === "ar" ? "حالة الاعتماد" : "Approval status"}</Text><Text style={styles.statusValue}>{status}</Text></View></View>
+        <View style={[styles.statusCard, statusStyle]}><MaterialIcons name={profile.approvalStatus === "pending" || submitVerificationMutation.isPending ? "hourglass-top" : profile.approvalStatus === "approved" ? "verified" : profile.approvalStatus === "rejected" ? "edit-document" : "shield"} size={20} color={profile.approvalStatus === "pending" || submitVerificationMutation.isPending ? "#C88A16" : profile.approvalStatus === "approved" ? "#4F8F3B" : profile.approvalStatus === "rejected" ? "#C44545" : "#236B45"} /><View style={styles.statusCopy}><Text style={styles.statusLabel}>{language === "ar" ? "حالة الاعتماد" : "Approval status"}</Text><Text style={styles.statusValue}>{status}</Text></View></View>
 
         <Text style={styles.sectionTitle}>{language === "ar" ? "البيانات الأساسية" : "Basic details"}</Text>
         <Text style={styles.inputLabel}>{language === "ar" ? "الاسم الكامل" : "Full name"}</Text>
@@ -146,7 +178,7 @@ export function VerificationScreen({ role }: VerificationScreenProps) {
         <View style={styles.documents}>{documentTypes.map((document) => <Pressable key={document.type} accessibilityRole="button" accessibilityLabel={language === "ar" ? `فتح كاميرا ${getLocalized(document.label, language)}` : `Open camera for ${getLocalized(document.label, language)}`} onPress={() => void captureDocument(document.type)} style={({ pressed }) => [styles.documentRow, pressed && styles.pressed]}><View style={styles.documentMain}>{document.uri ? <Image source={{ uri: document.uri }} style={styles.documentThumb} /> : <View style={styles.documentIcon}><MaterialIcons name="add-a-photo" size={19} color="#236B45" /></View>}<View style={styles.documentCopy}><Text style={styles.documentTitle}>{getLocalized(document.label, language)}</Text><Text style={styles.documentStatus}>{document.uri ? (language === "ar" ? "تم إرفاق الصورة — اضغطي للتصوير من جديد" : "Photo attached — tap to retake") : (language === "ar" ? "اضغطي لفتح الكاميرا" : "Tap to open camera")}</Text></View></View><Pressable accessibilityRole="button" accessibilityLabel={language === "ar" ? "اختيار صورة من المعرض" : "Choose a photo from the library"} onPress={(event) => { event.stopPropagation(); void pickDocument(document.type); }} style={({ pressed }) => [styles.documentAction, pressed && styles.pressed]}><MaterialIcons name="photo-library" size={19} color="#236B45" /></Pressable></Pressable>)}</View>
 
         <Pressable onPress={() => updateProfile({ termsAccepted: !profile.termsAccepted })} style={styles.termsRow}><MaterialIcons name={profile.termsAccepted ? "check-box" : "check-box-outline-blank"} size={22} color={profile.termsAccepted ? "#4F8F3B" : "#A4BDA7"} /><Text style={styles.termsText}>{language === "ar" ? "أوافق على شروط منصة سفرة أمي وسياسة السلامة والخصوصية." : "I agree to Sufret Omi platform terms, safety, and privacy policy."}</Text></Pressable>
-        <Pressable disabled={profile.approvalStatus === "pending"} onPress={() => submitVerification(role)} style={({ pressed }) => [styles.submitButton, profile.approvalStatus === "pending" && styles.submitDisabled, pressed && styles.pressed]}><Text style={styles.submitText}>{profile.approvalStatus === "pending" ? (language === "ar" ? "بانتظار موافقة الفريق" : "Waiting for supervisor approval") : language === "ar" ? "إرسال للمراجعة" : "Submit for review"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
+        <Pressable disabled={profile.approvalStatus === "pending" || submitVerificationMutation.isPending} onPress={() => void handleSubmitVerification()} style={({ pressed }) => [styles.submitButton, (profile.approvalStatus === "pending" || submitVerificationMutation.isPending) && styles.submitDisabled, pressed && styles.pressed]}><Text style={styles.submitText}>{profile.approvalStatus === "pending" || submitVerificationMutation.isPending ? (language === "ar" ? "بانتظار موافقة الفريق" : "Waiting for supervisor approval") : language === "ar" ? "إرسال للمراجعة" : "Submit for review"}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
         <Text style={styles.privacyNote}>{language === "ar" ? "نستخدم الوثائق للتحقق والامتثال فقط، وتبقى محمية ولا تُشارك مع العملاء." : "Documents are used for verification and compliance only, kept private, and never shared with customers."}</Text>
       </ScrollView>
       <Modal visible={Platform.OS !== "web" && cameraDocumentType !== null} animationType="slide" onRequestClose={closeCamera} presentationStyle="fullScreen">
