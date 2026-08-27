@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
+import { normalizeSessionAuth } from "@/lib/auth-session";
+
 import { type Complaint, type ComplaintStatus, type NewComplaint } from "@/lib/complaint-data";
 import { sampleManagedUsers, type ManagedUser, type UserAccountStatus } from "@/lib/admin-data";
 import {
@@ -154,7 +156,7 @@ type AppState = {
 };
 
 type AppContextValue = AppState & {
-  signIn: (role: Role, guest?: boolean, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void;
+  signIn: (role: Role, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void;
   signOut: () => void;
   setLanguage: (language: Language) => void;
   setRole: (role: Role) => void;
@@ -253,10 +255,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!saved) return;
       try {
         const parsed = JSON.parse(saved) as Partial<AppState>;
+        const sessionAuth = normalizeSessionAuth(parsed);
         setState((current) => ({
           ...current,
           ...parsed,
-          isGuest: parsed.isGuest === true,
+          ...sessionAuth,
           customerPhone: typeof parsed.customerPhone === "string" ? parsed.customerPhone : current.customerPhone,
           cartSpecialRequests: typeof parsed.cartSpecialRequests === "string" ? parsed.cartSpecialRequests : current.cartSpecialRequests,
           complaints: Array.isArray(parsed.complaints) ? parsed.complaints : current.complaints,
@@ -338,9 +341,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       availableMeals: meals.filter((meal) => !state.hiddenMealIds.includes(meal.id)),
       selectedKitchen: getKitchen(state.selectedKitchenId),
       isKitchenAvailable,
-      signIn: (role, guest = false, phone = "", accountStatus = role === "customer" ? "active" : "pending_approval") => setState((current) => {
+      signIn: (role, phone = "", accountStatus = role === "customer" ? "active" : "pending_approval") => setState((current) => {
         const approvalStatus = accountStatus === "active" ? "approved" : accountStatus === "pending_approval" ? "pending" : "rejected";
-        return { ...current, isAuthenticated: true, isGuest: guest, customerPhone: phone.trim() || current.customerPhone, role, motherVerification: role === "mother" ? { ...current.motherVerification, approvalStatus } : current.motherVerification, driverVerification: role === "driver" ? { ...current.driverVerification, approvalStatus } : current.driverVerification };
+        return { ...current, isAuthenticated: true, isGuest: false, customerPhone: phone.trim() || current.customerPhone, role, motherVerification: role === "mother" ? { ...current.motherVerification, approvalStatus } : current.motherVerification, driverVerification: role === "driver" ? { ...current.driverVerification, approvalStatus } : current.driverVerification };
       }),
       signOut: () => setState((current) => ({ ...current, isAuthenticated: false, isGuest: false, customerPhone: "", cart: [], cartSpecialRequests: "", activeOrder: null, activeOrders: [] })),
       cartTotal: totalCart(state.cart),

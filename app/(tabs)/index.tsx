@@ -103,7 +103,7 @@ const FALLBACK_ANNOUNCEMENTS: AnnouncementSlide[] = [
 ];
 
 export default function HomeScreen() {
-  const { isAuthenticated, isGuest, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart, isKitchenAvailable, showToast } = useApp();
+  const { isAuthenticated, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart, isKitchenAvailable, showToast } = useApp();
   const cartPreviewTotal = getOrderPricing(cartTotal, cartCount > 0 ? 1.25 : 0).grandTotal;
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -127,18 +127,12 @@ export default function HomeScreen() {
   };
 
   const go = (next: ViewId) => {
-    if (isGuest && (next === "cart" || next === "orders" || next === "dashboard" || next === "favorites")) {
-      signOut();
-      setView("home");
-      setCheckoutOpen(false);
-      return;
-    }
     setView(next);
     setCheckoutOpen(false);
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen onSignedIn={(nextRole, guest = false, phone = "", accountStatus) => { signIn(nextRole, guest, phone, accountStatus); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
+    return <LoginScreen onSignedIn={(nextRole, phone = "", accountStatus) => { signIn(nextRole, phone, accountStatus); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
   }
 
   if ((role === "mother" || role === "driver") && !canAccessRoleDashboard(role)) {
@@ -190,7 +184,7 @@ export default function HomeScreen() {
   );
 }
 
-function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void }) {
+function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void }) {
   const { language, setLanguage } = useApp();
   const localSignIn = trpc.auth.localSignIn.useMutation();
   const [mode, setMode] = useState<Role>("customer");
@@ -209,7 +203,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean,
     try {
       const result = await localSignIn.mutateAsync({ phone: phone.trim(), name: name.trim() || undefined, role: mode });
       const accountStatus = result.accountStatus as "active" | "pending_approval" | "suspended" | "rejected";
-      onSignedIn(result.businessRole as Role, false, phone.trim(), accountStatus);
+      onSignedIn(result.businessRole as Role, phone.trim(), accountStatus);
     } catch {
       setError(language === "ar" ? "تعذر حفظ الحساب. تحققي من اتصال الخدمة وحاولي مرة أخرى." : "The account could not be saved. Check the service connection and try again.");
     }
@@ -233,7 +227,6 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, guest?: boolean,
           <Text style={styles.rolePrompt}>{language === "ar" ? "كيف رح تستخدمي سفرة أمي؟" : "How will you use Sufret Omi?"}</Text>
           <View style={styles.roleChoiceRow}><Pressable onPress={() => setMode("customer")} style={[styles.roleChoice, mode === "customer" && styles.roleChoiceActive]}><MaterialIcons name="restaurant" size={19} color={mode === "customer" ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.roleChoiceText, mode === "customer" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطلب أكل" : "Order food"}</Text></Pressable><Pressable onPress={() => setMode("mother")} style={[styles.roleChoice, mode === "mother" && styles.roleChoiceActive]}><MaterialIcons name="storefront" size={19} color={mode === "mother" ? "#FFFFFF" : "#2E9B72"} /><Text style={[styles.roleChoiceText, mode === "mother" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطبخ وأبيع" : "Cook & sell"}</Text></Pressable><Pressable onPress={() => setMode("driver")} style={[styles.roleChoice, mode === "driver" && styles.roleChoiceActive]}><MaterialIcons name="two-wheeler" size={19} color={mode === "driver" ? "#FFFFFF" : "#C98A2E"} /><Text style={[styles.roleChoiceText, mode === "driver" && styles.roleChoiceTextActive]}>{language === "ar" ? "أوصل الطلبات" : "Deliver"}</Text></Pressable></View>
           <Pressable disabled={localSignIn.isPending} onPress={() => void submit()} style={({ pressed }) => [styles.primaryButton, localSignIn.isPending && styles.disabledButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{localSignIn.isPending ? (language === "ar" ? "جاري حفظ الحساب..." : "Saving account...") : isCreate ? (language === "ar" ? "أنشئي حسابك" : "Create my account") : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi")}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
-          <Pressable onPress={() => onSignedIn("customer", true)} style={styles.guestButton}><Text style={styles.guestButtonText}>{language === "ar" ? "تصفّحي كضيفة" : "Continue as guest"}</Text></Pressable>
         </View>
         <View style={styles.loginTrust}><MaterialIcons name="verified-user" size={16} color="#2E9B72" /><Text style={styles.loginTrustText}>{language === "ar" ? "بياناتك محفوظة، وطلباتك عند أمينة سفرة" : "Your data stays protected and your orders stay cared for"}</Text></View>
       </ScrollView>
@@ -1645,8 +1638,6 @@ const styles = StyleSheet.create({
   roleChoiceActive: { backgroundColor: "#00AFC4", borderColor: "#00AFC4" },
   roleChoiceText: { color: "#1A4B52", fontSize: 11, fontWeight: "900" },
   roleChoiceTextActive: { color: "#FFFFFF" },
-  guestButton: { alignItems: "center", paddingVertical: 6 },
-  guestButtonText: { color: "#00AFC4", fontSize: 11, fontWeight: "900" },
   loginTrust: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 12 },
   loginTrustText: { color: "#2E9B72", fontSize: 10, fontWeight: "800", textAlign: "center", flex: 1 },
   logoutButton: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#F0FBEA", borderRadius: 13, paddingHorizontal: 9, paddingVertical: 8 },
