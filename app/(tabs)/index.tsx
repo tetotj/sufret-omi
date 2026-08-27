@@ -23,7 +23,7 @@ import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { Image } from "expo-image";
 
 import { MapPreview } from "@/components/map-preview";
-import { UnifiedFilters, type UnifiedFilterSort } from "@/components/unified-filters";
+import { UnifiedFilters, type CalorieRangeId, type KitchenStatusFilter, type UnifiedFilterSort } from "@/components/unified-filters";
 import { VerificationScreen } from "@/components/verification-screen";
 import { complaintCategories, complaintStatuses, type Complaint, type ComplaintCategory } from "@/lib/complaint-data";
 import { useAuth } from "@/hooks/use-auth";
@@ -82,6 +82,10 @@ const removeIngredientOptions: IngredientOption[] = [
 ];
 
 const OFFER_MEAL_IDS = new Set(["mansaf-family", "maqluba-chicken", "zaatar-bakery"]);
+function matchesCalorieRanges(calories: number, ranges: CalorieRangeId[]) {
+  if (ranges.length === 0) return true;
+  return ranges.some((range) => range === "under500" ? calories < 500 : range === "500to800" ? calories >= 500 && calories <= 800 : calories > 800);
+}
 function resolveRemoteAssetUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   return url.startsWith("/") ? `${getApiBaseUrl()}${url}` : url;
@@ -582,22 +586,24 @@ function MealsScreen({ onBack, onOpenCart, onOpenKitchen }: { onBack: () => void
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">(selectedRegion);
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("distance");
+  const [kitchenStatuses, setKitchenStatuses] = useState<KitchenStatusFilter[]>([]);
+  const [calorieRanges, setCalorieRanges] = useState<CalorieRangeId[]>([]);
   const region = getRegion(selectedRegion);
   const activeRegion = regionScope === "all" ? region : getRegion(regionScope);
   const mealsTitle = selectedCategory === "all" ? (language === "ar" ? "كل الأكلات القريبة" : "All nearby meals") : getLocalized(getCategory(selectedCategory).label, language);
-  const nearbyMeals = useMemo(() => availableMeals.filter((meal) => (selectedCategory === "all" || meal.category === selectedCategory) && (selectedSubcategory === "all" || meal.subcategory === selectedSubcategory)).map((meal) => {
+  const nearbyMeals = useMemo(() => availableMeals.filter((meal) => (selectedCategory === "all" || meal.category === selectedCategory) && (selectedSubcategory === "all" || meal.subcategory === selectedSubcategory) && matchesCalorieRanges(meal.calories, calorieRanges)).map((meal) => {
     const kitchen = kitchens.find((item) => item.id === meal.kitchenId) ?? kitchens[0];
     return { meal, kitchen, distance: getKitchenDistanceKm(kitchen, activeRegion) };
-  }).filter(({ kitchen }) => regionScope === "all" || kitchen.region === regionScope).sort((left, right) => {
+  }).filter(({ kitchen }) => (regionScope === "all" || kitchen.region === regionScope) && (kitchenStatuses.length === 0 || kitchenStatuses.includes(kitchen.isOpen ? "open" : "closed"))).sort((left, right) => {
     if (filterSort === "rating") return right.kitchen.rating - left.kitchen.rating;
     if (filterSort === "fast") return left.meal.prepMinutes - right.meal.prepMinutes;
     if (filterSort === "high") return right.meal.price - left.meal.price;
     if (filterSort === "low") return left.meal.price - right.meal.price;
     return left.distance - right.distance;
-  }), [activeRegion, availableMeals, regionScope, selectedCategory, selectedSubcategory, filterSort]);
+  }), [activeRegion, availableMeals, calorieRanges, kitchenStatuses, regionScope, selectedCategory, selectedSubcategory, filterSort]);
 
   return (
-    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onOpenKitchen(kitchen.id)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
+    <View style={styles.fullScreenPage}><ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}><View style={styles.pageTopRow}><Pressable onPress={onBack} style={styles.backButton}><MaterialIcons name="arrow-back" size={21} color="#082E34" /></Pressable><View style={styles.fullScreenHeaderCopy}><Text style={styles.eyebrow}>{language === "ar" ? "كل الأكلات" : "ALL MEALS"}</Text><Text style={styles.pageTitle}>{mealsTitle}</Text></View><View style={styles.mapHeaderBadge}><MaterialIcons name="navigation" size={15} color="#2E9B72" /><Text style={styles.mapHeaderBadgeText}>{regionScope === "all" ? (language === "ar" ? "كل المملكة" : "All Jordan") : getLocalized(activeRegion.label, language)}</Text></View><Pressable onPress={() => setFiltersOpen(true)} style={({ pressed }) => [styles.mealsFilterButton, filtersOpen && styles.mealsFilterButtonActive, pressed && styles.pressed]}><MaterialIcons name="tune" size={18} color={filtersOpen ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.mealsFilterButtonText, filtersOpen && styles.mealsFilterButtonTextActive]}>{language === "ar" ? "فلاتر" : "Filters"}</Text></Pressable></View><UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} kitchenStatuses={kitchenStatuses} calorieRanges={calorieRanges} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={setSelectedCategory} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onKitchenStatusesChange={setKitchenStatuses} onCalorieRangesChange={setCalorieRanges} onClose={() => setFiltersOpen(false)} /><View style={styles.mealsIntro}><Text style={styles.mealsIntroTitle}>{language === "ar" ? "اختاري طبختك من حولك" : "Choose a dish around you"}</Text><Text style={styles.mealsIntroBody}>{language === "ar" ? "رتبنا لك كل الأصناف حسب قرب المطبخ من منطقتك." : "Every dish is ordered by how close its kitchen is to your region."}</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>{["all", ...categories.map((category) => category.id)].map((categoryId) => { const category = categoryId === "all" ? null : getCategory(categoryId as never); return <Chip key={categoryId} label={category ? getLocalized(category.label, language) : language === "ar" ? "الكل" : "All"} selected={selectedCategory === categoryId} onPress={() => setSelectedCategory(categoryId as typeof selectedCategory)} />; })}</ScrollView><View style={styles.nearbySectionHeader}><Text style={styles.sectionTitle}>{language === "ar" ? `${nearbyMeals.length} صنف قريب منك` : `${nearbyMeals.length} meals near you`}</Text><Text style={styles.nearbySortLabel}>{language === "ar" ? "الأقرب ← الأبعد" : "Nearest → farthest"}</Text></View><View style={styles.mealList}>{nearbyMeals.map(({ meal, kitchen, distance }) => <View key={meal.id} style={styles.nearbyMealBlock}><MealRow meal={meal} language={language} quantity={cart.find((item) => item.meal.id === meal.id)?.quantity ?? 0} onRemove={() => updateQuantity(meal.id, (cart.find((item) => item.meal.id === meal.id)?.quantity ?? 1) - 1)} onPress={() => onOpenKitchen(kitchen.id)} onAdd={() => onOpenKitchen(kitchen.id)} /><View style={styles.nearbyMealMeta}><Pressable onPress={() => onOpenKitchen(kitchen.id)} style={styles.nearbyKitchenLink}><MaterialIcons name="storefront" size={13} color="#2E9B72" /><Text style={styles.nearbyKitchenLinkText}>{getLocalized(kitchen.name, language)}</Text></Pressable><Text style={styles.nearbyDistance}><MaterialIcons name="navigation" size={12} color="#00AFC4" /> {distance.toFixed(1)} {language === "ar" ? "كم" : "km"}</Text></View></View>)}</View></ScrollView></View>
   );
 }
 
@@ -640,6 +646,8 @@ function CustomerHome({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [regionScope, setRegionScope] = useState<RegionId | "all">("all");
   const [filterSort, setFilterSort] = useState<UnifiedFilterSort>("recommended");
+  const [kitchenStatuses, setKitchenStatuses] = useState<KitchenStatusFilter[]>([]);
+  const [calorieRanges, setCalorieRanges] = useState<CalorieRangeId[]>([]);
   const [offersOnly, setOffersOnly] = useState(false);
   const [announcementIndex, setAnnouncementIndex] = useState(0);
   const region = getRegion(selectedRegion);
@@ -648,7 +656,7 @@ function CustomerHome({
   const cartQuantityByMeal = useMemo(() => new Map(cart.map((item) => [item.meal.id, item.quantity])), [cart]);
   useEffect(() => { const timer = setInterval(() => setAnnouncementIndex((current) => (current + 1) % announcements.length), 5000); return () => clearInterval(timer); }, [announcements.length]);
 
-  const visibleKitchens = useMemo(() => regionScope === "all" ? kitchens : kitchens.filter((kitchen) => kitchen.region === regionScope), [regionScope]);
+  const visibleKitchens = useMemo(() => kitchens.filter((kitchen) => (regionScope === "all" || kitchen.region === regionScope) && (kitchenStatuses.length === 0 || kitchenStatuses.includes(kitchen.isOpen ? "open" : "closed"))), [kitchenStatuses, regionScope]);
 
   const visibleMeals = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -659,7 +667,9 @@ function CustomerHome({
       const matchesOffer = !offersOnly || offerMealIds.has(meal.id);
       const kitchen = kitchenById.get(meal.kitchenId);
       const matchesRegion = regionScope === "all" || kitchen?.region === regionScope;
-      return matchesQuery && matchesCategory && matchesSubcategory && matchesOffer && matchesRegion;
+      const matchesKitchenStatus = !kitchen || kitchenStatuses.length === 0 || kitchenStatuses.includes(kitchen.isOpen ? "open" : "closed");
+      const matchesCalories = matchesCalorieRanges(meal.calories, calorieRanges);
+      return matchesQuery && matchesCategory && matchesSubcategory && matchesOffer && matchesRegion && matchesKitchenStatus && matchesCalories;
     });
     return [...filtered].sort((left, right) => {
       const leftKitchen = kitchenById.get(left.kitchenId);
@@ -671,7 +681,7 @@ function CustomerHome({
       if (filterSort === "distance") return (leftKitchen ? getKitchenDistanceKm(leftKitchen, region) : Number.MAX_SAFE_INTEGER) - (rightKitchen ? getKitchenDistanceKm(rightKitchen, region) : Number.MAX_SAFE_INTEGER);
       return (rightKitchen?.rating ?? 0) - (leftKitchen?.rating ?? 0);
     });
-  }, [availableMeals, query, selectedCategory, selectedSubcategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById]);
+  }, [availableMeals, calorieRanges, query, selectedCategory, selectedSubcategory, regionScope, filterSort, region, offersOnly, offerMealIds, kitchenById, kitchenStatuses]);
 
   const openKitchen = (kitchenId: string) => {
     setSelectedKitchenId(kitchenId);
@@ -709,7 +719,7 @@ function CustomerHome({
 
       {filtersOpen && (
         <View style={styles.filterPanel}>
-          <UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={(next) => { setOffersOnly(false); setSelectedCategory(next); }} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onClose={() => setFiltersOpen(false)} />
+          <UnifiedFilters visible={filtersOpen} language={language} regionScope={regionScope} category={selectedCategory} subcategory={selectedSubcategory} sort={filterSort} kitchenStatuses={kitchenStatuses} calorieRanges={calorieRanges} onRegionChange={(next) => { setRegionScope(next); if (next !== "all") setSelectedRegion(next); }} onCategoryChange={(next) => { setOffersOnly(false); setSelectedCategory(next); }} onSubcategoryChange={setSelectedSubcategory} onSortChange={setFilterSort} onKitchenStatusesChange={setKitchenStatuses} onCalorieRangesChange={setCalorieRanges} onClose={() => setFiltersOpen(false)} />
         </View>
       )}
 
@@ -1714,7 +1724,7 @@ function CategoryPill({ label, icon, color, selected, onPress }: { label: string
 
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) { return <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}><Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text></Pressable>; }
 
-function MealRow({ meal, language, onAdd, onRemove, onPress, onToggleFavorite, isFavorite = false, compact = false, quantity = 0, offerBadge, offerImage }: { meal: (typeof meals)[number]; language: "ar" | "en"; onAdd: () => void; onRemove?: () => void; onPress?: () => void; onToggleFavorite?: () => void; isFavorite?: boolean; compact?: boolean; quantity?: number; offerBadge?: string; offerImage?: string | null }) { const category = getCategory(meal.category); return <Pressable onPress={onPress} style={({ pressed }) => [styles.mealRow, compact && styles.mealRowCompact, pressed && styles.pressed]}><Image source={{ uri: resolveRemoteAssetUrl(offerImage) || meal.image }} style={compact ? styles.mealImageCompact : styles.mealImage} /><View style={styles.mealCopy}><View style={styles.mealCategoryLine}><Text style={[styles.mealCategory, { color: category.color }]}>{getLocalized(category.label, language)}</Text><Text style={styles.mealPrep}>{meal.prepMinutes} min</Text></View><Text style={styles.mealName} numberOfLines={1}>{getLocalized(meal.name, language)}</Text><Text style={styles.mealDescription} numberOfLines={1}>{getLocalized(meal.description, language)}</Text>{offerBadge && <View style={styles.offerMealBadge}><MaterialIcons name="local-offer" size={11} color="#A55A40" /><Text style={styles.offerMealBadgeText} numberOfLines={1}>{offerBadge}</Text></View>}<Text style={styles.mealPrice}>{formatJod(meal.price, language)}</Text></View><View style={styles.mealAddColumn}>{onToggleFavorite && <Pressable onPress={(event) => { event.stopPropagation(); onToggleFavorite(); }} style={styles.mealFavoriteButton}><MaterialIcons name={isFavorite ? "favorite" : "favorite-border"} size={18} color={isFavorite ? "#D76545" : "#00AFC4"} /></Pressable>}{quantity > 0 && <View style={styles.quantityBadge}><Text style={styles.quantityBadgeText}>{quantity}</Text><Text style={styles.quantityBadgeLabel}>{language === "ar" ? "وجبة" : "meals"}</Text></View>}<View style={styles.quantityStepper}>{quantity > 0 && <Pressable onPress={onRemove} style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}><MaterialIcons name="remove" size={18} color="#00AFC4" /></Pressable>}<Pressable onPress={onAdd} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}><MaterialIcons name="add" size={21} color="#FFFFFF" /></Pressable></View></View></Pressable>; }
+function MealRow({ meal, language, onAdd, onRemove, onPress, onToggleFavorite, isFavorite = false, compact = false, quantity = 0, offerBadge, offerImage }: { meal: (typeof meals)[number]; language: "ar" | "en"; onAdd: () => void; onRemove?: () => void; onPress?: () => void; onToggleFavorite?: () => void; isFavorite?: boolean; compact?: boolean; quantity?: number; offerBadge?: string; offerImage?: string | null }) { const category = getCategory(meal.category); return <Pressable onPress={onPress} style={({ pressed }) => [styles.mealRow, compact && styles.mealRowCompact, pressed && styles.pressed]}><Image source={{ uri: resolveRemoteAssetUrl(offerImage) || meal.image }} style={compact ? styles.mealImageCompact : styles.mealImage} /><View style={styles.mealCopy}><View style={styles.mealCategoryLine}><Text style={[styles.mealCategory, { color: category.color }]}>{getLocalized(category.label, language)}</Text><Text style={styles.mealPrep}>{meal.prepMinutes} min</Text><Text style={styles.mealCalories}>{language === "ar" ? `${meal.calories} سعرة` : `${meal.calories} kcal`}</Text></View><Text style={styles.mealName} numberOfLines={1}>{getLocalized(meal.name, language)}</Text><Text style={styles.mealDescription} numberOfLines={1}>{getLocalized(meal.description, language)}</Text>{offerBadge && <View style={styles.offerMealBadge}><MaterialIcons name="local-offer" size={11} color="#A55A40" /><Text style={styles.offerMealBadgeText} numberOfLines={1}>{offerBadge}</Text></View>}<Text style={styles.mealPrice}>{formatJod(meal.price, language)}</Text></View><View style={styles.mealAddColumn}>{onToggleFavorite && <Pressable onPress={(event) => { event.stopPropagation(); onToggleFavorite(); }} style={styles.mealFavoriteButton}><MaterialIcons name={isFavorite ? "favorite" : "favorite-border"} size={18} color={isFavorite ? "#D76545" : "#00AFC4"} /></Pressable>}{quantity > 0 && <View style={styles.quantityBadge}><Text style={styles.quantityBadgeText}>{quantity}</Text><Text style={styles.quantityBadgeLabel}>{language === "ar" ? "وجبة" : "meals"}</Text></View>}<View style={styles.quantityStepper}>{quantity > 0 && <Pressable onPress={onRemove} style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}><MaterialIcons name="remove" size={18} color="#00AFC4" /></Pressable>}<Pressable onPress={onAdd} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}><MaterialIcons name="add" size={21} color="#FFFFFF" /></Pressable></View></View></Pressable>; }
 
 function CartItemRow({ item, language, onUpdate }: { item: { meal: (typeof meals)[number]; quantity: number; specialRequests?: string }; language: "ar" | "en"; onUpdate: (mealId: string, quantity: number, specialRequests?: string) => void }) { return <View style={styles.cartItemRow}><Image source={{ uri: item.meal.image }} style={styles.cartItemImage} /><View style={styles.cartItemCopy}><Text style={styles.cartItemName}>{getLocalized(item.meal.name, language)}</Text>{item.specialRequests ? <View style={styles.cartItemRequest}><MaterialIcons name="tune" size={13} color="#8A6516" /><Text style={styles.cartItemRequestText}>{item.specialRequests}</Text></View> : null}<Text style={styles.cartItemPrice}>{formatJod(item.meal.price * item.quantity, language)}</Text><View style={styles.quantityControl}><Pressable onPress={() => onUpdate(item.meal.id, item.quantity - 1, item.specialRequests)} style={styles.quantityButton}><MaterialIcons name="remove" size={15} color="#00AFC4" /></Pressable><Text style={styles.quantityText}>{item.quantity}</Text><Pressable onPress={() => onUpdate(item.meal.id, item.quantity + 1, item.specialRequests)} style={styles.quantityButton}><MaterialIcons name="add" size={15} color="#00AFC4" /></Pressable></View></View></View>; }
 
@@ -2078,6 +2088,7 @@ const styles = StyleSheet.create({
   mealCategoryLine: { flexDirection: "row", alignItems: "center", gap: 7 },
   mealCategory: { fontSize: 10, fontWeight: "900" },
   mealPrep: { color: "#8ABAC0", fontSize: 10 },
+  mealCalories: { color: "#C98A2E", fontSize: 10, fontWeight: "800" },
   mealName: { fontSize: 14, color: "#082E34", fontWeight: "900" },
   mealDescription: { fontSize: 10, color: "#4C747A" },
   mealPrice: { color: "#00AFC4", fontSize: 12, fontWeight: "900", marginTop: 2 },
