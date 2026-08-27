@@ -157,11 +157,11 @@ export function MapPreview({ compact = false, fullScreen = false, onSelectRegion
     <View style={[styles.webMap, compact && styles.compactWrap, fullScreen && styles.fullScreenMap]}>
       <View style={styles.mapWash} onLayout={(event) => setMapSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })} />
       <Pressable accessibilityRole="button" accessibilityLabel={language === "ar" ? "اختيار نقطة على الخريطة" : "Choose a point on the map"} onPress={(event) => selectMapPoint(event.nativeEvent.locationX, event.nativeEvent.locationY)} style={StyleSheet.absoluteFill} />
-      <View style={[styles.road, styles.roadOne]} pointerEvents="none" />
-      <View style={[styles.road, styles.roadTwo]} pointerEvents="none" />
-      <View style={[styles.road, styles.roadThree]} pointerEvents="none" />
-      {projectedRoute && <Svg pointerEvents="none" viewBox="0 0 100 100" preserveAspectRatio="none" style={styles.routeLayer}><Polyline points={projectedRoute} fill="none" stroke="#D76545" strokeWidth="1.8" strokeOpacity="0.92" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
-      <View style={styles.mapLabelTop} pointerEvents="none">
+      <View style={[styles.road, styles.roadOne, styles.nonInteractive]} />
+      <View style={[styles.road, styles.roadTwo, styles.nonInteractive]} />
+      <View style={[styles.road, styles.roadThree, styles.nonInteractive]} />
+      {projectedRoute && <Svg viewBox="0 0 100 100" preserveAspectRatio="none" style={[styles.routeLayer, styles.nonInteractive]}><Polyline points={projectedRoute} fill="none" stroke="#D76545" strokeWidth="1.8" strokeOpacity="0.92" strokeLinecap="round" strokeLinejoin="round" /></Svg>}
+      <View style={[styles.mapLabelTop, styles.nonInteractive]}>
         <Text style={styles.mapMicro}>{language === "ar" ? "مطابخ بيتية حولك" : "Home kitchens around you"}</Text>
         <Text style={styles.mapTitle}>{getLocalized(selected.label, language)}</Text>
       </View>
@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
   roadTwo: { width: 30, height: "140%", top: -32, left: "54%", transform: [{ rotate: "25deg" }], borderRadius: 30 },
   roadThree: { width: "120%", height: 22, top: 24, left: -22, transform: [{ rotate: "18deg" }], borderRadius: 30 },
   mapLabelTop: { position: "absolute", top: 18, left: 18 },
+  nonInteractive: { pointerEvents: "none" },
   mapMicro: { fontSize: 11, color: "#2B4933", fontWeight: "700" },
   mapTitle: { fontSize: 23, color: "#132218", fontWeight: "900", marginTop: 2 },
   pin: { position: "absolute", height: 28, width: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#fff", shadowColor: "#132218", shadowOpacity: 0.2, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 4 },

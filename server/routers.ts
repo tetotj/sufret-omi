@@ -256,7 +256,7 @@ export const appRouter = router({
   }),
   complaints: router({
     mine: protectedProcedure.query(({ ctx }) => listComplaintRecords(ctx.user.id)),
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         id: z.string().min(1).max(64),
         category: z.string().min(1).max(64),
@@ -268,10 +268,10 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const imageUris = await Promise.all(input.images.map(async (image, index) => {
           const decoded = decodeImageDataUrl(image);
-          const uploaded = await storagePut(`complaints/${ctx.user?.id ?? "guest"}/${input.id}-${index}`, decoded.data, decoded.contentType);
+          const uploaded = await storagePut(`complaints/${ctx.user.id}/${input.id}-${index}`, decoded.data, decoded.contentType);
           return uploaded.url;
         }));
-        await createComplaintRecord({ ...input, imageUris, customerId: ctx.user?.id });
+        await createComplaintRecord({ ...input, imageUris, customerId: ctx.user.id });
         return { id: input.id, imageUris };
       }),
   }),
