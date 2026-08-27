@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, submitVerificationProfile, updateUserProfileStatus, upsertLocalUser, createLocalAuthChallenge, consumeLocalAuthChallenge, getLocalUserByPhone, hashLocalPassword, setLocalPassword, verifyLocalPassword } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, submitVerificationProfile, updateUserProfileStatus, upsertLocalUser, createLocalAuthChallenge, consumeLocalAuthChallenge, getLocalUserByPhone, hashLocalPassword, setLocalPassword, verifyLocalPassword, assertPasswordAttemptAllowed, recordPasswordFailure, clearPasswordFailures } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
@@ -110,7 +110,14 @@ export const appRouter = router({
         const existing = await getLocalUserByPhone(input.phone);
         if (input.mode === "sign_up" && existing) throw new Error("ACCOUNT_ALREADY_EXISTS");
         if (input.mode === "sign_in" && !existing) throw new Error("ACCOUNT_NOT_FOUND");
-        if (input.mode === "sign_in" && !verifyLocalPassword(input.password, existing?.passwordHash)) throw new Error(existing?.passwordHash ? "PASSWORD_INVALID" : "PASSWORD_NOT_SET");
+        if (input.mode === "sign_in") {
+          assertPasswordAttemptAllowed(input.phone);
+          if (!verifyLocalPassword(input.password, existing?.passwordHash)) {
+            recordPasswordFailure(input.phone);
+            throw new Error(existing?.passwordHash ? "PASSWORD_INVALID" : "PASSWORD_NOT_SET");
+          }
+          clearPasswordFailures(input.phone);
+        }
         await consumeLocalAuthChallenge({ phone: input.phone, purpose: input.mode, challengeId: input.challengeId, code: input.otp });
         const user = await upsertLocalUser({ ...input, passwordHash: input.mode === "sign_up" ? hashLocalPassword(input.password) : undefined, phoneVerifiedAt: new Date() });
         return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role, isNewUser: input.mode === "sign_up" };
@@ -125,9 +132,14 @@ export const appRouter = router({
     changePassword: publicProcedure
       .input(z.object({ phone: z.string().min(7).max(32), currentPassword: z.string().min(1).max(128), newPassword: z.string().min(8).max(128) }))
       .mutation(async ({ input }) => {
+        assertPasswordAttemptAllowed(input.phone);
         const user = await getLocalUserByPhone(input.phone);
         if (!user) throw new Error("ACCOUNT_NOT_FOUND");
-        if (!verifyLocalPassword(input.currentPassword, user.passwordHash)) throw new Error("PASSWORD_INVALID");
+        if (input.currentPassword === input.newPassword || !verifyLocalPassword(input.currentPassword, user.passwordHash)) {
+          recordPasswordFailure(input.phone);
+          throw new Error("PASSWORD_INVALID");
+        }
+        clearPasswordFailures(input.phone);
         await setLocalPassword(input.phone, hashLocalPassword(input.newPassword));
         return { success: true as const };
       }),

@@ -131,6 +131,9 @@ export async function createLocalAuthChallenge(input: { phone: string; purpose: 
   const now = new Date();
   const recent = await db.select().from(authChallenges).where(and(eq(authChallenges.phone, normalizedPhone), eq(authChallenges.purpose, input.purpose))).orderBy(desc(authChallenges.createdAt)).limit(1);
   if (recent[0] && now.getTime() - recent[0].createdAt.getTime() < 30_000) throw new Error("OTP_RATE_LIMIT");
+  const windowStart = new Date(now.getTime() - 60 * 60_000);
+  const requestCount = await db.select({ count: sql<number>`count(*)` }).from(authChallenges).where(and(eq(authChallenges.phone, normalizedPhone), eq(authChallenges.purpose, input.purpose), gte(authChallenges.createdAt, windowStart)));
+  if (Number(requestCount[0]?.count ?? 0) >= 5) throw new Error("OTP_RATE_LIMIT");
   await db.update(authChallenges).set({ consumedAt: now }).where(and(eq(authChallenges.phone, normalizedPhone), eq(authChallenges.purpose, input.purpose), isNull(authChallenges.consumedAt)));
   const challengeId = randomUUID();
   const code = randomInt(100000, 1000000).toString();
@@ -163,6 +166,27 @@ export async function getLocalUserByPhone(phone: string) {
   const normalizedPhone = normalizeLocalPhone(phone);
   const result = await db.select().from(users).where(eq(users.openId, `local:${normalizedPhone}`)).limit(1);
   return result[0];
+}
+
+const passwordAttemptWindows = new Map<string, { startedAt: number; failures: number }>();
+
+export function assertPasswordAttemptAllowed(phone: string) {
+  const now = Date.now();
+  const current = passwordAttemptWindows.get(phone);
+  if (!current || now - current.startedAt >= 60 * 60_000) {
+    passwordAttemptWindows.set(phone, { startedAt: now, failures: 0 });
+    return;
+  }
+  if (current.failures >= 5) throw new Error("PASSWORD_RATE_LIMIT");
+}
+
+export function recordPasswordFailure(phone: string) {
+  const current = passwordAttemptWindows.get(phone) ?? { startedAt: Date.now(), failures: 0 };
+  passwordAttemptWindows.set(phone, { ...current, failures: current.failures + 1 });
+}
+
+export function clearPasswordFailures(phone: string) {
+  passwordAttemptWindows.delete(phone);
 }
 
 export async function setLocalPassword(phone: string, passwordHash: string) {

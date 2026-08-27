@@ -231,6 +231,7 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, phone?: string, 
     if (message.includes("ACCOUNT_NOT_FOUND")) return language === "ar" ? "لا يوجد حساب بهذا الرقم. أنشئي حساباً جديداً أولاً." : "No account exists for this phone. Create an account first.";
     if (message.includes("PASSWORD_INVALID")) return language === "ar" ? "كلمة المرور غير صحيحة." : "The password is incorrect.";
     if (message.includes("PASSWORD_NOT_SET")) return language === "ar" ? "هذا الحساب يحتاج إلى تعيين كلمة مرور عبر «نسيت كلمة المرور»." : "Set a password for this account using Forgot password.";
+    if (message.includes("PASSWORD_RATE_LIMIT")) return language === "ar" ? "تم إيقاف المحاولات مؤقتاً للحماية. حاولي لاحقاً." : "Attempts are temporarily blocked for your protection. Try again later.";
     if (message.includes("OTP_RATE_LIMIT")) return language === "ar" ? "انتظري ٣٠ ثانية قبل طلب رمز جديد." : "Wait 30 seconds before requesting another code.";
     if (message.includes("OTP_PROVIDER_NOT_CONFIGURED")) return language === "ar" ? "إرسال الرسائل غير مفعّل بعد. أضيفي إعدادات مزود SMS قبل الإنتاج." : "SMS delivery is not configured yet. Add an SMS provider before production.";
     if (message.includes("OTP_INVALID_OR_EXPIRED")) return language === "ar" ? "رمز التحقق غير صحيح أو انتهت صلاحيته." : "The verification code is invalid or expired.";
