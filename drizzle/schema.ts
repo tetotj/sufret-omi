@@ -6,6 +6,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  phoneVerifiedAt: timestamp("phoneVerifiedAt"),
   // Platform auth role: business roles are stored in userProfiles.role.
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   accountStatus: mysqlEnum("accountStatus", ["active", "pending_approval", "suspended", "rejected"]).default("active").notNull(),
@@ -15,6 +17,20 @@ export const users = mysqlTable("users", {
 }, (table) => ({
   accountStatusIdx: index("users_account_status_idx").on(table.accountStatus),
   lastSignedInIdx: index("users_last_signed_in_idx").on(table.lastSignedIn),
+}));
+
+export const authChallenges = mysqlTable("authChallenges", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  purpose: mysqlEnum("purpose", ["sign_in", "sign_up", "password_reset"]).notNull(),
+  codeHash: varchar("codeHash", { length: 128 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  consumedAt: timestamp("consumedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  phonePurposeIdx: index("auth_challenges_phone_purpose_idx").on(table.phone, table.purpose, table.createdAt),
+  expiryIdx: index("auth_challenges_expiry_idx").on(table.expiresAt, table.consumedAt),
 }));
 
 export const kitchens = mysqlTable("kitchens", {

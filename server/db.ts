@@ -1,7 +1,8 @@
+import { createHash, randomInt, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool, type Pool } from "mysql2/promise";
-import { InsertUser, adminAuditLogs, announcements, complaintsDb, complaintImages, driverLocations, favorites, kitchens, meals, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
+import { InsertUser, adminAuditLogs, announcements, authChallenges, complaintsDb, complaintImages, driverLocations, favorites, kitchens, meals, offers, orderActionRequests, orderMessages, orders, pushTokens, userDocuments, userProfiles, users } from "../drizzle/schema";
 import type { ComplaintStatus } from "../lib/complaint-data";
 import type { UserAccountStatus } from "../lib/admin-data";
 import { ENV } from "./_core/env";
@@ -93,7 +94,87 @@ export function getLocalDatabaseRole(): "user" {
   return "user";
 }
 
-export async function upsertLocalUser(input: { phone: string; name?: string; role: LocalAccountRole }) {
+export type AuthChallengePurpose = "sign_in" | "sign_up" | "password_reset";
+
+function normalizeLocalPhone(phone: string) {
+  return phone.replace(/\D/g, "");
+}
+
+export function hashLocalPassword(password: string) {
+  const salt = randomUUID().replace(/-/g, "");
+  const digest = scryptSync(password, salt, 64).toString("hex");
+  return `scrypt$${salt}$${digest}`;
+}
+
+export function verifyLocalPassword(password: string, encodedHash: string | null | undefined) {
+  if (!encodedHash) return false;
+  const [scheme, salt, digest] = encodedHash.split("$");
+  if (scheme !== "scrypt" || !salt || !digest) return false;
+  try {
+    const expected = Buffer.from(digest, "hex");
+    const actual = scryptSync(password, salt, expected.length);
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
+}
+
+function hashOtpCode(phone: string, challengeId: string, code: string) {
+  return createHash("sha256").update(`${phone}:${challengeId}:${code}`).digest("hex");
+}
+
+export async function createLocalAuthChallenge(input: { phone: string; purpose: AuthChallengePurpose }) {
+  const normalizedPhone = normalizeLocalPhone(input.phone);
+  if (normalizedPhone.length < 7) throw new Error("A valid phone number is required");
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const now = new Date();
+  const recent = await db.select().from(authChallenges).where(and(eq(authChallenges.phone, normalizedPhone), eq(authChallenges.purpose, input.purpose))).orderBy(desc(authChallenges.createdAt)).limit(1);
+  if (recent[0] && now.getTime() - recent[0].createdAt.getTime() < 30_000) throw new Error("OTP_RATE_LIMIT");
+  await db.update(authChallenges).set({ consumedAt: now }).where(and(eq(authChallenges.phone, normalizedPhone), eq(authChallenges.purpose, input.purpose), isNull(authChallenges.consumedAt)));
+  const challengeId = randomUUID();
+  const code = randomInt(100000, 1000000).toString();
+  const expiresAt = new Date(now.getTime() + 5 * 60_000);
+  await db.insert(authChallenges).values({ id: challengeId, phone: normalizedPhone, purpose: input.purpose, codeHash: hashOtpCode(normalizedPhone, challengeId, code), expiresAt, attempts: 0 });
+  return { challengeId, code, expiresAt };
+}
+
+export async function consumeLocalAuthChallenge(input: { phone: string; purpose: AuthChallengePurpose; challengeId?: string; code: string }) {
+  const normalizedPhone = normalizeLocalPhone(input.phone);
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const challenges = await db.select().from(authChallenges).where(and(eq(authChallenges.phone, normalizedPhone), eq(authChallenges.purpose, input.purpose), isNull(authChallenges.consumedAt))).orderBy(desc(authChallenges.createdAt)).limit(1);
+  const challenge = challenges[0];
+  if (!challenge || (input.challengeId && challenge.id !== input.challengeId) || challenge.expiresAt.getTime() <= Date.now()) throw new Error("OTP_INVALID_OR_EXPIRED");
+  if (challenge.attempts >= 5) throw new Error("OTP_TOO_MANY_ATTEMPTS");
+  const expected = hashOtpCode(normalizedPhone, challenge.id, input.code.trim());
+  const matches = timingSafeEqual(Buffer.from(challenge.codeHash, "hex"), Buffer.from(expected, "hex"));
+  if (!matches) {
+    await db.update(authChallenges).set({ attempts: challenge.attempts + 1, consumedAt: challenge.attempts + 1 >= 5 ? new Date() : null }).where(eq(authChallenges.id, challenge.id));
+    throw new Error("OTP_INVALID_OR_EXPIRED");
+  }
+  await db.update(authChallenges).set({ consumedAt: new Date() }).where(eq(authChallenges.id, challenge.id));
+  return { phone: normalizedPhone };
+}
+
+export async function getLocalUserByPhone(phone: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const normalizedPhone = normalizeLocalPhone(phone);
+  const result = await db.select().from(users).where(eq(users.openId, `local:${normalizedPhone}`)).limit(1);
+  return result[0];
+}
+
+export async function setLocalPassword(phone: string, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const user = await getLocalUserByPhone(phone);
+  if (!user) throw new Error("ACCOUNT_NOT_FOUND");
+  await db.update(users).set({ passwordHash, phoneVerifiedAt: user.phoneVerifiedAt ?? new Date() }).where(eq(users.id, user.id));
+  return user.id;
+}
+
+export async function upsertLocalUser(input: { phone: string; name?: string; role: LocalAccountRole; passwordHash?: string; phoneVerifiedAt?: Date }) {
   const normalizedPhone = input.phone.replace(/\D/g, "");
   if (normalizedPhone.length < 7) throw new Error("A valid phone number is required");
 
@@ -131,6 +212,8 @@ export async function upsertLocalUser(input: { phone: string; name?: string; rol
       name: input.name?.trim() || existing[0].name,
       loginMethod: "local_phone",
       lastSignedIn: now,
+      ...(input.phoneVerifiedAt ? { phoneVerifiedAt: input.phoneVerifiedAt } : {}),
+      ...(input.passwordHash ? { passwordHash: input.passwordHash } : {}),
     }).where(eq(users.id, existing[0].id));
     const existingProfile = await db.select().from(userProfiles).where(eq(userProfiles.id, profileId)).limit(1);
     const requestedStatus = input.role === "customer" ? "active" : existingProfile[0]?.role === input.role ? (existingProfile[0].status === "active" ? "active" : "pending_approval") : "pending_approval";
@@ -149,6 +232,8 @@ export async function upsertLocalUser(input: { phone: string; name?: string; rol
     loginMethod: "local_phone",
     role: databaseRole,
     accountStatus,
+    passwordHash: input.passwordHash ?? null,
+    phoneVerifiedAt: input.phoneVerifiedAt ?? null,
     lastSignedIn: now,
   });
   const created = await db.select().from(users).where(eq(users.openId, openId)).limit(1);

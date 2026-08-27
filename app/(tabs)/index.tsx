@@ -106,6 +106,7 @@ export default function HomeScreen() {
   const { isAuthenticated, language, role, toast, dismissToast, setRole, signIn, signOut, setSelectedKitchenId, canAccessRoleDashboard, cartCount, cartTotal, cartSpecialRequests, setCartSpecialRequests, addToCart, isKitchenAvailable, showToast } = useApp();
   const cartPreviewTotal = getOrderPricing(cartTotal, cartCount > 0 ? 1.25 : 0).grandTotal;
   const [view, setView] = useState<ViewId>(role === "mother" ? "dashboard" : role === "driver" ? "delivery" : "home");
+  const [showWelcome, setShowWelcome] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [customizingMeal, setCustomizingMeal] = useState<(typeof meals)[number] | null>(null);
   const [query, setQuery] = useState("");
@@ -132,7 +133,11 @@ export default function HomeScreen() {
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen onSignedIn={(nextRole, phone = "", accountStatus) => { signIn(nextRole, phone, accountStatus); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
+    return <LoginScreen onSignedIn={(nextRole, phone = "", accountStatus, isNewUser = false) => { signIn(nextRole, phone, accountStatus); setShowWelcome(isNewUser); setView(nextRole === "mother" ? "dashboard" : nextRole === "driver" ? "delivery" : "home"); }} />;
+  }
+
+  if (showWelcome) {
+    return <WelcomeScreen role={role} onContinue={() => setShowWelcome(false)} />;
   }
 
   if ((role === "mother" || role === "driver") && !canAccessRoleDashboard(role)) {
@@ -184,30 +189,121 @@ export default function HomeScreen() {
   );
 }
 
-function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected") => void }) {
+function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, phone?: string, accountStatus?: "active" | "pending_approval" | "suspended" | "rejected", isNewUser?: boolean) => void }) {
   const { language, setLanguage } = useApp();
+  const requestOtp = trpc.auth.requestOtp.useMutation();
   const localSignIn = trpc.auth.localSignIn.useMutation();
+  const resetPassword = trpc.auth.resetPassword.useMutation();
   const [mode, setMode] = useState<Role>("customer");
   const [isCreate, setIsCreate] = useState(false);
+  const [isReset, setIsReset] = useState(false);
+  const [otpStep, setOtpStep] = useState<"credentials" | "otp">("credentials");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [challengeId, setChallengeId] = useState("");
+  const [debugCode, setDebugCode] = useState("");
+  const [otpCooldown, setOtpCooldown] = useState(0);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const submit = async () => {
-    if (phone.trim().length < 7 || password.trim().length < 4) {
-      setError(language === "ar" ? "اكتبي رقم الموبايل وكلمة مرور من ٤ أحرف على الأقل" : "Enter a mobile number and a password of at least 4 characters");
+  useEffect(() => {
+    if (otpCooldown <= 0) return;
+    const timer = setTimeout(() => setOtpCooldown((current) => Math.max(0, current - 1)), 1000);
+    return () => clearTimeout(timer);
+  }, [otpCooldown]);
+
+  const resetFlow = () => {
+    setOtpStep("credentials");
+    setOtp("");
+    setChallengeId("");
+    setDebugCode("");
+    setOtpCooldown(0);
+    setError("");
+    setNotice("");
+  };
+
+  const describeAuthError = (value: unknown) => {
+    const message = value instanceof Error ? value.message : String(value);
+    if (message.includes("ACCOUNT_ALREADY_EXISTS")) return language === "ar" ? "هذا الرقم مسجل مسبقاً. سجّلي الدخول بدلاً من إنشاء حساب جديد." : "This phone is already registered. Log in instead.";
+    if (message.includes("ACCOUNT_NOT_FOUND")) return language === "ar" ? "لا يوجد حساب بهذا الرقم. أنشئي حساباً جديداً أولاً." : "No account exists for this phone. Create an account first.";
+    if (message.includes("PASSWORD_INVALID")) return language === "ar" ? "كلمة المرور غير صحيحة." : "The password is incorrect.";
+    if (message.includes("PASSWORD_NOT_SET")) return language === "ar" ? "هذا الحساب يحتاج إلى تعيين كلمة مرور عبر «نسيت كلمة المرور»." : "Set a password for this account using Forgot password.";
+    if (message.includes("OTP_RATE_LIMIT")) return language === "ar" ? "انتظري ٣٠ ثانية قبل طلب رمز جديد." : "Wait 30 seconds before requesting another code.";
+    if (message.includes("OTP_PROVIDER_NOT_CONFIGURED")) return language === "ar" ? "إرسال الرسائل غير مفعّل بعد. أضيفي إعدادات مزود SMS قبل الإنتاج." : "SMS delivery is not configured yet. Add an SMS provider before production.";
+    if (message.includes("OTP_INVALID_OR_EXPIRED")) return language === "ar" ? "رمز التحقق غير صحيح أو انتهت صلاحيته." : "The verification code is invalid or expired.";
+    return language === "ar" ? "تعذر إكمال العملية. تحققي من البيانات والاتصال وحاولي مرة أخرى." : "Could not complete the request. Check your details and connection, then try again.";
+  };
+
+  const sendOtp = async () => {
+    if (otpCooldown > 0 || requestOtp.isPending) return;
+    if (phone.trim().length < 7) {
+      setError(language === "ar" ? "اكتبي رقم موبايل صحيح" : "Enter a valid mobile number");
+      return;
+    }
+    if (!isReset && password.length < 8) {
+      setError(language === "ar" ? "كلمة المرور يجب أن تكون ٨ أحرف على الأقل" : "Password must be at least 8 characters");
       return;
     }
     setError("");
+    setNotice("");
     try {
-      const result = await localSignIn.mutateAsync({ phone: phone.trim(), name: name.trim() || undefined, role: mode });
-      const accountStatus = result.accountStatus as "active" | "pending_approval" | "suspended" | "rejected";
-      onSignedIn(result.businessRole as Role, phone.trim(), accountStatus);
-    } catch {
-      setError(language === "ar" ? "تعذر حفظ الحساب. تحققي من اتصال الخدمة وحاولي مرة أخرى." : "The account could not be saved. Check the service connection and try again.");
+      const result = await requestOtp.mutateAsync({ phone: phone.trim(), purpose: isReset ? "password_reset" : isCreate ? "sign_up" : "sign_in", language });
+      setChallengeId(result.challengeId);
+      setDebugCode(result.debugCode ?? "");
+      setOtpStep("otp");
+      setOtpCooldown(30);
+    } catch (requestError) {
+      setError(describeAuthError(requestError));
     }
   };
+
+  const submit = async () => {
+    if (otpStep === "credentials") {
+      await sendOtp();
+      return;
+    }
+    if (otp.trim().length !== 6 || !challengeId) {
+      setError(language === "ar" ? "اكتبي رمز التحقق المكوّن من ٦ أرقام" : "Enter the 6-digit verification code");
+      return;
+    }
+    if (isReset && newPassword.length < 8) {
+      setError(language === "ar" ? "كلمة المرور الجديدة يجب أن تكون ٨ أحرف على الأقل" : "The new password must be at least 8 characters");
+      return;
+    }
+    setError("");
+    setNotice("");
+    try {
+      if (isReset) {
+        await resetPassword.mutateAsync({ phone: phone.trim(), challengeId, otp: otp.trim(), newPassword });
+        setIsReset(false);
+        setIsCreate(false);
+        setPassword("");
+        setNewPassword("");
+        resetFlow();
+        setNotice(language === "ar" ? "تم تغيير كلمة المرور. سجّلي الدخول الآن." : "Password changed. You can log in now.");
+        return;
+      }
+      const result = await localSignIn.mutateAsync({ phone: phone.trim(), name: name.trim() || undefined, role: mode, mode: isCreate ? "sign_up" : "sign_in", password, otp: otp.trim(), challengeId });
+      const accountStatus = result.accountStatus as "active" | "pending_approval" | "suspended" | "rejected";
+      onSignedIn(result.businessRole as Role, phone.trim(), accountStatus, result.isNewUser);
+    } catch (authError) {
+      setError(describeAuthError(authError));
+    }
+  };
+
+  const busy = requestOtp.isPending || localSignIn.isPending || resetPassword.isPending;
+  const submitLabel = busy
+    ? (language === "ar" ? "جاري التحقق..." : "Verifying...")
+    : otpStep === "credentials"
+      ? (isReset ? (language === "ar" ? "إرسال رمز الاستعادة" : "Send reset code") : (language === "ar" ? "إرسال رمز التحقق" : "Send verification code"))
+      : isReset
+        ? (language === "ar" ? "تغيير كلمة المرور" : "Change password")
+        : isCreate
+          ? (language === "ar" ? "أنشئي حسابك" : "Create my account")
+          : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi");
 
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1">
@@ -215,23 +311,37 @@ function LoginScreen({ onSignedIn }: { onSignedIn: (role: Role, phone?: string, 
         <View style={styles.loginTopRow}><Image source={require("@/assets/images/icon.png")} style={styles.loginIcon} /><Pressable onPress={() => setLanguage(language === "ar" ? "en" : "ar")} style={styles.loginLanguage}><Text style={styles.loginLanguageText}>{language === "ar" ? "English" : "العربية"}</Text></Pressable></View>
         <View style={styles.loginBrand}><Text style={styles.loginBrandArabic}>سفرة أمي</Text><Text style={styles.loginBrandEnglish}>Sufret Omi</Text><Text style={styles.loginTagline}>{language === "ar" ? "من بيتنا لبيتك، بمحبة" : "From our home to yours, with care"}</Text></View>
         <View style={styles.loginCard}>
-          <View style={styles.loginTabs}><Pressable onPress={() => setIsCreate(false)} style={[styles.loginTab, !isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, !isCreate && styles.loginTabTextActive]}>{language === "ar" ? "تسجيل الدخول" : "Log in"}</Text></Pressable><Pressable onPress={() => setIsCreate(true)} style={[styles.loginTab, isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, isCreate && styles.loginTabTextActive]}>{language === "ar" ? "حساب جديد" : "Create account"}</Text></Pressable></View>
-          <Text style={styles.loginTitle}>{isCreate ? (language === "ar" ? "أهلاً في سفرتك" : "Welcome to your table") : (language === "ar" ? "رجعنا نشتقنالك" : "Welcome back")}</Text>
-          <Text style={styles.loginSubtitle}>{isCreate ? (language === "ar" ? "خلّي أول طلب يبدأ من بيت أردني" : "Let your first order start at a Jordanian home") : (language === "ar" ? "دخّلي بياناتك وكمّلي لمة اليوم" : "Enter your details and continue your gathering")}</Text>
-          {isCreate && <><Text style={styles.inputLabel}>{language === "ar" ? "الاسم" : "Name"}</Text><View style={styles.inputWrap}><MaterialIcons name="person-outline" size={18} color="#00AFC4" /><TextInput value={name} onChangeText={setName} placeholder={language === "ar" ? "الاسم الكامل" : "Full name"} placeholderTextColor="#8ABAC0" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View></>}
+          {!isReset ? <View style={styles.loginTabs}><Pressable onPress={() => { setIsCreate(false); resetFlow(); }} style={[styles.loginTab, !isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, !isCreate && styles.loginTabTextActive]}>{language === "ar" ? "تسجيل الدخول" : "Log in"}</Text></Pressable><Pressable onPress={() => { setIsCreate(true); resetFlow(); }} style={[styles.loginTab, isCreate && styles.loginTabActive]}><Text style={[styles.loginTabText, isCreate && styles.loginTabTextActive]}>{language === "ar" ? "حساب جديد" : "Create account"}</Text></Pressable></View> : <Pressable onPress={() => { setIsReset(false); resetFlow(); }} style={styles.authBackButton}><MaterialIcons name="arrow-back" size={18} color="#00AFC4" /><Text style={styles.authBackText}>{language === "ar" ? "العودة لتسجيل الدخول" : "Back to log in"}</Text></Pressable>}
+          <Text style={styles.loginTitle}>{isReset ? (language === "ar" ? "استرجاع كلمة المرور" : "Reset your password") : isCreate ? (language === "ar" ? "أهلاً في سفرتك" : "Welcome to your table") : (language === "ar" ? "رجعنا نشتقنالك" : "Welcome back")}</Text>
+          <Text style={styles.loginSubtitle}>{isReset ? (language === "ar" ? "سنرسل رمز تحقق إلى رقم موبايلك" : "We will send a verification code to your mobile") : isCreate ? (language === "ar" ? "خلّي أول طلب يبدأ من بيت أردني" : "Let your first order start at a Jordanian home") : (language === "ar" ? "دخّلي بياناتك وكمّلي لمة اليوم" : "Enter your details and continue your gathering")}</Text>
+          {isCreate && otpStep === "credentials" && <><Text style={styles.inputLabel}>{language === "ar" ? "الاسم" : "Name"}</Text><View style={styles.inputWrap}><MaterialIcons name="person-outline" size={18} color="#00AFC4" /><TextInput value={name} onChangeText={setName} placeholder={language === "ar" ? "الاسم الكامل" : "Full name"} placeholderTextColor="#8ABAC0" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View></>}
           <Text style={styles.inputLabel}>{language === "ar" ? "رقم الموبايل" : "Mobile number"}</Text>
-          <View style={styles.inputWrap}><MaterialIcons name="smartphone" size={18} color="#00AFC4" /><TextInput value={phone} onChangeText={setPhone} placeholder={language === "ar" ? "07X XXX XXXX" : "07X XXX XXXX"} placeholderTextColor="#8ABAC0" keyboardType="phone-pad" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View>
-          <Text style={styles.inputLabel}>{language === "ar" ? "كلمة المرور" : "Password"}</Text>
-          <View style={styles.inputWrap}><MaterialIcons name="lock-outline" size={18} color="#00AFC4" /><TextInput value={password} onChangeText={setPassword} placeholder={language === "ar" ? "٤ أحرف على الأقل" : "At least 4 characters"} placeholderTextColor="#8ABAC0" secureTextEntry style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+          <View style={styles.inputWrap}><MaterialIcons name="smartphone" size={18} color="#00AFC4" /><TextInput value={phone} onChangeText={setPhone} editable={otpStep === "credentials"} placeholder={language === "ar" ? "07X XXX XXXX" : "07X XXX XXXX"} placeholderTextColor="#8ABAC0" keyboardType="phone-pad" style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View>
+          {!isReset && <><Text style={styles.inputLabel}>{language === "ar" ? "كلمة المرور" : "Password"}</Text><View style={styles.inputWrap}><MaterialIcons name="lock-outline" size={18} color="#00AFC4" /><TextInput value={password} onChangeText={setPassword} editable={otpStep === "credentials"} placeholder={language === "ar" ? "٨ أحرف على الأقل" : "At least 8 characters"} placeholderTextColor="#8ABAC0" secureTextEntry style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View></>}
+          {otpStep === "otp" && <><Text style={styles.inputLabel}>{language === "ar" ? "رمز التحقق" : "Verification code"}</Text><View style={styles.inputWrap}><MaterialIcons name="verified" size={18} color="#00AFC4" /><TextInput value={otp} onChangeText={(value) => setOtp(value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" placeholderTextColor="#8ABAC0" keyboardType="number-pad" style={[styles.loginInput, styles.otpInput]} maxLength={6} textAlign="center" /></View>{isReset && <><Text style={styles.inputLabel}>{language === "ar" ? "كلمة المرور الجديدة" : "New password"}</Text><View style={styles.inputWrap}><MaterialIcons name="lock-reset" size={18} color="#00AFC4" /><TextInput value={newPassword} onChangeText={setNewPassword} placeholder={language === "ar" ? "٨ أحرف على الأقل" : "At least 8 characters"} placeholderTextColor="#8ABAC0" secureTextEntry style={styles.loginInput} textAlign={language === "ar" ? "right" : "left"} /></View></>}</>}
+          {debugCode ? <Text style={styles.otpHint}>{language === "ar" ? `رمز المعاينة: ${debugCode}` : `Preview code: ${debugCode}`}</Text> : null}
           {error ? <Text style={styles.loginError}>{error}</Text> : null}
-          <Text style={styles.rolePrompt}>{language === "ar" ? "كيف رح تستخدمي سفرة أمي؟" : "How will you use Sufret Omi?"}</Text>
-          <View style={styles.roleChoiceRow}><Pressable onPress={() => setMode("customer")} style={[styles.roleChoice, mode === "customer" && styles.roleChoiceActive]}><MaterialIcons name="restaurant" size={19} color={mode === "customer" ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.roleChoiceText, mode === "customer" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطلب أكل" : "Order food"}</Text></Pressable><Pressable onPress={() => setMode("mother")} style={[styles.roleChoice, mode === "mother" && styles.roleChoiceActive]}><MaterialIcons name="storefront" size={19} color={mode === "mother" ? "#FFFFFF" : "#2E9B72"} /><Text style={[styles.roleChoiceText, mode === "mother" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطبخ وأبيع" : "Cook & sell"}</Text></Pressable><Pressable onPress={() => setMode("driver")} style={[styles.roleChoice, mode === "driver" && styles.roleChoiceActive]}><MaterialIcons name="two-wheeler" size={19} color={mode === "driver" ? "#FFFFFF" : "#C98A2E"} /><Text style={[styles.roleChoiceText, mode === "driver" && styles.roleChoiceTextActive]}>{language === "ar" ? "أوصل الطلبات" : "Deliver"}</Text></Pressable></View>
-          <Pressable disabled={localSignIn.isPending} onPress={() => void submit()} style={({ pressed }) => [styles.primaryButton, localSignIn.isPending && styles.disabledButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{localSignIn.isPending ? (language === "ar" ? "جاري حفظ الحساب..." : "Saving account...") : isCreate ? (language === "ar" ? "أنشئي حسابك" : "Create my account") : (language === "ar" ? "دخّليني عالسفرة" : "Enter Sufret Omi")}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
+          {notice ? <Text style={styles.loginNotice}>{notice}</Text> : null}
+          {!isReset && otpStep === "credentials" && <><Text style={styles.rolePrompt}>{language === "ar" ? "كيف رح تستخدمي سفرة أمي؟" : "How will you use Sufret Omi?"}</Text><View style={styles.roleChoiceRow}><Pressable onPress={() => setMode("customer")} style={[styles.roleChoice, mode === "customer" && styles.roleChoiceActive]}><MaterialIcons name="restaurant" size={19} color={mode === "customer" ? "#FFFFFF" : "#00AFC4"} /><Text style={[styles.roleChoiceText, mode === "customer" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطلب أكل" : "Order food"}</Text></Pressable><Pressable onPress={() => setMode("mother")} style={[styles.roleChoice, mode === "mother" && styles.roleChoiceActive]}><MaterialIcons name="storefront" size={19} color={mode === "mother" ? "#FFFFFF" : "#2E9B72"} /><Text style={[styles.roleChoiceText, mode === "mother" && styles.roleChoiceTextActive]}>{language === "ar" ? "أطبخ وأبيع" : "Cook & sell"}</Text></Pressable><Pressable onPress={() => setMode("driver")} style={[styles.roleChoice, mode === "driver" && styles.roleChoiceActive]}><MaterialIcons name="two-wheeler" size={19} color={mode === "driver" ? "#FFFFFF" : "#C98A2E"} /><Text style={[styles.roleChoiceText, mode === "driver" && styles.roleChoiceTextActive]}>{language === "ar" ? "أوصل الطلبات" : "Deliver"}</Text></Pressable></View></>}
+          <Pressable disabled={busy} onPress={() => void submit()} style={({ pressed }) => [styles.primaryButton, busy && styles.disabledButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{submitLabel}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable>
+          {!isReset && otpStep === "credentials" && <Pressable onPress={() => { setIsReset(true); resetFlow(); }} style={styles.loginLink}><Text style={styles.loginLinkText}>{language === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}</Text></Pressable>}
+          {otpStep === "otp" && <Pressable disabled={otpCooldown > 0 || busy} onPress={() => void sendOtp()} style={styles.resendButton}><Text style={styles.resendText}>{otpCooldown > 0 ? (language === "ar" ? `إعادة الإرسال بعد ${otpCooldown} ث` : `Resend in ${otpCooldown}s`) : (language === "ar" ? "إعادة إرسال الرمز" : "Resend code")}</Text></Pressable>}
         </View>
-        <View style={styles.loginTrust}><MaterialIcons name="verified-user" size={16} color="#2E9B72" /><Text style={styles.loginTrustText}>{language === "ar" ? "بياناتك محفوظة، وطلباتك عند أمينة سفرة" : "Your data stays protected and your orders stay cared for"}</Text></View>
+        <View style={styles.loginTrust}><MaterialIcons name="verified-user" size={16} color="#2E9B72" /><Text style={styles.loginTrustText}>{language === "ar" ? "رموز التحقق مؤقتة ولا يتم تخزينها كنص واضح" : "Verification codes are temporary and never stored in plain text"}</Text></View>
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+function WelcomeScreen({ role, onContinue }: { role: Role; onContinue: () => void }) {
+  const { language } = useApp();
+  const isArabic = language === "ar";
+  const copy = role === "mother"
+    ? { title: isArabic ? "أهلاً بأمينة سفرة" : "Welcome, Sufret Omi kitchen", body: isArabic ? "حسابك جاهز. أكملي بيانات التحقق حتى يراجعها فريقنا وتفتحي مطبخك للزبائن." : "Your account is ready. Complete verification so our team can review and activate your kitchen.", button: isArabic ? "ابدئي التحقق" : "Start verification" }
+    : role === "driver"
+      ? { title: isArabic ? "أهلاً بشريك التوصيل" : "Welcome, delivery partner", body: isArabic ? "حسابك جاهز. أرسلي بيانات المركبة والوثائق حتى يراجعها فريقنا." : "Your account is ready. Submit your vehicle details and documents for our team to review.", button: isArabic ? "أكملي الملف" : "Complete profile" }
+      : { title: isArabic ? "أهلاً في سفرة أمي" : "Welcome to Sufret Omi", body: isArabic ? "حسابك صار جاهز. اكتشفي مطابخ بيتية قريبة وابدئي أول سفرة." : "Your account is ready. Discover nearby home kitchens and start your first table.", button: isArabic ? "اكتشفي الأكلات" : "Discover meals" };
+  return <ScreenContainer edges={["top", "left", "right", "bottom"]} containerClassName="bg-background" className="flex-1"><View style={styles.welcomeScreen}><Image source={require("@/assets/images/icon.png")} style={styles.welcomeIcon} /><Text style={styles.welcomeKicker}>{isArabic ? "تم إنشاء الحساب بنجاح" : "ACCOUNT CREATED"}</Text><Text style={styles.welcomeTitle}>{copy.title}</Text><Text style={styles.welcomeBody}>{copy.body}</Text><View style={styles.welcomeChecklist}><View style={styles.welcomeCheckRow}><MaterialIcons name="check-circle" size={20} color="#2E9B72" /><Text style={styles.welcomeCheckText}>{isArabic ? "رقم الهاتف موثّق" : "Phone verified"}</Text></View><View style={styles.welcomeCheckRow}><MaterialIcons name="shield" size={20} color="#00AFC4" /><Text style={styles.welcomeCheckText}>{isArabic ? "بياناتك محفوظة بأمان" : "Your details are securely stored"}</Text></View></View><Pressable onPress={onContinue} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{copy.button}</Text><MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" /></Pressable></View></ScreenContainer>;
 }
 
 function CustomerDashboard({ onBack, onNavigate }: { onBack: () => void; onNavigate: (view: ViewId) => void }) {
@@ -1494,8 +1604,13 @@ function MotherDashboard({ onBack }: { onBack: () => void }) {
 
 function ProfileScreen({ onRoleChange, onDashboard, onSupport }: { onRoleChange: () => void; onDashboard: () => void; onSupport: () => void }) {
   const router = useRouter();
-  const { language, setLanguage, selectedRegion, setSelectedRegion, signOut } = useApp();
+  const { language, setLanguage, selectedRegion, setSelectedRegion, signOut, customerPhone } = useApp();
+  const changePassword = trpc.auth.changePassword.useMutation();
   const [regionModalOpen, setRegionModalOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -1528,6 +1643,7 @@ function ProfileScreen({ onRoleChange, onDashboard, onSupport }: { onRoleChange:
         <SettingRow icon={notificationsEnabled ? "notifications-active" : "notifications-off"} label={language === "ar" ? "الإشعارات والتنبيهات" : "Notifications"} value={notificationsEnabled ? (language === "ar" ? "مفعّلة" : "Enabled") : (language === "ar" ? "موقوفة" : "Disabled")} onPress={() => setNotificationsEnabled(!notificationsEnabled)} />
         <SettingRow icon="admin-panel-settings" label={language === "ar" ? "لوحة المشرف المركزية (Admin)" : "Master Admin Control"} value={language === "ar" ? "الإدارة الشاملة" : "Full management"} onPress={() => router.push("/admin")} />
         <SettingRow icon="help-outline" label={language === "ar" ? "شكاوى ومساعدة" : "Complaints & help"} value={language === "ar" ? "إرسال ومتابعة شكوى" : "Send and track a complaint"} onPress={onSupport} />
+        <SettingRow icon="lock-reset" label={language === "ar" ? "تغيير كلمة المرور" : "Change password"} value={language === "ar" ? "تحديث كلمة المرور الحالية" : "Update your current password"} onPress={() => { setPasswordMessage(""); setPasswordModalOpen(true); }} />
         <SettingRow icon="logout" label={language === "ar" ? "تسجيل الخروج" : "Log out"} value={language === "ar" ? "الخروج من الحساب" : "Sign out"} onPress={signOut} />
       </View>
 
@@ -1575,6 +1691,9 @@ function ProfileScreen({ onRoleChange, onDashboard, onSupport }: { onRoleChange:
             </ScrollView>
           </View>
         </View>
+      </Modal>
+      <Modal visible={passwordModalOpen} transparent animationType="slide" onRequestClose={() => setPasswordModalOpen(false)}>
+        <View style={styles.passwordOverlay}><View style={styles.passwordCard}><View style={styles.passwordHeader}><Text style={styles.passwordTitle}>{language === "ar" ? "تغيير كلمة المرور" : "Change password"}</Text><Pressable onPress={() => setPasswordModalOpen(false)}><MaterialIcons name="close" size={22} color="#687076" /></Pressable></View><Text style={styles.passwordHint}>{language === "ar" ? "أدخلي كلمة المرور الحالية ثم كلمة جديدة من ٨ أحرف على الأقل." : "Enter your current password and a new password of at least 8 characters."}</Text><TextInput value={currentPassword} onChangeText={setCurrentPassword} placeholder={language === "ar" ? "كلمة المرور الحالية" : "Current password"} secureTextEntry style={styles.passwordInput} textAlign={language === "ar" ? "right" : "left"} /><TextInput value={newPassword} onChangeText={setNewPassword} placeholder={language === "ar" ? "كلمة المرور الجديدة" : "New password"} secureTextEntry style={styles.passwordInput} textAlign={language === "ar" ? "right" : "left"} />{passwordMessage ? <Text style={styles.passwordMessage}>{passwordMessage}</Text> : null}<Pressable disabled={changePassword.isPending} onPress={() => { if (currentPassword.length < 1 || newPassword.length < 8) { setPasswordMessage(language === "ar" ? "تحققي من كلمة المرور الجديدة." : "Check the new password."); return; } changePassword.mutate({ phone: customerPhone, currentPassword, newPassword }, { onSuccess: () => { setPasswordMessage(language === "ar" ? "تم تغيير كلمة المرور بنجاح." : "Password changed successfully."); setCurrentPassword(""); setNewPassword(""); }, onError: () => setPasswordMessage(language === "ar" ? "كلمة المرور الحالية غير صحيحة." : "The current password is incorrect.") }); }} style={({ pressed }) => [styles.primaryButton, changePassword.isPending && styles.disabledButton, pressed && styles.pressed]}><Text style={styles.primaryButtonText}>{changePassword.isPending ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ كلمة المرور" : "Save password")}</Text></Pressable></View></View>
       </Modal>
     </ScrollView>
   );
@@ -1632,6 +1751,23 @@ const styles = StyleSheet.create({
   inputWrap: { height: 47, borderRadius: 15, borderWidth: 1, borderColor: "#C6EDEF", backgroundColor: "#F2FEFF", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
   loginInput: { flex: 1, color: "#082E34", fontSize: 13, paddingVertical: 0 },
   loginError: { color: "#C4555D", fontSize: 10, fontWeight: "800", lineHeight: 15 },
+  loginNotice: { color: "#2E9B72", fontSize: 10, fontWeight: "800", lineHeight: 15 },
+  otpInput: { letterSpacing: 5, fontWeight: "900" },
+  otpHint: { color: "#C98A2E", fontSize: 10, fontWeight: "900", textAlign: "center" },
+  authBackButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 4 },
+  authBackText: { color: "#00AFC4", fontSize: 11, fontWeight: "900" },
+  loginLink: { alignItems: "center", paddingVertical: 5 },
+  loginLinkText: { color: "#00AFC4", fontSize: 11, fontWeight: "900" },
+  resendButton: { alignItems: "center", paddingVertical: 5 },
+  resendText: { color: "#2E9B72", fontSize: 11, fontWeight: "900" },
+  welcomeScreen: { flex: 1, justifyContent: "center", alignItems: "center", padding: 28, gap: 14 },
+  welcomeIcon: { width: 88, height: 88, borderRadius: 24, marginBottom: 4 },
+  welcomeKicker: { color: "#2E9B72", fontSize: 11, fontWeight: "900", letterSpacing: 0.8 },
+  welcomeTitle: { color: "#082E34", fontSize: 27, fontWeight: "900", textAlign: "center", lineHeight: 35 },
+  welcomeBody: { color: "#4C747A", fontSize: 13, lineHeight: 21, textAlign: "center", maxWidth: 440 },
+  welcomeChecklist: { width: "100%", maxWidth: 420, gap: 9, marginVertical: 8 },
+  welcomeCheckRow: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "#FFFFFF", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "#C6EDEF" },
+  welcomeCheckText: { flex: 1, color: "#1A4B52", fontSize: 12, fontWeight: "800" },
   rolePrompt: { color: "#082E34", fontSize: 11, fontWeight: "900", marginTop: 4 },
   roleChoiceRow: { flexDirection: "row", gap: 8 },
   roleChoice: { flex: 1, minHeight: 54, borderRadius: 15, borderWidth: 1, borderColor: "#C6EDEF", backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", gap: 4 },
@@ -2362,6 +2498,13 @@ const styles = StyleSheet.create({
   settingIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#F0FBEA", alignItems: "center", justifyContent: "center" },
   settingLabel: { color: "#082E34", fontSize: 12, fontWeight: "800", flex: 1 },
   settingValue: { color: "#4C747A", fontSize: 11 },
+  passwordOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  passwordCard: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 10 },
+  passwordHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  passwordTitle: { color: "#082E34", fontSize: 18, fontWeight: "900" },
+  passwordHint: { color: "#4C747A", fontSize: 11, lineHeight: 17 },
+  passwordInput: { minHeight: 46, borderWidth: 1, borderColor: "#C6EDEF", borderRadius: 14, backgroundColor: "#F2FEFF", color: "#082E34", paddingHorizontal: 12, fontSize: 13 },
+  passwordMessage: { color: "#2E9B72", fontSize: 11, fontWeight: "800" },
   aboutCard: { borderRadius: 20, padding: 16, backgroundColor: "#082E34" },
   aboutTitle: { color: "#F6D889", fontSize: 15, fontWeight: "900" },
   aboutBody: { color: "#D6E2D4", fontSize: 11, lineHeight: 17, marginTop: 7 },

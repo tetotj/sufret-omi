@@ -1,12 +1,13 @@
 import { z } from "zod";
 
 import { COOKIE_NAME } from "../shared/const.js";
-import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, submitVerificationProfile, updateUserProfileStatus, upsertLocalUser } from "./db";
+import { createAnnouncementRecord, createComplaintRecord, createMealRecord, createOfferRecord, createOrderActionRequest, createOrderMessage, decideKitchenDescription, decideMealApproval, deleteAnnouncementRecord, recordFailedAdminLogin, deleteOfferRecord, generateWeeklyKitchenReports, getFinancialAnalytics, getKitchenDescription, getLatestDriverLocation, listActiveAnnouncements, listActiveOffers, listAllAnnouncements, listAllOffers, listAuditLogs, listComplaintRecords, listFavoriteIds, listOrderActionRequests, listOrderMessages, listPendingKitchenDescriptions, listPendingMealApprovals, listUserProfiles, recordAuditLog, recordDriverLocation, registerPushToken, toggleFavorite, updateAnnouncementRecord, updateComplaintRecord, updateKitchenDescription, updateOfferRecord, submitVerificationProfile, updateUserProfileStatus, upsertLocalUser, createLocalAuthChallenge, consumeLocalAuthChallenge, getLocalUserByPhone, hashLocalPassword, setLocalPassword, verifyLocalPassword } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { storagePut } from "./storage";
 import { systemRouter } from "./_core/systemRouter";
-import { sendOrderConfirmationSms } from "./sms";
+import { sendOrderConfirmationSms, sendOtpSms } from "./sms";
 import { ensureWeeklyReportHeartbeatJob } from "./reports-scheduled";
+import { ENV } from "./_core/env";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { isExpoPushToken, sendPushNotificationToUser } from "./marketing-notifications";
 
@@ -88,11 +89,47 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
-    localSignIn: publicProcedure
-      .input(z.object({ phone: z.string().min(7).max(32), name: z.string().max(120).optional(), role: z.enum(["customer", "mother", "driver"]) }))
+    requestOtp: publicProcedure
+      .input(z.object({ phone: z.string().min(7).max(32), purpose: z.enum(["sign_in", "sign_up", "password_reset"]), language: z.enum(["ar", "en"]) }))
       .mutation(async ({ input }) => {
-        const user = await upsertLocalUser(input);
-        return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role };
+        if (input.purpose === "sign_up" && await getLocalUserByPhone(input.phone)) throw new Error("ACCOUNT_ALREADY_EXISTS");
+        const challenge = await createLocalAuthChallenge(input);
+        const delivery = await sendOtpSms({ phone: input.phone, code: challenge.code, language: input.language });
+        if (!delivery.configured && ENV.isProduction) throw new Error("OTP_PROVIDER_NOT_CONFIGURED");
+        return {
+          success: true as const,
+          challengeId: challenge.challengeId,
+          expiresAt: challenge.expiresAt.toISOString(),
+          delivery: delivery.sent ? "sms" as const : "development" as const,
+          debugCode: !ENV.isProduction && !delivery.sent ? challenge.code : undefined,
+        };
+      }),
+    localSignIn: publicProcedure
+      .input(z.object({ phone: z.string().min(7).max(32), name: z.string().max(120).optional(), role: z.enum(["customer", "mother", "driver"]), mode: z.enum(["sign_in", "sign_up"]), password: z.string().min(8).max(128), otp: z.string().regex(/^\d{6}$/), challengeId: z.string().min(1).max(64) }))
+      .mutation(async ({ input }) => {
+        const existing = await getLocalUserByPhone(input.phone);
+        if (input.mode === "sign_up" && existing) throw new Error("ACCOUNT_ALREADY_EXISTS");
+        if (input.mode === "sign_in" && !existing) throw new Error("ACCOUNT_NOT_FOUND");
+        if (input.mode === "sign_in" && !verifyLocalPassword(input.password, existing?.passwordHash)) throw new Error(existing?.passwordHash ? "PASSWORD_INVALID" : "PASSWORD_NOT_SET");
+        await consumeLocalAuthChallenge({ phone: input.phone, purpose: input.mode, challengeId: input.challengeId, code: input.otp });
+        const user = await upsertLocalUser({ ...input, passwordHash: input.mode === "sign_up" ? hashLocalPassword(input.password) : undefined, phoneVerifiedAt: new Date() });
+        return { success: true as const, userId: user?.id ?? null, accountStatus: user?.accountStatus ?? "active", businessRole: user?.businessRole ?? input.role, isNewUser: input.mode === "sign_up" };
+      }),
+    resetPassword: publicProcedure
+      .input(z.object({ phone: z.string().min(7).max(32), challengeId: z.string().min(1).max(64), otp: z.string().regex(/^\d{6}$/), newPassword: z.string().min(8).max(128) }))
+      .mutation(async ({ input }) => {
+        await consumeLocalAuthChallenge({ phone: input.phone, purpose: "password_reset", challengeId: input.challengeId, code: input.otp });
+        await setLocalPassword(input.phone, hashLocalPassword(input.newPassword));
+        return { success: true as const };
+      }),
+    changePassword: publicProcedure
+      .input(z.object({ phone: z.string().min(7).max(32), currentPassword: z.string().min(1).max(128), newPassword: z.string().min(8).max(128) }))
+      .mutation(async ({ input }) => {
+        const user = await getLocalUserByPhone(input.phone);
+        if (!user) throw new Error("ACCOUNT_NOT_FOUND");
+        if (!verifyLocalPassword(input.currentPassword, user.passwordHash)) throw new Error("PASSWORD_INVALID");
+        await setLocalPassword(input.phone, hashLocalPassword(input.newPassword));
+        return { success: true as const };
       }),
     submitVerification: publicProcedure
       .input(z.object({
